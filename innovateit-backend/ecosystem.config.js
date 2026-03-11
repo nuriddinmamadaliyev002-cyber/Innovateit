@@ -2,7 +2,7 @@ module.exports = {
   apps: [{
     name:       'innovateit-backend',
     script:     'src/index.js',
-    cwd:        '/var/www/innovateit-backend',
+    cwd: '/var/www/Innovateit/innovateit-backend',
     instances:  1,
     autorestart: true,
     watch:      false,
