@@ -16,6 +16,7 @@
   <div class="topbar-right">
     <span class="admin-badge" id="dav-badge"></span>
     <button class="btn-logout" onclick="goBack()">← Orqaga</button>
+    <button class="btn-export" onclick="openExportModal()">📊 Excel</button>
     <button class="btn-davomat" id="btn-save" onclick="confirmSave()">💾 Saqlash</button>
   </div>
 </div>
@@ -35,17 +36,32 @@
 
 <!-- STATS BAR -->
 <div class="stats-bar">
-  <div class="stat-pill"><span class="stat-dot keldi"></span>Keldi <span class="stat-num" id="st-keldi">0</span></div>
-  <div class="stat-pill"><span class="stat-dot kelmadi"></span>Kelmadi <span class="stat-num" id="st-kelmadi">0</span></div>
-  <div class="stat-pill"><span class="stat-dot sababli"></span>Sababli <span class="stat-num" id="st-sababli">0</span></div>
-  <div class="stat-pill"><span class="stat-dot kech"></span>Kech <span class="stat-num" id="st-kech">0</span></div>
-  <div class="stat-pill" style="margin-left:auto;">Jami: <span class="stat-num" id="st-total">0</span></div>
+  <div class="stat-pill pill-keldi"   onclick="showStatusDetail('keldi')">  <span class="stat-dot keldi"></span>Keldi   <span class="stat-num" id="st-keldi">0</span></div>
+  <div class="stat-pill pill-kelmadi" onclick="showStatusDetail('kelmadi')"><span class="stat-dot kelmadi"></span>Kelmadi <span class="stat-num" id="st-kelmadi">0</span></div>
+  <div class="stat-pill pill-sababli" onclick="showStatusDetail('sababli')"><span class="stat-dot sababli"></span>Sababli <span class="stat-num" id="st-sababli">0</span></div>
+  <div class="stat-pill pill-kech"    onclick="showStatusDetail('kech')">   <span class="stat-dot kech"></span>Kech    <span class="stat-num" id="st-kech">0</span></div>
+  <div class="stat-pill pill-total" style="margin-left:auto;">Jami: <span class="stat-num" id="st-total">0</span></div>
 </div>
 
 <!-- SINF KARTALAR -->
 <div class="dav-main">
   <div class="sinf-grid" id="sinf-grid">
     <!-- JS tomonidan to'ldiriladi -->
+  </div>
+</div>
+
+<!-- MODAL: Status detail (kim keldi/kelmadi/sababli/kech) -->
+<div class="status-detail-modal" id="status-detail-modal" onclick="if(event.target===this)closeStatusDetail()">
+  <div class="status-detail-sheet">
+    <div class="status-detail-header">
+      <div class="status-detail-title">
+        <span id="sd-emoji"></span>
+        <span id="sd-title"></span>
+        <span class="status-detail-badge" id="sd-badge"></span>
+      </div>
+      <button class="status-detail-close" onclick="closeStatusDetail()">×</button>
+    </div>
+    <div class="status-detail-body" id="sd-body"></div>
   </div>
 </div>
 
@@ -85,9 +101,54 @@
   </div>
 </div>
 
+<!-- MODAL: Excel yuklab olish -->
+<div class="modal-overlay" id="export-modal" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-drag"></div>
+    <div class="modal-title" style="text-align:center;">📊 Excel yuklab olish</div>
+
+    <!-- Tur tanlash -->
+    <div class="export-tabs" id="export-tabs">
+      <button class="export-tab active" onclick="selectExportType('bugun',this)">Bugungi</button>
+      <button class="export-tab" onclick="selectExportType('oylik',this)">Oylik</button>
+      <button class="export-tab" onclick="selectExportType('davr',this)">Davr</button>
+    </div>
+
+    <!-- Bugungi kun — hech qanday tanlov yo'q -->
+    <div id="exp-bugun" class="export-section">
+      <p class="export-hint">Joriy ko'rilayotgan sana uchun davomat yuklanadi.</p>
+      <div class="export-preview" id="exp-bugun-preview"></div>
+    </div>
+
+    <!-- Oylik -->
+    <div id="exp-oylik" class="export-section" style="display:none;">
+      <label class="field-label">Oy tanlang</label>
+      <input type="month" id="exp-month-pick" class="field-input" style="margin-bottom:8px;">
+      <div class="export-preview" id="exp-oylik-preview"></div>
+    </div>
+
+    <!-- Davr -->
+    <div id="exp-davr" class="export-section" style="display:none;">
+      <label class="field-label">Boshlanish sanasi</label>
+      <input type="date" id="exp-from" class="field-input" style="margin-bottom:8px;">
+      <label class="field-label">Tugash sanasi</label>
+      <input type="date" id="exp-to" class="field-input" style="margin-bottom:8px;">
+    </div>
+
+    <div class="modal-footer" style="margin-top:16px;">
+      <button class="btn-cancel" onclick="closeExportModal()">Bekor</button>
+      <button class="btn-submit" id="btn-do-export" onclick="doExport()">
+        <span class="spinner" id="exp-spinner" style="display:none;"></span>
+        <span id="exp-txt">⬇ Yuklab olish</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/davomat.js"></script>
 </body>
 </html>

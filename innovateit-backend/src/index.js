@@ -15,7 +15,10 @@ const { handleGetStudents, handleAddStudent,
 const { handleGetAdmins, handleCreateAdmin,
         handleEditAdmin, handleDeleteAdmin }       = require('./routes/admins');
 const { handleSaveDavomat, handleGetDavomat,
-        handleGetDavomatTarix }                    = require('./routes/davomat');
+        handleGetDavomatTarix,
+        handleGetDavomatRange }                    = require('./routes/davomat');
+const { handleGetJadvallar, handleSaveJadval,
+        handleDeleteJadval }                       = require('./routes/jadval');
 const { handleGetTeachers, handleAddTeacher,
         handleEditTeacher, handleDeleteTeacher,
         handleSaveTeacherDavomat,
@@ -24,11 +27,26 @@ const { handleGetTeachers, handleAddTeacher,
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+
 // ─── Middleware ───
 app.use(cors({
-  origin: ['https://innovateitschool.uz', 'http://localhost', 'http://127.0.0.1'],
+  origin: function(origin, callback) {
+    // Local development
+    if (!origin || 
+        origin === 'null' ||
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    // Production server
+    if (origin === 'https://innovateitschool.uz') {
+      return callback(null, true);
+    }
+    callback(new Error('CORS: ruxsat yoq'));
+  },
   methods: ['GET', 'POST', 'OPTIONS']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -90,6 +108,16 @@ async function handleAction(req, res) {
         result = await handleGetDavomat(p); break;
       case 'getDavomatTarix':
         result = await handleGetDavomatTarix(p); break;
+      case 'getDavomatRange':
+        result = await handleGetDavomatRange(p); break;
+
+      // ═══ DARS JADVALI ═══
+      case 'getJadvallar':
+        result = await handleGetJadvallar(p); break;
+      case 'saveJadval':
+        result = await handleSaveJadval(p); break;
+      case 'deleteJadval':
+        result = await handleDeleteJadval(p); break;
 
       // ═══ O'QITUVCHILAR ═══
       case 'getTeachers':

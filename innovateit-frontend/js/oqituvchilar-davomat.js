@@ -3,7 +3,11 @@
 //  (oqituvchilar-davomat.js)
 // ═══════════════════════════════════════════════════
 
-const API = "/api";
+const API = (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1' ||
+             window.location.hostname === '')
+  ? 'http://127.0.0.1:3001/api'
+  : '/api';
 
 const OYLAR  = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
 const KUNLAR = ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];

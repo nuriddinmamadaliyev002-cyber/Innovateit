@@ -4,7 +4,11 @@
 //  + Nofaol o'quvchilar tizimi
 // ═══════════════════════════════════════════════════
 
-const API = "/api";
+const API = (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1' ||
+             window.location.hostname === '')
+  ? 'http://127.0.0.1:3001/api'
+  : '/api';
 
 let U      = null;
 let S      = [];
@@ -72,6 +76,7 @@ function showErr(el, msg) {
 function doLogout() {
   U = null; S = []; ADMINS = []; viewingAdmin = null;
   localStorage.removeItem('iit_u');
+  document.body.classList.remove('super-admin');
   g('app').style.display = 'none';
   g('login-screen').style.display = 'flex';
   g('inp-username').value = '';
@@ -89,7 +94,9 @@ async function showApp() {
   const b = g('admin-badge');
   b.textContent = U.ism;
 
+  // Body'ga super-admin class qo'shish/olib tashlash
   if (U.isSuper) {
+    document.body.classList.add('super-admin');
     b.classList.add('super');
     b.textContent = '⭐ ' + U.ism;
     g('tabs-row').style.display     = 'flex';
@@ -103,6 +110,10 @@ async function showApp() {
     await loadAdmins();
     buildAdminSelector();
   } else {
+    document.body.classList.remove('super-admin');
+    // Oddiy admin - selector va tabs yashiriladi
+    g('tabs-row').style.display = 'none';
+    g('admin-selector-wrap').style.display = 'none';
     g('btn-davomat').style.display  = '';
     g('btn-teachers').style.display = '';
     g('btn-nofaol').style.display   = '';
@@ -192,11 +203,8 @@ async function addStudent() {
   if (!ism || !fam) { toast("⚠️ Ism va familiya kiriting", 'error'); return; }
   if (!maktab)      { toast("⚠️ Maktab raqami 1–99", 'error'); g('f-maktab').classList.add('err'); return; }
   if (!sinf)        { toast("⚠️ Sinf tanlang", 'error'); return; }
-  if (!tel)         { toast("⚠️ Telefon kiriting", 'error'); return; }
-  if (!tug)         { toast("⚠️ Tug'ilgan sana kiriting", 'error'); return; }
-  if (!boshlagan)   { toast("⚠️ O'qishni boshlagan sanani kiriting", 'error'); return; }
-  // Kelajak sanani tekshirish
-  if (boshlagan > todayStr()) { toast("⚠️ Boshlagan sana bugundan kech bo'lmasligi kerak", 'error'); return; }
+  // Kelajak sanani tekshirish (agar kiritilgan bo'lsa)
+  if (boshlagan && boshlagan > todayStr()) { toast("⚠️ Boshlagan sana bugundan kech bo'lmasligi kerak", 'error'); return; }
 
   bl('submit-btn', 'spinner', 'btn-txt', true, 'Saqlanmoqda…');
   const actingUser  = (U.isSuper && viewingAdmin) ? viewingAdmin.username : U.username;

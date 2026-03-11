@@ -2,7 +2,11 @@
 //  InnovateIT School — Davomat  (davomat.js)
 // ═══════════════════════════════════════════════════
 
-const API = "/api";
+const API = (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1' ||
+             window.location.hostname === '')
+  ? 'http://127.0.0.1:3001/api'
+  : '/api';
 
 const OYLAR  = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
 const KUNLAR = ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];
@@ -171,13 +175,12 @@ async function loadDavomat(date) {
     };
     const d = await req(params);
     if (d.ok && d.records.length) {
-      // Mavjud davomatni attendance obyektiga yuklash
       d.records.forEach(r => {
         attendance[r.ism] = r.status;
         if (r.izoh) izohlar[r.ism] = r.izoh;
       });
       render();
-      toast(`✅ ${d.records.length} ta yozuv yuklandi`, 'success');
+      // Toast faqat birinchi yuklanganda, sana o'zgartirish vaqtida emas
     }
   } catch (e) {}
 }
@@ -335,6 +338,57 @@ function updateStats() {
 }
 
 // ─────────────────────────────────────────────
+//  STATUS DETAIL MODAL
+// ─────────────────────────────────────────────
+const STATUS_META = {
+  keldi:   { emoji: '✅', title: 'Keldi',      cls: 'k', color: '#15803d' },
+  kelmadi: { emoji: '❌', title: 'Kelmadi',    cls: 'x', color: '#dc2626' },
+  sababli: { emoji: '📋', title: 'Sababli',    cls: 's', color: '#d97706' },
+  kech:    { emoji: '⏰', title: 'Kech keldi', cls: 'l', color: '#7c3aed' },
+};
+
+function showStatusDetail(status) {
+  const meta = STATUS_META[status];
+  if (!meta) return;
+
+  // O'sha statusdagi o'quvchilarni yig'ish
+  const list = STUDENTS
+    .filter(s => attendance[s.ism + ' ' + s.familiya] === status)
+    .map(s => ({ name: s.ism + ' ' + s.familiya, sinf: s.sinf, izoh: izohlar[s.ism + ' ' + s.familiya] || '' }));
+
+  g('sd-emoji').textContent  = meta.emoji;
+  g('sd-title').textContent  = meta.title;
+
+  const badge = g('sd-badge');
+  badge.textContent  = list.length + ' nafar';
+  badge.className    = 'status-detail-badge ' + meta.cls;
+
+  if (!list.length) {
+    g('sd-body').innerHTML = `<div class="status-detail-empty">Hozircha hech kim ${meta.title.toLowerCase()} emas</div>`;
+  } else {
+    g('sd-body').innerHTML = list.map((item, i) => `
+      <div class="status-detail-item">
+        <span class="status-detail-num">${i + 1}</span>
+        <div class="status-detail-info">
+          <div class="status-detail-name">${item.name}</div>
+          <div class="status-detail-sinf">${item.sinf.toLowerCase().includes('sinf') ? item.sinf : item.sinf + '-sinf'}</div>
+          ${item.izoh ? `<div class="status-detail-izoh">💬 ${item.izoh}</div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  const modal = g('status-detail-modal');
+  modal.classList.add('open');
+  modal.style.display = 'flex';
+}
+
+function closeStatusDetail() {
+  const modal = g('status-detail-modal');
+  modal.style.display = 'none';
+  modal.classList.remove('open');
+}
+
+// ─────────────────────────────────────────────
 //  SAQLASH
 // ─────────────────────────────────────────────
 function confirmSave() {
@@ -388,6 +442,209 @@ async function doSave() {
     } else toast('❌ ' + r.error, 'error');
   } catch (e) { toast('❌ Xatolik yuz berdi', 'error'); }
   bl('btn-confirm', 'save-spinner', 'save-txt', false, 'Ha, saqlash');
+}
+
+// ─────────────────────────────────────────────
+//  EXCEL EXPORT
+// ─────────────────────────────────────────────
+let exportType = 'bugun';
+
+function openExportModal() {
+  // Default: bugungi sana
+  exportType = 'bugun';
+  // Oylik picker: joriy oy
+  const now = new Date();
+  g('exp-month-pick').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  g('exp-month-pick').max   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  // Davr picker: joriy oy birinchi kuni - bugun
+  const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+  g('exp-from').value = `${y}-${m}-01`;
+  g('exp-to').value   = dateStr(now);
+  g('exp-from').max   = dateStr(now);
+  g('exp-to').max     = dateStr(now);
+
+  // Bugungi preview
+  updateBugunPreview();
+
+  g('export-modal').style.display = 'flex';
+}
+
+function closeExportModal() {
+  g('export-modal').style.display = 'none';
+}
+
+function selectExportType(type, btn) {
+  exportType = type;
+  document.querySelectorAll('.export-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  g('exp-bugun').style.display = type === 'bugun'  ? '' : 'none';
+  g('exp-oylik').style.display = type === 'oylik'  ? '' : 'none';
+  g('exp-davr').style.display  = type === 'davr'   ? '' : 'none';
+  if (type === 'bugun') updateBugunPreview();
+}
+
+function updateBugunPreview() {
+  const c = { keldi: 0, kelmadi: 0, sababli: 0, kech: 0 };
+  Object.values(attendance).forEach(s => { if (c[s] !== undefined) c[s]++; });
+  const total = Object.values(attendance).filter(Boolean).length;
+  g('exp-bugun-preview').innerHTML = total
+    ? `📅 <span>${formatDateDisplay(currentDate)}</span> &nbsp;·&nbsp; `
+      + `<span class="exp-stat">${total}</span> o'quvchi &nbsp;`
+      + `✅<span class="exp-stat">${c.keldi}</span> `
+      + `❌<span class="exp-stat">${c.kelmadi}</span> `
+      + `📋<span class="exp-stat">${c.sababli}</span> `
+      + `⏰<span class="exp-stat">${c.kech}</span>`
+    : `<span style="color:var(--muted)">Bugun uchun davomat belgilanmagan</span>`;
+}
+
+async function doExport() {
+  let from, to, filename;
+  const now = new Date();
+
+  if (exportType === 'bugun') {
+    from = dateStr(currentDate);
+    to   = dateStr(currentDate);
+    filename = `Davomat_${from}`;
+  } else if (exportType === 'oylik') {
+    const mp = g('exp-month-pick').value;
+    if (!mp) { toast('⚠️ Oy tanlang', 'error'); return; }
+    const [y, m] = mp.split('-');
+    from = `${y}-${m}-01`;
+    const lastDay = new Date(+y, +m, 0).getDate();
+    to   = `${y}-${m}-${String(lastDay).padStart(2,'0')}`;
+    filename = `Davomat_${OYLAR[+m-1]}_${y}`;
+  } else {
+    from = g('exp-from').value;
+    to   = g('exp-to').value;
+    if (!from || !to) { toast('⚠️ Sanalarni kiriting', 'error'); return; }
+    if (from > to)    { toast('⚠️ Boshlanish sanasi katta bo\'lishi mumkin emas', 'error'); return; }
+    filename = `Davomat_${from}_${to}`;
+  }
+
+  // Agar bugungi — API chaqirmaylik, memory dan olamiz
+  let records;
+  if (exportType === 'bugun' && Object.keys(attendance).length) {
+    records = STUDENTS
+      .filter(s => attendance[s.ism + ' ' + s.familiya])
+      .map(s => {
+        const key = s.ism + ' ' + s.familiya;
+        return { sana: dateStr(currentDate).split('-').reverse().join('.'), sinf: s.sinf, ism: key, status: attendance[key], izoh: izohlar[key]||'' };
+      });
+  } else {
+    // API dan olish
+    bl('btn-do-export','exp-spinner','exp-txt',true,'Yuklanmoqda…');
+    try {
+      const d = await req({ action:'getDavomatRange', username:U.username, parol:U.parol, from, to });
+      if (!d.ok) { toast('❌ ' + d.error, 'error'); bl('btn-do-export','exp-spinner','exp-txt',false,'⬇ Yuklab olish'); return; }
+      records = d.records;
+    } catch(e) { toast('❌ Xatolik', 'error'); bl('btn-do-export','exp-spinner','exp-txt',false,'⬇ Yuklab olish'); return; }
+    bl('btn-do-export','exp-spinner','exp-txt',false,'⬇ Yuklab olish');
+  }
+
+  if (!records.length) { toast('⚠️ Bu davr uchun ma\'lumot topilmadi', 'error'); return; }
+
+  buildExcel(records, filename, from, to);
+  closeExportModal();
+  toast('✅ Excel fayl yuklab olindi!', 'success');
+}
+
+function buildExcel(records, filename, from, to) {
+  const wb = XLSX.utils.book_new();
+  const STATUS_LABEL = { keldi:'Keldi', kelmadi:'Kelmadi', sababli:'Sababli', kech:'Kech keldi' };
+
+  if (exportType === 'bugun') {
+    // ─── 1 SHEET: Bugungi jadval ───
+    const rows = [['#', 'Sinf', 'Ism Familiya', 'Status', 'Izoh']];
+    records.forEach((r, i) => rows.push([i+1, r.sinf, r.ism, STATUS_LABEL[r.status]||r.status, r.izoh]));
+
+    // Xulosa qatori
+    const c = { keldi:0, kelmadi:0, sababli:0, kech:0 };
+    records.forEach(r => { if(c[r.status]!==undefined) c[r.status]++; });
+    rows.push([]);
+    rows.push(['', '', 'JAMI:', records.length, '']);
+    rows.push(['', '', 'Keldi:', c.keldi, '']);
+    rows.push(['', '', 'Kelmadi:', c.kelmadi, '']);
+    rows.push(['', '', 'Sababli:', c.sababli, '']);
+    rows.push(['', '', 'Kech keldi:', c.kech, '']);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:4},{wch:10},{wch:24},{wch:12},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Davomat');
+
+  } else {
+    // ─── Ko'p kunli: har sinf uchun alohida sheet ───
+    // 1. Umumiy sheet — barcha yozuvlar
+    const allRows = [['Sana', 'Sinf', 'Ism Familiya', 'Status', 'Izoh']];
+    records.forEach(r => allRows.push([r.sana, r.sinf, r.ism, STATUS_LABEL[r.status]||r.status, r.izoh]));
+    const wsAll = XLSX.utils.aoa_to_sheet(allRows);
+    wsAll['!cols'] = [{wch:12},{wch:10},{wch:24},{wch:12},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, wsAll, 'Barchasi');
+
+    // 2. Har sinf uchun kross-jadval (o'quvchi × sana)
+    const sinflar = [...new Set(records.map(r => r.sinf))].sort((a,b)=>parseInt(a)-parseInt(b));
+
+    sinflar.forEach(sinf => {
+      const sinfRecs = records.filter(r => r.sinf === sinf);
+      const sanalar  = [...new Set(sinfRecs.map(r => r.sana))].sort((a,b) => {
+        const pa = a.split('.').reverse().join('-');
+        const pb = b.split('.').reverse().join('-');
+        return pa > pb ? 1 : -1;
+      });
+      const students = [...new Set(sinfRecs.map(r => r.ism))].sort();
+
+      // Header: Ism | Sana1 | Sana2 | ... | Keldi_% | Kelmadi_%
+      const header = ['Ism Familiya', ...sanalar, 'Keldi', 'Kelmadi', 'Sababli', 'Kech', 'Davomat %'];
+      const rows = [header];
+
+      students.forEach(ism => {
+        const row = [ism];
+        const cnt = { keldi:0, kelmadi:0, sababli:0, kech:0 };
+        sanalar.forEach(sana => {
+          const rec = sinfRecs.find(r => r.ism === ism && r.sana === sana);
+          const st  = rec ? (STATUS_LABEL[rec.status] || rec.status) : '—';
+          row.push(st);
+          if (rec && cnt[rec.status] !== undefined) cnt[rec.status]++;
+        });
+        const total = sanalar.length;
+        const pct   = total ? Math.round((cnt.keldi + cnt.kech) / total * 100) : 0;
+        row.push(cnt.keldi, cnt.kelmadi, cnt.sababli, cnt.kech, pct + '%');
+        rows.push(row);
+      });
+
+      // Kunlik xulosa qatori
+      const sumRow = ['JAMI'];
+      sanalar.forEach(sana => {
+        const daySt = sinfRecs.filter(r => r.sana === sana);
+        const k = daySt.filter(r => r.status==='keldi').length;
+        sumRow.push(`${k}/${daySt.length}`);
+      });
+      sumRow.push('','','','','');
+      rows.push(sumRow);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const colW = [{wch:24}, ...sanalar.map(()=>({wch:10})), {wch:7},{wch:8},{wch:7},{wch:5},{wch:10}];
+      ws['!cols'] = colW;
+
+      const sheetName = sinf.length > 31 ? sinf.slice(0,31) : sinf;
+      XLSX.utils.book_append_sheet(wb, ws, sheetName + '-sinf');
+    });
+
+    // 3. Umumiy statistika sheet
+    const statRows = [['Sinf', 'Jami dars', 'Umumiy davomat', 'Keldi', 'Kelmadi', 'Sababli', 'Kech', 'Davomat %']];
+    sinflar.forEach(sinf => {
+      const sr = records.filter(r => r.sinf === sinf);
+      const c  = {keldi:0,kelmadi:0,sababli:0,kech:0};
+      sr.forEach(r => { if(c[r.status]!==undefined) c[r.status]++; });
+      const total = sr.length;
+      const pct   = total ? Math.round((c.keldi+c.kech)/total*100) : 0;
+      statRows.push([sinf, total, c.keldi+c.kech, c.keldi, c.kelmadi, c.sababli, c.kech, pct+'%']);
+    });
+    const wsStat = XLSX.utils.aoa_to_sheet(statRows);
+    wsStat['!cols'] = [{wch:12},{wch:10},{wch:14},{wch:7},{wch:8},{wch:7},{wch:5},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, wsStat, 'Statistika');
+  }
+
+  XLSX.writeFile(wb, filename + '.xlsx');
 }
 
 // ─────────────────────────────────────────────

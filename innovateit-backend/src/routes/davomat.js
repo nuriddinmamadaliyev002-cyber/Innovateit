@@ -75,8 +75,59 @@ async function handleGetDavomatTarix(p) {
   return { ok: true, sanalar };
 }
 
+// ─── Davomat range (kunlik/oylik/davr) ───
+async function handleGetDavomatRange(p) {
+  const admin = await verifyAdmin(p.username, p.parol);
+  if (!admin) return { ok: false, error: "Ruxsat yo'q" };
+
+  const targetUsername = (admin.isSuper && p.adminUsername) ? p.adminUsername : p.username;
+
+  // p.from va p.to — YYYY-MM-DD formatda
+  if (!p.from || !p.to) return { ok: false, error: "from va to sanalar kerak" };
+
+  // Sana oralig'idagi barcha davomat yozuvlari
+  // davomat.sana = 'DD.MM.YYYY' formatda saqlanadi, shuning uchun barcha sana olish kerak
+  // va JS'da filter qilamiz
+  const result = await pool.query(
+    `SELECT sana, sinf, oquvchi_ism, status, izoh
+     FROM davomat
+     WHERE admin_username = $1
+     ORDER BY sinf, oquvchi_ism, sana`,
+    [targetUsername]
+  );
+
+  // from/to ni DD.MM.YYYY formatga o'girish va filter
+  function toUZ(iso) {
+    const [y, m, d] = iso.split('-');
+    return `${d}.${m}.${y}`;
+  }
+  function parseUZ(uz) {
+    const [d, m, y] = uz.split('.');
+    return new Date(`${y}-${m}-${d}`);
+  }
+
+  const fromDate = new Date(p.from);
+  const toDate   = new Date(p.to);
+  fromDate.setHours(0,0,0,0);
+  toDate.setHours(23,59,59,999);
+
+  const filtered = result.rows.filter(r => {
+    const d = parseUZ(r.sana);
+    return d >= fromDate && d <= toDate;
+  });
+
+  return { ok: true, records: filtered.map(r => ({
+    sana:   r.sana,
+    sinf:   r.sinf,
+    ism:    r.oquvchi_ism,
+    status: r.status,
+    izoh:   r.izoh || ''
+  }))};
+}
+
 module.exports = {
   handleSaveDavomat,
   handleGetDavomat,
-  handleGetDavomatTarix
+  handleGetDavomatTarix,
+  handleGetDavomatRange
 };

@@ -262,3 +262,13 @@ tr:hover td { background: #fafaf8; }
 .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
 .empty-state-icon { font-size: 32px; margin-bottom: 10px; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ══ JADVAL BUTTON ══ */
+.btn-jadval {
+  font-size: 12px; font-weight: 500;
+  color: #7c3aed; background: #f5f3ff;
+  border: 1px solid #ddd6fe; padding: 6px 12px; border-radius: 8px;
+  cursor: pointer; font-family: "DM Sans", sans-serif;
+  white-space: nowrap; flex-shrink: 0; transition: all .15s;
+}
+.btn-jadval:hover { background: #ede9fe; border-color: #7c3aed; }

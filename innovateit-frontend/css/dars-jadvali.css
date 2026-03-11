@@ -1,0 +1,227 @@
+/* ═══════════════════════════════════════════════════
+   InnovateIT School — Dars jadvali stillari
+   ═══════════════════════════════════════════════════ */
+
+/* ══ TABS ══ */
+.jad-tabs {
+  display: flex; gap: 4px; padding: 12px var(--p) 0;
+  max-width: 1200px; margin: 0 auto; overflow-x: auto;
+}
+.jad-tabs::-webkit-scrollbar { display: none; }
+.jad-tab {
+  padding: 8px 16px; border-radius: 10px 10px 0 0;
+  border: 1px solid var(--border); border-bottom: none;
+  background: var(--bg); color: var(--muted);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all .15s;
+  white-space: nowrap;
+}
+.jad-tab.active {
+  background: var(--surface); color: var(--text);
+  font-weight: 600; border-color: var(--border);
+}
+
+/* ══ MAIN ══ */
+.jad-main {
+  max-width: 1200px; margin: 0 auto;
+  padding: 16px var(--p) 60px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 12px 12px 12px;
+  min-height: 400px;
+}
+
+/* ══ FILTER BAR ══ */
+.jad-filter-bar {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  align-items: flex-end; margin-bottom: 18px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.jad-filter-group { display: flex; flex-direction: column; gap: 4px; }
+.jad-filter-lbl   { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.jad-select {
+  padding: 7px 12px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; background: var(--bg); color: var(--text);
+  outline: none; cursor: pointer; min-width: 160px;
+}
+.jad-select:focus { border-color: var(--accent); }
+
+/* ══ SEGMENT CONTROL ══ */
+.seg-ctrl {
+  display: flex; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 9px; padding: 3px;
+}
+.seg-btn {
+  padding: 5px 14px; border-radius: 7px; border: none;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  background: none; color: var(--muted); transition: all .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.seg-btn.active {
+  background: var(--surface); color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+}
+
+/* ══ JADVAL GRID ══ */
+.jadval-wrap { overflow-x: auto; }
+.jadval-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; min-width: 600px;
+}
+.jadval-table th {
+  padding: 10px 12px; background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); text-align: center;
+}
+.jadval-table th.th-name { text-align: left; min-width: 140px; }
+.jadval-table td {
+  padding: 8px 10px; border: 1px solid var(--border);
+  vertical-align: top; min-width: 110px;
+}
+.jadval-table tr:hover td { background: var(--bg); }
+.jadval-table td.td-name {
+  font-weight: 600; font-size: 13px;
+  vertical-align: middle;
+}
+.jadval-cell { display: flex; flex-direction: column; gap: 4px; }
+.jcell {
+  padding: 5px 8px; border-radius: 7px;
+  font-size: 11px; font-weight: 500;
+  border: 1px solid transparent;
+}
+.jcell.teacher { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+.jcell.sinf    { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.jcell-name { font-weight: 700; font-size: 12px; }
+.jcell-sub  { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.jcell-empty { color: var(--muted); font-size: 11px; padding: 4px 0; text-align: center; }
+.today-col th, .today-col td { background: #fefce8 !important; }
+
+/* ══ CARD BOX ══ */
+.card-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 20px;
+}
+.card-title {
+  font-size: 13px; font-weight: 700; margin-bottom: 14px;
+}
+
+/* ══ BIRIKTIRISH FORM ══ */
+.birik-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width:600px) { .birik-grid { grid-template-columns: 1fr; } }
+.current-sinflar {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  min-height: 38px; padding: 6px 10px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--surface); align-items: center;
+}
+.cs-empty { color: var(--muted); font-size: 12px; }
+.cs-sinf {
+  padding: 3px 9px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 600;
+}
+
+.birik-section-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+.group-chips {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.group-chip {
+  padding: 5px 12px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  cursor: pointer; transition: all .15s; user-select: none;
+}
+.group-chip:hover  { border-color: #7c3aed; color: #7c3aed; }
+.group-chip.sel    { background: #f5f3ff; border-color: #7c3aed; color: #7c3aed; }
+.sinf-chips, .kun-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sinf-chip, .kun-chip {
+  padding: 5px 11px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  cursor: pointer; transition: all .15s; user-select: none;
+}
+.sinf-chip.sel { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.kun-chip.sel  { background: #f5f3ff; border-color: #7c3aed; color: #7c3aed; }
+
+.birik-vaqt-row { display: flex; align-items: center; }
+.vaqt-group { display: flex; align-items: center; gap: 4px; }
+.vaqt-inp {
+  width: 52px; padding: 10px 6px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 400;
+  text-align: center; background: var(--bg); color: var(--text);
+  outline: none; -moz-appearance: textfield;
+}
+.vaqt-inp::-webkit-outer-spin-button,
+.vaqt-inp::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; }
+.vaqt-inp:focus { border-color: var(--accent); }
+.vaqt-sep { font-size: 20px; font-weight: 700; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* ══ SAVED JADVALLAR ══ */
+.saved-jad-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface);
+  margin-bottom: 8px; transition: all .15s;
+}
+.saved-jad-item:hover { border-color: var(--accent); }
+.sji-info { flex: 1; }
+.sji-name { font-size: 14px; font-weight: 600; }
+.sji-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sji-sinflar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.sji-sinf {
+  padding: 2px 7px; border-radius: 5px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 10px; font-weight: 600;
+}
+.sji-kunlar { display: flex; flex-wrap: wrap; gap: 3px; }
+.sji-kun {
+  padding: 2px 6px; border-radius: 5px;
+  background: #f5f3ff; color: #7c3aed;
+  font-size: 10px; font-weight: 600;
+}
+.sji-btns { display: flex; gap: 6px; }
+.btn-action {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1px solid var(--border); background: none;
+  cursor: pointer; font-size: 14px; display: flex;
+  align-items: center; justify-content: center; transition: all .15s;
+}
+.btn-action:hover { border-color: var(--danger); }
+
+/* ══ EXPORT BUTTON ══ */
+.btn-export-jadval {
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: #f0fdf4; border: 1.5px solid #16a34a; color: #15803d;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-export-jadval:hover { background: #dcfce7; }
+
+/* ══ EXPORT TABS ══ */
+.export-tabs {
+  display: flex; gap: 4px; margin-bottom: 14px;
+  background: var(--bg); border-radius: 10px; padding: 4px;
+}
+.export-tab {
+  flex: 1; padding: 7px 0; border-radius: 7px; border: none;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  background: none; color: var(--muted); transition: all .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.export-tab.active {
+  background: var(--surface); color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+}
+.export-hint {
+  font-size: 13px; color: var(--muted);
+  text-align: center; padding: 10px 0; margin: 0;
+}

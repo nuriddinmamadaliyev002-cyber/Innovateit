@@ -2,8 +2,11 @@
 //  InnovateIT School — O'qituvchilar  (oqituvchilar.js)
 // ═══════════════════════════════════════════════════
 
-const API = "/api";
-
+const API = (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1' ||
+             window.location.hostname === '')
+  ? 'http://127.0.0.1:3001/api'
+  : '/api';
 const KUN_NAMES = ['', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
 const KUN_SHORT = ['', 'Du', 'Se', 'Cho', 'Pay', 'Ju', 'Sha'];
 
@@ -34,33 +37,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     badge.textContent = U.ism;
   }
 
-  // Super admin umumiy ko'rish rejimi: form va davomat yashiriq
-  if (U.isSuper) {
+  // Super admin: form va knopkalar yashiriq
+  if (U.isSuper || U.isSuperProxy) {
     const addForm = g('add-form');
     if (addForm) addForm.style.display = 'none';
     const btnDav = g('btn-davomat-teacher');
     if (btnDav) btnDav.style.display = 'none';
+    const btnJad = g('btn-jadval-teacher');
+    if (btnJad) btnJad.style.display = 'none';
   }
-
-  // Super admin proxy (biror maktab tanlangan): faqat o'qituvchilar ko'rinadi, davomat yo'q
-  if (U.isSuperProxy) {
-    const addForm = g('add-form');
-    if (addForm) addForm.style.display = 'none';
-    const btnDav = g('btn-davomat-teacher');
-    if (btnDav) btnDav.style.display = 'none';
-  }
-
-  // Chip clicklar
-  setupChips('f-kunlar',  'kun-chip');
-  setupChips('f-sinflar', 'sinf-chip');
-  setupChips('e-kunlar',  'kun-chip');
-  setupChips('e-sinflar', 'sinf-chip');
-
-  // Vaqt inputlar
-  setupVaqtInp('f-bosh-s'); setupVaqtInp('f-bosh-m');
-  setupVaqtInp('f-tug-s');  setupVaqtInp('f-tug-m');
-  setupVaqtInp('e-bosh-s'); setupVaqtInp('e-bosh-m');
-  setupVaqtInp('e-tug-s');  setupVaqtInp('e-tug-m');
 
   // Telefon maskalari
   setupTel('f-tel',  'f-tel-hint');
@@ -81,6 +66,11 @@ function goBack() {
 function openDavomat() {
   sessionStorage.setItem('iit_teacher_dav_user', JSON.stringify(U));
   window.location.href = 'oqituvchilar-davomat.html';
+}
+
+function openJadval() {
+  sessionStorage.setItem('iit_jadval_user', JSON.stringify(U));
+  window.location.href = 'dars-jadvali.html';
 }
 
 // ─────────────────────────────────────────────
@@ -146,17 +136,12 @@ function renderTable(d) {
 
   const todayDay = new Date().getDay();
   tb.innerHTML = d.map((t, i) => {
-    const kunlar  = parseDays(t.kunlar);
-    const sinflar = parseSinflar(t.sinflar);
     const maktabNom = ADMINS_MAP[t.admin] || t.admin || '—';
     return `<tr>
       <td class="mono">${i+1}</td>
       <td><strong>${t.ism}</strong> ${t.familiya}</td>
       <td><span class="fan-badge">${t.fan || '—'}</span></td>
       ${isSuper ? `<td style="font-size:12px;color:var(--muted);">${maktabNom}</td>` : ''}
-      <td><div class="sinf-tags">${sinflar.map(s=>`<span class="sinf-tag">${s}</span>`).join('')}</div></td>
-      <td><div class="kun-tags">${kunlar.map(k=>`<span class="kun-tag${k==todayDay?' today':''}">${KUN_SHORT[k]}</span>`).join('')}</div></td>
-      <td><span class="vaqt-badge">${fmtVaqt(t.boshlanish, t.tugash)}</span></td>
       <td class="mono">${t.telefon||'—'}</td>
       <td class="mono">${t.telefon2||'—'}</td>
       ${isAdmin ? `<td><div style="display:flex;gap:6px;">
@@ -194,9 +179,6 @@ function renderMobile(d) {
       <div class="tc-body">
         <div class="tc-row"><span class="tc-lbl">📞 Telefon</span><span class="tc-val mono">${t.telefon||'—'}</span></div>
         <div class="tc-row"><span class="tc-lbl">📞 Qo'sh.</span><span class="tc-val mono">${t.telefon2||'—'}</span></div>
-        <div class="tc-row"><span class="tc-lbl">⏰ Vaqt</span><span class="tc-val"><span class="vaqt-badge">${fmtVaqt(t.boshlanish,t.tugash)}</span></span></div>
-        <div class="tc-row"><span class="tc-lbl">📅 Kunlar</span><span class="tc-val"><div class="kun-tags">${kunlar.map(k=>`<span class="kun-tag${k==todayDay?' today':''}">${KUN_SHORT[k]}</span>`).join('')}</div></span></div>
-        <div class="tc-row"><span class="tc-lbl">🏫 Sinflar</span><span class="tc-val"><div class="sinf-tags">${sinflar.map(s=>`<span class="sinf-tag">${s}</span>`).join('')}</div></span></div>
       </div>
     </div>`;
   }).join('');
@@ -206,23 +188,17 @@ function renderMobile(d) {
 //  QO'SHISH
 // ─────────────────────────────────────────────
 async function addTeacher() {
-  const ism    = g('f-ism').value.trim();
-  const fam    = g('f-familiya').value.trim();
-  const fan    = g('f-fan').value;
-  const tel    = g('f-tel').value.trim();
-  const tel2   = g('f-tel2').value.trim();
-  const kunlar = getSelectedDays('f-kunlar');
-  const sinflar= getSelectedSinfs('f-sinflar');
-  const boshlanish = padZ(g('f-bosh-s').value) + ':' + padZ(g('f-bosh-m').value);
-  const tugash     = padZ(g('f-tug-s').value)  + ':' + padZ(g('f-tug-m').value);
+  const ism  = g('f-ism').value.trim();
+  const fam  = g('f-familiya').value.trim();
+  const fan  = g('f-fan').value;
+  const tel  = g('f-tel').value.trim();
+  const tel2 = g('f-tel2').value.trim();
 
   if (!ism||!fam)     { toast('⚠️ Ism va familiya kiriting','error'); return; }
   if (!fan)           { toast('⚠️ Fan tanlang','error'); return; }
   if (!tel)           { toast('⚠️ Telefon kiriting','error'); return; }
-  if (!isTelOk(tel))  { toast('⚠️ Telefon formati noto\'g\'ri','error'); return; }
-  if (tel2 && !isTelOk(tel2)) { toast('⚠️ Qo\'sh. telefon formati noto\'g\'ri','error'); return; }
-  if (!kunlar.length) { toast('⚠️ Kamida 1 kun tanlang','error'); return; }
-  if (!sinflar.length){ toast('⚠️ Kamida 1 sinf tanlang','error'); return; }
+  if (!isTelOk(tel))  { toast("⚠️ Telefon formati noto'g'ri",'error'); return; }
+  if (tel2 && !isTelOk(tel2)) { toast("⚠️ Qo'sh. telefon formati noto'g'ri",'error'); return; }
 
   bl('submit-btn', 'spinner', 'btn-txt', true, 'Saqlanmoqda…');
   try {
@@ -230,8 +206,7 @@ async function addTeacher() {
       action: 'addTeacher', username: U.username, parol: U.parol,
       ism, familiya: fam, fan,
       telefon: tel, telefon2: tel2||'',
-      kunlar: kunlar.join(','), sinflar: sinflar.join(','),
-      boshlanish, tugash,
+      kunlar: '', sinflar: '', boshlanish: '', tugash: '',
       date: new Date().toLocaleDateString('uz-UZ')
     });
     if (r.ok) { clearForm(); await loadTeachers(); toast("✅ O'qituvchi qo'shildi!", 'success'); }
@@ -243,10 +218,6 @@ async function addTeacher() {
 function clearForm() {
   ['f-ism','f-familiya','f-tel','f-tel2'].forEach(id => g(id).value='');
   g('f-fan').value='';
-  g('f-bosh-s').value='08'; g('f-bosh-m').value='00';
-  g('f-tug-s').value='14';  g('f-tug-m').value='00';
-  g('f-kunlar').querySelectorAll('.kun-chip').forEach(c=>c.classList.remove('sel'));
-  g('f-sinflar').querySelectorAll('.sinf-chip').forEach(c=>c.classList.remove('sel'));
   ['f-tel-hint','f-tel2-hint'].forEach(id=>{g(id).textContent='';g(id).className='tel-hint';});
   g('f-tel').className='field-input tel-input';
   g('f-tel2').className='field-input tel-input';
@@ -292,23 +263,17 @@ function openEdit(idx) {
 function closeEdit() { g('edit-modal').classList.remove('show'); eIdx=null; }
 
 async function saveEdit() {
-  const ism    = g('e-ism').value.trim();
-  const fam    = g('e-familiya').value.trim();
-  const fan    = g('e-fan').value;
-  const tel    = g('e-tel').value.trim();
-  const tel2   = g('e-tel2').value.trim();
-  const kunlar = getSelectedDays('e-kunlar');
-  const sinflar= getSelectedSinfs('e-sinflar');
-  const boshlanish = padZ(g('e-bosh-s').value)+':'+padZ(g('e-bosh-m').value);
-  const tugash     = padZ(g('e-tug-s').value) +':'+padZ(g('e-tug-m').value);
+  const ism  = g('e-ism').value.trim();
+  const fam  = g('e-familiya').value.trim();
+  const fan  = g('e-fan').value;
+  const tel  = g('e-tel').value.trim();
+  const tel2 = g('e-tel2').value.trim();
 
   if (!ism||!fam)   { toast('⚠️ Ism va familiya kiriting','error'); return; }
   if (!fan)         { toast('⚠️ Fan tanlang','error'); return; }
   if (!tel)         { toast('⚠️ Telefon kiriting','error'); return; }
   if (!isTelOk(tel)){ toast("⚠️ Telefon formati noto'g'ri",'error'); return; }
   if (tel2&&!isTelOk(tel2)){ toast("⚠️ Qo'sh. telefon noto'g'ri",'error'); return; }
-  if (!kunlar.length) { toast('⚠️ Kamida 1 kun tanlang','error'); return; }
-  if (!sinflar.length){ toast('⚠️ Kamida 1 sinf tanlang','error'); return; }
 
   const old = T[eIdx];
   bl('e-save-btn','e-spinner','e-btn-txt',true,'Saqlanmoqda…');
@@ -317,8 +282,8 @@ async function saveEdit() {
       action:'editTeacher', username:U.username, parol:U.parol,
       oldIsm:old.ism, oldFamiliya:old.familiya,
       ism, familiya:fam, fan, telefon:tel, telefon2:tel2||'',
-      kunlar:kunlar.join(','), sinflar:sinflar.join(','),
-      boshlanish, tugash
+      kunlar: old.kunlar||'', sinflar: old.sinflar||'',
+      boshlanish: old.boshlanish||'', tugash: old.tugash||''
     });
     if (r.ok) { closeEdit(); await loadTeachers(); toast("✅ O'qituvchi yangilandi!","success"); }
     else toast('❌ '+r.error,'error');
