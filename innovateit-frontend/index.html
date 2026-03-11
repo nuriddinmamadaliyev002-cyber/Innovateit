@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>InnovateIT School — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ════════════════ LOGIN ════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">InnovateIT School</div>
+    <h1 class="login-title">Admin Panel</h1>
+    <p class="login-sub">Davom etish uchun ma'lumotlarni kiriting</p>
+
+    <div class="field-group">
+      <label class="field-label">Username</label>
+      <input class="field-input" type="text" id="inp-username"
+        placeholder="admin_ism" autocomplete="username">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Parol</label>
+      <div class="pw-wrap">
+        <input class="field-input" type="password" id="inp-parol"
+          placeholder="••••••••" autocomplete="current-password">
+        <button class="eye-btn" onclick="togglePw('inp-parol')" tabindex="-1" type="button">
+          <svg id="eye-inp-parol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Kirish</button>
+    <p class="err-msg" id="login-err"></p>
+  </div>
+</div>
+
+<!-- ════════════════ APP ════════════════ -->
+<div id="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">InnovateIT School</div>
+    <div class="topbar-right">
+
+      <div class="admin-selector-wrap" id="admin-selector-wrap" style="display:none;">
+        <select class="admin-selector" id="admin-selector" onchange="onAdminSelect()">
+          <option value="">👁 Barcha o'quvchilar</option>
+        </select>
+      </div>
+
+      <span class="admin-badge" id="admin-badge"></span>
+      <span class="stat-badge"  id="total-count">0</span>
+      <!-- ✅ YANGI: Nofaol tugmasi -->
+      <button class="btn-nofaol" id="btn-nofaol" onclick="openNofaol()">🚫 Nofaol</button>
+      <button class="btn-teachers" id="btn-teachers" onclick="openTeachers()">👩‍🏫 O'qituvchilar</button>
+      <button class="btn-davomat" id="btn-davomat" onclick="openDavomat()">📋 Davomat</button>
+      <button class="btn-logout"  onclick="doLogout()">Chiqish</button>
+    </div>
+  </div>
+
+  <!-- Tablar (faqat super admin) -->
+  <div class="tabs" id="tabs-row" style="display:none;">
+    <button class="tab-btn active" onclick="switchTab('s')">📋 O'quvchilar</button>
+    <button class="tab-btn"        onclick="switchTab('a')">👥 Adminlar</button>
+  </div>
+
+  <div class="main">
+
+    <!-- ─── O'QUVCHILAR TABI ─── -->
+    <div id="tab-s">
+      <div class="form-card" id="add-student-form" style="margin-top:14px;display:none;">
+        <div class="card-title">➕ Yangi o'quvchi qo'shish</div>
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Ism</label>
+            <input class="field-input" id="f-ism" placeholder="Sardor" autocomplete="off">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Familiya</label>
+            <input class="field-input" id="f-familiya" placeholder="Karimov" autocomplete="off">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Maktab raqami</label>
+            <input class="field-input" id="f-maktab" type="number" inputmode="numeric"
+              placeholder="5" min="1" max="99" oninput="valM(this)"
+              style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;text-align:center;letter-spacing:3px;padding:10px;">
+            <p class="field-hint">Faqat 1–99 oralig'idagi raqam</p>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Sinfi</label>
+            <select class="field-input" id="f-sinf">
+              <option value="">— Tanlang —</option>
+              <option>1-sinf</option><option>2-sinf</option><option>3-sinf</option>
+              <option>4-sinf</option><option>5-sinf</option><option>6-sinf</option>
+              <option>7-sinf</option><option>8-sinf</option><option>9-sinf</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Telefon</label>
+            <input class="field-input" type="tel" id="f-tel" inputmode="tel" placeholder="+998 90 123 45 67">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Qo'shimcha telefon</label>
+            <input class="field-input" type="tel" id="f-tel2" inputmode="tel" placeholder="+998 90 123 45 67">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Tug'ilgan sana</label>
+            <div class="dob-row">
+              <input class="field-input" id="f-kun" type="number" inputmode="numeric"
+                placeholder="Kun" min="1" max="31" style="text-align:center;padding-left:4px;padding-right:4px;">
+              <select class="field-input" id="f-oy">
+                <option value="">Oy</option>
+                <option value="01">Yanvar</option>  <option value="02">Fevral</option>
+                <option value="03">Mart</option>    <option value="04">Aprel</option>
+                <option value="05">May</option>     <option value="06">Iyun</option>
+                <option value="07">Iyul</option>    <option value="08">Avgust</option>
+                <option value="09">Sentabr</option> <option value="10">Oktabr</option>
+                <option value="11">Noyabr</option>  <option value="12">Dekabr</option>
+              </select>
+              <input class="field-input" id="f-yil" type="number" inputmode="numeric"
+                placeholder="Yil" min="2009" max="2019" style="text-align:center;padding-left:4px;padding-right:4px;">
+            </div>
+            <input type="hidden" id="f-tug">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Yashash manzili</label>
+            <input class="field-input" id="f-manzil" placeholder="Baliqchi shahri">
+          </div>
+          <!-- ✅ YANGI: O'qishni boshlagan sana -->
+          <div class="field-group">
+            <label class="field-label">O'qishni boshlagan sana</label>
+            <input class="field-input" type="date" id="f-boshlagan" max="">
+            <p class="field-hint">Bugungi sanadan kech bo'lmasligi kerak</p>
+          </div>
+        </div>
+        <button class="btn-submit" id="submit-btn" onclick="addStudent()">
+          <span class="spinner" id="spinner"></span>
+          <span id="btn-txt">Saqlash</span>
+        </button>
+      </div>
+
+      <!-- Jadval -->
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">O'quvchilar ro'yxati</div>
+          <div class="filters">
+            <input class="search-input" id="f-search" placeholder="🔍  Ism, telefon…" oninput="applyFilters()">
+            <select class="filter-sel" id="f-maktab-f" onchange="applyFilters()">
+              <option value="">Barcha maktab</option>
+            </select>
+            <select class="filter-sel" id="f-sinf-f" onchange="applyFilters()">
+              <option value="">Barcha sinf</option>
+              <option>1-sinf</option><option>2-sinf</option><option>3-sinf</option>
+              <option>4-sinf</option><option>5-sinf</option><option>6-sinf</option>
+              <option>7-sinf</option><option>8-sinf</option><option>9-sinf</option>
+            </select>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Ism Familiya</th><th>Maktab</th><th>Sinf</th>
+              <th>Telefon</th><th>Qo'sh. tel</th><th>Tug'ilgan</th><th>Manzil</th>
+              <th id="admin-col" style="display:none;">Admin</th>
+              <th>Boshlagan</th>
+              <th>Sana</th><th id="amal-col">Amal</th>
+            </tr></thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+        <div id="mob-cards" class="mobile-list"></div>
+      </div>
+    </div><!-- /tab-s -->
+
+    <!-- ─── ADMINLAR TABI ─── -->
+    <div id="tab-a" style="display:none;">
+      <div class="admin-card" style="margin-top:14px;">
+        <div class="card-title">➕ Yangi admin yaratish</div>
+        <div class="create-grid">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Maktab nomi</label>
+            <input class="field-input" id="a-ism" placeholder="InnovateIT School5">
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Username</label>
+            <input class="field-input" id="a-username" placeholder="ali_valiyev" autocomplete="off">
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Parol</label>
+            <div class="pw-wrap">
+              <input class="field-input" id="a-parol" type="password" placeholder="Parol123!">
+              <button class="eye-btn" onclick="togglePw('a-parol')" tabindex="-1" type="button">
+                <svg id="eye-a-parol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn-submit" onclick="createAdmin()" style="margin:0;width:100%;">
+              <span class="spinner" id="a-spinner"></span>
+              <span id="a-btn-txt">Yaratish</span>
+            </button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-title">👥 Adminlar ro'yxati</div>
+        <div class="admin-list" id="admin-list">
+          <div class="empty-state"><div class="empty-state-icon">👤</div><p>Adminlar yo'q</p></div>
+        </div>
+      </div>
+    </div><!-- /tab-a -->
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL: Admin tahrirlash -->
+<div class="modal-overlay" id="ae-modal" onclick="if(event.target===this)closeAE()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">✏️ Adminni tahrirlash</div>
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">Maktab nomi</label>
+        <input class="field-input" id="ae-ism">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Username</label>
+        <input class="field-input" id="ae-username" autocomplete="off">
+      </div>
+      <div class="field-group" style="grid-column:1/-1">
+        <label class="field-label">Yangi parol</label>
+        <div class="pw-wrap">
+          <input class="field-input" type="password" id="ae-parol" placeholder="Bo'sh qoldirsa o'zgarmaydi">
+          <button class="eye-btn" onclick="togglePw('ae-parol')" tabindex="-1" type="button">
+            <svg id="eye-ae-parol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAE()">Bekor qilish</button>
+      <button class="btn-submit" id="ae-save" onclick="saveAE()">
+        <span class="spinner" id="ae-spinner"></span><span id="ae-btn-txt">Saqlash</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: O'quvchi tahrirlash -->
+<div class="modal-overlay" id="es-modal" onclick="if(event.target===this)closeES()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">✏️ O'quvchini tahrirlash</div>
+    <div class="form-grid">
+      <div class="field-group"><label class="field-label">Ism</label><input class="field-input" id="e-ism"></div>
+      <div class="field-group"><label class="field-label">Familiya</label><input class="field-input" id="e-familiya"></div>
+      <div class="field-group">
+        <label class="field-label">Maktab raqami</label>
+        <input class="field-input" id="e-maktab" type="number" inputmode="numeric" min="1" max="99" oninput="valM(this)"
+          style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;text-align:center;letter-spacing:3px;padding:10px;">
+        <p class="field-hint">1–99 oralig'idagi raqam</p>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Sinfi</label>
+        <select class="field-input" id="e-sinf">
+          <option value="">— Tanlang —</option>
+          <option>1-sinf</option><option>2-sinf</option><option>3-sinf</option>
+          <option>4-sinf</option><option>5-sinf</option><option>6-sinf</option>
+          <option>7-sinf</option><option>8-sinf</option><option>9-sinf</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Telefon</label><input class="field-input" id="e-tel" type="tel" inputmode="tel"></div>
+      <div class="field-group"><label class="field-label">Qo'sh. telefon</label><input class="field-input" id="e-tel2" type="tel" inputmode="tel"></div>
+      <div class="field-group">
+        <label class="field-label">Tug'ilgan sana</label>
+        <div class="dob-row">
+          <input class="field-input" id="e-kun" type="number" inputmode="numeric" placeholder="Kun" min="1" max="31" style="text-align:center;padding-left:4px;padding-right:4px;">
+          <select class="field-input" id="e-oy">
+            <option value="">Oy</option>
+            <option value="01">Yanvar</option><option value="02">Fevral</option>
+            <option value="03">Mart</option><option value="04">Aprel</option>
+            <option value="05">May</option><option value="06">Iyun</option>
+            <option value="07">Iyul</option><option value="08">Avgust</option>
+            <option value="09">Sentabr</option><option value="10">Oktabr</option>
+            <option value="11">Noyabr</option><option value="12">Dekabr</option>
+          </select>
+          <input class="field-input" id="e-yil" type="number" inputmode="numeric" placeholder="Yil" min="2009" max="2019" style="text-align:center;padding-left:4px;padding-right:4px;">
+        </div>
+        <input type="hidden" id="e-tug">
+      </div>
+      <div class="field-group"><label class="field-label">Yashash manzili</label><input class="field-input" id="e-manzil"></div>
+      <!-- ✅ YANGI: Boshlagan sana (edit) -->
+      <div class="field-group">
+        <label class="field-label">O'qishni boshlagan sana</label>
+        <input class="field-input" type="date" id="e-boshlagan" max="">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeES()">Bekor qilish</button>
+      <button class="btn-submit" id="es-save" onclick="saveES()">
+        <span class="spinner" id="es-spinner"></span><span id="es-btn-txt">Saqlash</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ YANGI MODAL: Nofaol ro'yxatga o'tkazish -->
+<div class="modal-overlay" id="nofaol-modal" onclick="if(event.target===this)closeNofaolModal()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">🚫 Nofaol ro'yxatga o'tkazish</div>
+
+    <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-weight:600;font-size:15px;color:#dc2626;margin-bottom:6px;" id="nofaol-name-display">—</div>
+      <div style="font-size:13px;color:#7a7870;line-height:1.5;">Bu o'quvchi faol ro'yxatdan chiqariladi va nofaol ro'yxatga o'tkaziladi. Keyinchalik nofaol sahifadan yana faollashtirish mumkin.</div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Safdan chiqgan sana</label>
+      <input class="field-input" type="date" id="nofaol-chiqgan" max="">
+      <p class="field-hint">Bugungi sanadan kech bo'lmasligi kerak</p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeNofaolModal()">Bekor qilish</button>
+      <button class="btn-submit" id="nofaol-confirm-btn"
+        style="background:#dc2626;" onclick="confirmNofaol()">
+        <span class="spinner" id="nofaol-spinner"></span>
+        <span id="nofaol-btn-txt">Nofaolga o'tkazish</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<style>
+.btn-nofaol {
+  padding: 6px 12px;
+  background: #fff5f5;
+  border: 1.5px solid #fecaca;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #dc2626;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.btn-nofaol:active { background: #fecaca; }
+@media (max-width: 480px) { .btn-nofaol { font-size: 11px; padding: 5px 8px; } }
+</style>
+
+<script src="js/app.js"></script>
+</body>
+</html>

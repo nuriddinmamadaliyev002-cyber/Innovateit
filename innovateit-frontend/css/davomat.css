@@ -1,0 +1,117 @@
+/* ═══════════════════════════════════════════════════
+   InnovateIT School — Davomat sahifasi stillari
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  --late: #7c3aed;
+  --datebar-h: 56px;
+  --statsbar-h: 52px;
+}
+
+/* ══ DATE BAR ══ */
+.date-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px var(--p);
+  height: var(--datebar-h);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: sticky; top: var(--topbar-h); z-index: 190;
+}
+.date-nav { display: flex; align-items: center; gap: 8px; }
+.date-nav-btn {
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 16px; transition: all .15s;
+}
+.date-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.date-nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+.date-display { font-size: 15px; font-weight: 600; min-width: 160px; text-align: center; }
+.date-sub { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; text-align: center; }
+.date-input {
+  padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  background: var(--bg); color: var(--text); outline: none; cursor: pointer;
+}
+.date-input:focus { border-color: var(--accent); }
+
+/* ══ STATS BAR ══ */
+.stats-bar {
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 8px var(--p); height: var(--statsbar-h);
+  display: flex; align-items: center; gap: 8px; overflow-x: auto;
+  position: sticky; top: calc(var(--topbar-h) + var(--datebar-h)); z-index: 180;
+}
+.stats-bar::-webkit-scrollbar { display: none; }
+.stat-pill {
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; font-size: 12px; font-weight: 500;
+  white-space: nowrap; flex-shrink: 0;
+}
+.stat-dot         { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.stat-dot.keldi   { background: var(--success); }
+.stat-dot.kelmadi { background: var(--danger);  }
+.stat-dot.sababli { background: var(--warning);  }
+.stat-dot.kech    { background: var(--late);     }
+.stat-num { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; }
+
+/* ══ ASOSIY KONTENT ══ */
+.dav-main { max-width: 1200px; margin: 0 auto; padding: 16px var(--p) 60px; }
+.sinf-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 700px)  { .sinf-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1100px) { .sinf-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+/* ══ SINF KARTA ══ */
+.sinf-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
+  animation: fadeUp .3s ease both;
+}
+.sinf-header {
+  padding: 12px 16px; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sinf-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.sinf-mini-stats { display: flex; gap: 5px; }
+.mini-s { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.mini-s.k { background: #f0fdf4; color: #15803d; }
+.mini-s.x { background: #fef2f2; color: #dc2626; }
+.mini-s.s { background: #fffbeb; color: #d97706; }
+.mini-s.l { background: #f5f3ff; color: #7c3aed; }
+
+/* ══ O'QUVCHI QATORI ══ */
+.student-list { padding: 8px; }
+.student-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 8px; transition: background .1s;
+}
+.student-row:hover { background: var(--bg); }
+.student-row.done .student-name { color: var(--muted); }
+.student-num  { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; width: 20px; flex-shrink: 0; text-align: right; }
+.student-name { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .2s; }
+
+.status-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.s-btn {
+  width: 30px; height: 28px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: none;
+  cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.s-btn:hover { transform: scale(1.12); }
+.s-btn.active-keldi   { background: #f0fdf4; border-color: #16a34a; box-shadow: 0 0 0 2px rgba(22,163,74,.15); }
+.s-btn.active-kelmadi { background: #fef2f2; border-color: #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,.15); }
+.s-btn.active-sababli { background: #fffbeb; border-color: #d97706; box-shadow: 0 0 0 2px rgba(217,119,6,.15); }
+.s-btn.active-kech    { background: #f5f3ff; border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
+
+/* ══ MODAL STATS ══ */
+.modal-desc { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.7; margin-bottom: 14px; }
+.dav-modal-stats { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.dav-modal-stat { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.dav-modal-stat.k { background: #f0fdf4; color: #15803d; }
+.dav-modal-stat.x { background: #fef2f2; color: #dc2626; }
+.dav-modal-stat.s { background: #fffbeb; color: #d97706; }
+.dav-modal-stat.l { background: #f5f3ff; color: #7c3aed; }
