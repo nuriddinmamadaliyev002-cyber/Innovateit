@@ -121,16 +121,36 @@ function updateNextBtn() {
 async function loadTeachersAndDavomat(date) {
   g('loading-ov').style.display = 'flex';
   try {
-    // Barcha o'qituvchilarni ol
-    const td = await req({ action:'getTeachers', username:U.username, parol:U.parol });
-    if (!td.ok) { toast('❌ '+td.error,'error'); g('loading-ov').style.display='none'; return; }
+    // Dars jadvali orqali bugun dars o'tadigan o'qituvchilarni ol
+    const jd = await req({ action:'getJadvallar', username:U.username, parol:U.parol });
+    if (!jd.ok) { toast('❌ '+jd.error,'error'); g('loading-ov').style.display='none'; return; }
 
-    // Bugun (selectedDate) dars o'tadigan o'qituvchilarni filterlash
+    // Bugun (selectedDate) dars o'tadigan o'qituvchilarni jadvaldan filterlash
     const dayOfWeek = date.getDay(); // 0=Ya,1=Du…6=Sha
-    TEACHERS = td.teachers.filter(t => {
-      const kunlar = parseDays(t.kunlar);
-      return kunlar.includes(dayOfWeek);
-    });
+    // Har bir jadval yozuvidan unique o'qituvchi ob'ektlari yasaymiz
+    const seen = new Set();
+    TEACHERS = jd.jadvallar
+      .filter(j => parseDays(j.kunlar).includes(dayOfWeek))
+      .reduce((acc, j) => {
+        const key = j.teacher_ism + ' ' + j.teacher_familiya;
+        if (!seen.has(key)) {
+          seen.add(key);
+          // Birinchi mos jadvaldan vaqt va sinf ma'lumotini olamiz
+          const sinflar = jd.jadvallar
+            .filter(x => x.teacher_ism===j.teacher_ism && x.teacher_familiya===j.teacher_familiya && parseDays(x.kunlar).includes(dayOfWeek))
+            .flatMap(x => parseSinflar(x.sinflar));
+          acc.push({
+            ism: j.teacher_ism,
+            familiya: j.teacher_familiya,
+            fan: j.fan || '—',
+            boshlanish: j.boshlanish || '',
+            tugash: j.tugash || '',
+            sinflar: [...new Set(sinflar)].join(','),
+            kunlar: j.kunlar
+          });
+        }
+        return acc;
+      }, []);
 
     // Mavjud davomatni yuklash
     const dd = await req({ action:'getTeacherDavomat', username:U.username, parol:U.parol, sana:dateStr(date) });
