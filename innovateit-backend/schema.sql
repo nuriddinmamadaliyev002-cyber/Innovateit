@@ -86,6 +86,24 @@ CREATE TABLE IF NOT EXISTS oqituvchilar_davomat (
     vaqt_belgilangan TEXT
 );
 
+
+CREATE TABLE IF NOT EXISTS dars_jadvali (
+    id               SERIAL PRIMARY KEY,
+    admin_username   TEXT NOT NULL,
+    teacher_ism      TEXT NOT NULL,
+    teacher_familiya TEXT NOT NULL,
+    fan              TEXT,
+    sinflar          TEXT,
+    kunlar           TEXT,
+    boshlanish       TEXT,
+    tugash           TEXT
+);
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO innovateit_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO innovateit_user;
+GRANT USAGE ON SCHEMA public TO innovateit_user;
+
+
 -- ─── Indekslar (tezlik uchun) ───
 CREATE INDEX IF NOT EXISTS idx_oquvchilar_admin    ON oquvchilar(admin);
 CREATE INDEX IF NOT EXISTS idx_nofaol_admin        ON nofaol_oquvchilar(admin);
