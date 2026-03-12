@@ -208,7 +208,7 @@ function render() {
             onclick="setStatus('${esc(key)}','${st.key}',this)"
           >${st.emoji}</button>`).join('')}
       </div>
-      ${(()=>{ const dv=darsVaqtlar[key]; return dv ? `<span class="dv-badge" id="dvinfo-${safeId(key)}">\u{1F550} ${dv.soat}s ${dv.daqiqa}d</span>` : `<span class="dv-badge" id="dvinfo-${safeId(key)}" style="display:none"></span>`; })()}
+      ${(()=>{ const dv=darsVaqtlar[key]; return dv ? `<span class="dv-badge" id="dvinfo-${safeId(key)}" onclick="editDarsVaqt('${esc(key)}')" title="Tahrirlash uchun bosing">${fmtDv(dv.soat,dv.daqiqa)}</span>` : `<span class="dv-badge" id="dvinfo-${safeId(key)}" style="display:none"></span>`; })()}
     </div>`;
   }).join('');
 
@@ -254,9 +254,18 @@ function applyStatus(key, status, btn) {
     // Toggle — o'chirish
     delete attendance[key];
     if (status === 'sababli') delete izohlar[key];
+    if (status === 'keldi' || status === 'kech') { delete darsVaqtlar[key]; delete kechSabablar[key]; }
     btns.forEach(b => b.className='s-btn');
     row.classList.remove('done');
+    const inf = g('dvinfo-'+safeId(key));
+    if (inf) { inf.style.display='none'; inf.textContent=''; }
   } else {
+    // kelmadi yoki sababli tanlanganda vaqtni o'chir
+    if (status === 'kelmadi' || status === 'sababli') {
+      delete darsVaqtlar[key]; delete kechSabablar[key];
+      const inf = g('dvinfo-'+safeId(key));
+      if (inf) { inf.style.display='none'; inf.textContent=''; }
+    }
     attendance[key] = status;
     btns.forEach(b => b.className='s-btn');
     btn.className = 's-btn active-' + status;
@@ -292,9 +301,32 @@ function confirmDarsVaqt() {
   closeDvModal();
   applyStatus(key, type, btn);
   const inf = g('dvinfo-'+safeId(key));
-  if (inf) { inf.textContent = '\u{1F550} '+soat+'s '+daqiqa+'d'; inf.style.display='inline-flex'; }
+  if (inf) { inf.textContent = fmtDv(soat,daqiqa); inf.style.display='inline-flex'; inf.onclick=()=>editDarsVaqt(key); inf.title='Tahrirlash uchun bosing'; }
 }
 function closeDvModal() { g('dv-modal').classList.remove('show'); pendingIzoh=null; }
+
+function editDarsVaqt(key) {
+  // Mavjud status keldi yoki kech bo'lsa tahrirlashga ruxsat
+  const status = attendance[key];
+  if (status !== 'keldi' && status !== 'kech') return;
+  // status-btns dan btn topish
+  const row = g('row-'+safeId(key));
+  if (!row) return;
+  const btn = row.querySelector('.s-btn.active-'+status);
+  pendingIzoh = { key, btn: btn || row.querySelector('.s-btn'), type: status };
+  g('dv-soat').value   = darsVaqtlar[key] ? darsVaqtlar[key].soat   : '';
+  g('dv-daqiqa').value = darsVaqtlar[key] ? darsVaqtlar[key].daqiqa : '';
+  if (status === 'kech') {
+    g('kech-sabab-wrap').style.display = 'block';
+    g('kech-sabab-input').value = kechSabablar[key] || '';
+    g('dv-modal-title').textContent = "Kech keldi — ma'lumotni tahrirlash";
+  } else {
+    g('kech-sabab-wrap').style.display = 'none';
+    g('dv-modal-title').textContent = "Keldi — dars soatini tahrirlash";
+  }
+  g('dv-modal').classList.add('show');
+  setTimeout(() => g('dv-soat').focus(), 100);
+}
 
 // ─────────────────────────────────────────────
 //  STATISTIKA
@@ -383,6 +415,14 @@ async function req(body) {
   const qs = Object.entries(body)
     .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
   return (await fetch(`${API}?${qs}`)).json();
+}
+
+function fmtDv(soat, daqiqa) {
+  if (!soat && !daqiqa) return '';
+  let parts = [];
+  if (soat)   parts.push(soat   + ' soat');
+  if (daqiqa) parts.push(daqiqa + ' daqiqa');
+  return '🕐 ' + parts.join(' ');
 }
 
 function parseDays(str) {
