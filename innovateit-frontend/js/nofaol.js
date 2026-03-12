@@ -1,21 +1,18 @@
 // ═══════════════════════════════════════════════════
 //  InnovateIT School — Nofaol O'quvchilar (nofaol.js)
-//  v1.0
+//  v2.0 — edit, delete, yangi dizayn
 // ═══════════════════════════════════════════════════
 
-const API = (window.location.hostname === 'localhost' || 
+const API = (window.location.hostname === 'localhost' ||
              window.location.hostname === '127.0.0.1' ||
              window.location.hostname === '')
   ? 'http://127.0.0.1:3001/api'
   : '/api';
 
-let U  = null;  // Foydalanuvchi
-let NS = [];    // Barcha nofaol o'quvchilar
+let U        = null;
+let NS       = [];
 let FILTERED = [];
 
-// ─────────────────────────────────────────────
-//  YUKLANGANDA
-// ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     const saved = sessionStorage.getItem('iit_nofaol_user');
@@ -23,33 +20,21 @@ window.addEventListener('DOMContentLoaded', async () => {
     U = JSON.parse(saved);
   } catch (e) { window.location.href = 'index.html'; return; }
 
-  // Badge
   const badge = g('nofaol-badge');
   if (U.isSuperProxy) {
-    badge.textContent = '🏫 ' + U.ism;
-    badge.classList.add('super');
+    badge.textContent = '🏫 ' + U.ism; badge.classList.add('super');
   } else if (U.isSuper) {
-    badge.textContent = '⭐ ' + U.ism;
-    badge.classList.add('super');
-    // Super admin (maktabsiz): admin ustunini ko'rsatish
+    badge.textContent = '⭐ ' + U.ism; badge.classList.add('super');
     const ac = g('admin-col-n'); if (ac) ac.style.display = '';
   } else {
     badge.textContent = U.ism;
   }
-
   await loadNofaol();
 });
 
-// ─────────────────────────────────────────────
-//  NAVIGATSIYA
-// ─────────────────────────────────────────────
-function goBack() {
-  window.location.href = 'index.html';
-}
+function goBack() { window.location.href = 'index.html'; }
 
-// ─────────────────────────────────────────────
-//  MA'LUMOT YUKLASH
-// ─────────────────────────────────────────────
+// ─── MA'LUMOT YUKLASH ───
 async function loadNofaol() {
   g('loading-ov').style.display = 'flex';
   try {
@@ -60,22 +45,18 @@ async function loadNofaol() {
       updMaktabF();
       applyFilters();
       g('nofaol-count').textContent = NS.length + " nofaol";
-    } else {
-      toast('❌ ' + d.error, 'error');
-    }
+    } else toast('❌ ' + d.error, 'error');
   } catch (e) { toast("❌ Yuklashda xatolik", 'error'); }
   g('loading-ov').style.display = 'none';
 }
 
-// ─────────────────────────────────────────────
-//  FILTR VA RENDER
-// ─────────────────────────────────────────────
+// ─── FILTR VA RENDER ───
 function applyFilters() {
   const q  = (g('f-search').value || '').toLowerCase();
   const fm = g('f-maktab-f').value;
   const fs = g('f-sinf-f').value;
   FILTERED = NS.filter(s =>
-    (!q  || (s.ism + ' ' + s.familiya + ' ' + (s.telefon||'')).toLowerCase().includes(q)) &&
+    (!q  || (s.familiya + ' ' + s.ism + ' ' + (s.telefon||'')).toLowerCase().includes(q)) &&
     (!fm || String(s.maktab) === String(fm)) &&
     (!fs || s.sinf === fs)
   );
@@ -87,29 +68,30 @@ function renderTbl(d) {
   const tb  = g('tbl-body');
   const sup = U && U.isSuper;
   if (!d.length) {
-    tb.innerHTML = `<tr><td colspan="10">
-      <div class="empty-state">
-        <div class="empty-state-icon">🎉</div>
-        <p>Nofaol o'quvchi yo'q</p>
-      </div>
-    </td></tr>`;
+    tb.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-state-icon">🎉</div><p>Nofaol o'quvchi yo'q</p></div></td></tr>`;
     return;
   }
   tb.innerHTML = d.map((s, i) => `<tr>
     <td class="mono">${i + 1}</td>
-    <td><strong>${s.ism}</strong> ${s.familiya}</td>
+    <td><strong>${s.familiya}</strong> ${s.ism}</td>
     <td><span class="maktab-badge">${s.maktab || '—'}</span></td>
     <td><span class="sinf-badge">${s.sinf || '—'}</span></td>
     <td class="mono">${s.telefon || '—'}</td>
     <td class="mono">${fTug(s.tug)}</td>
     <td class="mono">${fDate(s.boshlagan)}</td>
-    <td><span class="badge-chiqgan">${fDate(s.chiqgan)}</span></td>
-    <td style="max-width:200px;">
-      ${s.izoh ? `<span style="font-size:12px;color:#7a7870;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.izoh.replace(/"/g,'&quot;')}">${s.izoh}</span>` : '<span style="color:#ccc;font-size:12px;">—</span>'}
+    <td>${fChiqgan(s.chiqgan)}</td>
+    <td style="max-width:180px;">
+      ${s.izoh
+        ? `<span style="font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;" title="${s.izoh.replace(/"/g,'&quot;')}">${s.izoh}</span>`
+        : '<span style="color:#ccc;font-size:12px;">—</span>'}
     </td>
     ${sup ? `<td class="mono" style="font-size:11px;">${s.admin || '—'}</td>` : ''}
     <td>
-      <button class="btn-faollashtir" onclick="openFaolModal(${s.ri})">✅ Faollashtirish</button>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button class="btn-faollashtir" onclick="openFaolModal(${s.ri})" title="Faollashtirish">♻️</button>
+        <button class="btn-edit-nofaol" onclick="openEditNofaol(${s.ri})" title="Tahrirlash">✏️</button>
+        <button class="btn-ochir" onclick="openDelNofaol(${s.ri})" title="O'chirish">🗑️</button>
+      </div>
     </td>
   </tr>`).join('');
 }
@@ -125,7 +107,7 @@ function renderMob(d) {
     <div class="sc">
       <div class="sc-header">
         <div>
-          <div class="sc-name">${s.ism} ${s.familiya}</div>
+          <div class="sc-name">${s.familiya} ${s.ism}</div>
           <div class="sc-num">#${i + 1}</div>
           <div class="sc-tags">
             <span class="maktab-badge">${s.maktab || '—'}-maktab</span>
@@ -133,15 +115,17 @@ function renderMob(d) {
           </div>
         </div>
         <div class="sc-btns">
-          <button class="btn-faollashtir" onclick="openFaolModal(${s.ri})">✅ Faollashtirish</button>
+          <button class="btn-faollashtir" onclick="openFaolModal(${s.ri})" title="Faollashtirish">♻️</button>
+          <button class="btn-edit-nofaol" onclick="openEditNofaol(${s.ri})" title="Tahrirlash">✏️</button>
+          <button class="btn-ochir" onclick="openDelNofaol(${s.ri})" title="O'chirish">🗑️</button>
         </div>
       </div>
       <div class="sc-body">
         <div class="sc-row"><span class="sc-lbl">📞 Telefon</span><span class="sc-val m">${s.telefon || '—'}</span></div>
         <div class="sc-row"><span class="sc-lbl">🎂 Tug'ilgan</span><span class="sc-val m">${fTug(s.tug)}</span></div>
         <div class="sc-row"><span class="sc-lbl">📅 Boshlagan</span><span class="sc-val m">${fDate(s.boshlagan)}</span></div>
-        <div class="sc-row"><span class="sc-lbl">🚪 Chiqgan</span><span class="sc-val m" style="color:#c2410c;font-weight:600;">${fDate(s.chiqgan)}</span></div>
-        ${s.izoh ? `<div class="sc-row sc-full"><span class="sc-lbl">💬 Sabab</span><span class="sc-val" style="color:#7a7870;font-style:italic;">${s.izoh}</span></div>` : ''}
+        <div class="sc-row sc-full"><span class="sc-lbl">🚪 Chiqgan</span><span class="sc-val">${fChiqgan(s.chiqgan)}</span></div>
+        ${s.izoh ? `<div class="sc-row sc-full"><span class="sc-lbl">💬 Sabab</span><span class="sc-val" style="color:#374151;">${s.izoh}</span></div>` : ''}
         <div class="sc-row"><span class="sc-lbl">📍 Manzil</span><span class="sc-val">${s.manzil || '—'}</span></div>
         ${sup ? `<div class="sc-row sc-full"><span class="sc-lbl">👤 Admin</span><span class="sc-val m" style="font-size:11px;">${s.admin || '—'}</span></div>` : ''}
       </div>
@@ -155,59 +139,102 @@ function updMaktabF() {
     list.map(m => `<option${String(m) === String(cur) ? ' selected' : ''}>${m}</option>`).join('');
 }
 
-// ─────────────────────────────────────────────
-//  FAOLLASHTIRISH MODAL
-// ─────────────────────────────────────────────
+// ─── ♻️ FAOLLASHTIRISH ───
 let faolIdx = null;
-
 function openFaolModal(idx) {
   const s = NS[idx]; if (!s) return;
   faolIdx = idx;
-  g('faol-name-display').textContent = s.ism + ' ' + s.familiya;
+  g('faol-name-display').textContent = s.familiya + ' ' + s.ism;
   g('faol-modal').style.display = 'flex';
 }
-
-function closeFaolModal() {
-  g('faol-modal').style.display = 'none';
-  faolIdx = null;
-}
+function closeFaolModal() { g('faol-modal').style.display = 'none'; faolIdx = null; }
 
 async function confirmFaollashtir() {
   const s = NS[faolIdx]; if (!s) return;
-
-  g('faol-confirm-btn').disabled = true;
-  g('faol-spinner').style.display = 'inline-block';
-  g('faol-btn-txt').textContent = 'Saqlanmoqda…';
-
+  setBtnLoading('faol-confirm-btn', 'faol-spinner', 'faol-btn-txt', 'Saqlanmoqda…');
   try {
-    const r = await req({
-      action: 'moveToActive',
-      username: U.username, parol: U.parol,
-      delIsm: s.ism, delFamiliya: s.familiya
-    });
-    if (r.ok) {
-      closeFaolModal();
-      await loadNofaol();
-      toast("✅ O'quvchi faol ro'yxatga qaytarildi!", 'success');
-    } else toast('❌ ' + r.error, 'error');
+    const r = await req({ action: 'moveToActive', username: U.username, parol: U.parol, delIsm: s.ism, delFamiliya: s.familiya });
+    if (r.ok) { closeFaolModal(); await loadNofaol(); toast("✅ O'quvchi faol ro'yxatga qaytarildi!", 'success'); }
+    else toast('❌ ' + r.error, 'error');
   } catch (e) { toast('❌ Xatolik', 'error'); }
-
-  g('faol-confirm-btn').disabled = false;
-  g('faol-spinner').style.display = 'none';
-  g('faol-btn-txt').textContent = 'Ha, faollashtirish';
+  setBtnLoading('faol-confirm-btn', 'faol-spinner', 'faol-btn-txt', null, 'Ha, faollashtirish');
 }
 
-// ─────────────────────────────────────────────
-//  YORDAMCHI FUNKSIYALAR
-// ─────────────────────────────────────────────
+// ─── ✏️ TAHRIRLASH ───
+let editIdx = null;
+
+function onEditIzohInput(el) {
+  const len = el.value.trim().length;
+  g('edit-izoh-counter').textContent = len + ' / 10';
+  g('edit-izoh-counter').style.color = len >= 10 ? '#16a34a' : '#9ca3af';
+  g('edit-izoh-hint').style.display  = (len > 0 && len < 10) ? 'block' : 'none';
+}
+
+function openEditNofaol(idx) {
+  const s = NS[idx]; if (!s) return;
+  editIdx = idx;
+  g('edit-nofaol-name').textContent = s.familiya + ' ' + s.ism;
+  g('edit-chiqgan').value = s.chiqgan
+    ? (s.chiqgan.includes('.') ? s.chiqgan.split('.').reverse().join('-') : s.chiqgan.substring(0,10))
+    : '';
+  g('edit-izoh').value = s.izoh || '';
+  const len = (s.izoh || '').trim().length;
+  g('edit-izoh-counter').textContent = len + ' / 10';
+  g('edit-izoh-counter').style.color = len >= 10 ? '#16a34a' : '#9ca3af';
+  g('edit-izoh-hint').style.display = 'none';
+  g('edit-nofaol-modal').style.display = 'flex';
+}
+function closeEditNofaol() { g('edit-nofaol-modal').style.display = 'none'; editIdx = null; }
+
+async function saveEditNofaol() {
+  const s = NS[editIdx]; if (!s) return;
+  const chiqgan = g('edit-chiqgan').value;
+  const izoh    = g('edit-izoh').value.trim();
+  if (!chiqgan) { toast("⚠️ Chiqgan sanani kiriting", 'error'); return; }
+  if (izoh.length < 10) { g('edit-izoh-hint').style.display = 'block'; toast("⚠️ Sabab kamida 10 ta belgi bo'lishi kerak", 'error'); return; }
+  const chiqganUZ = chiqgan.includes('-') ? chiqgan.split('-').reverse().join('.') : chiqgan;
+  setBtnLoading('edit-nofaol-btn', 'edit-nofaol-spinner', 'edit-nofaol-txt', 'Saqlanmoqda…');
+  try {
+    const r = await req({ action: 'editNofaol', username: U.username, parol: U.parol, delIsm: s.ism, delFamiliya: s.familiya, chiqgan: chiqganUZ, izoh });
+    if (r.ok) { closeEditNofaol(); await loadNofaol(); toast("✅ Ma'lumotlar yangilandi!", 'success'); }
+    else toast('❌ ' + r.error, 'error');
+  } catch (e) { toast('❌ Xatolik', 'error'); }
+  setBtnLoading('edit-nofaol-btn', 'edit-nofaol-spinner', 'edit-nofaol-txt', null, 'Saqlash');
+}
+
+// ─── 🗑️ O'CHIRISH ───
+let delIdx = null;
+function openDelNofaol(idx) {
+  const s = NS[idx]; if (!s) return;
+  delIdx = idx;
+  g('del-nofaol-name').textContent = s.familiya + ' ' + s.ism;
+  g('del-nofaol-modal').style.display = 'flex';
+}
+function closeDelNofaol() { g('del-nofaol-modal').style.display = 'none'; delIdx = null; }
+
+async function confirmDeleteNofaol() {
+  const s = NS[delIdx]; if (!s) return;
+  setBtnLoading('del-nofaol-btn', 'del-nofaol-spinner', 'del-nofaol-txt', "O'chirilmoqda…");
+  try {
+    const r = await req({ action: 'deleteNofaol', username: U.username, parol: U.parol, delIsm: s.ism, delFamiliya: s.familiya });
+    if (r.ok) { closeDelNofaol(); await loadNofaol(); toast("✅ O'quvchi o'chirildi", 'success'); }
+    else toast('❌ ' + r.error, 'error');
+  } catch (e) { toast('❌ Xatolik', 'error'); }
+  setBtnLoading('del-nofaol-btn', 'del-nofaol-spinner', 'del-nofaol-txt', null, "Ha, o'chirish");
+}
+
+// ─── YORDAMCHI ───
 async function req(body) {
-  const qs = Object.entries(body)
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-    .join('&');
+  const qs = Object.entries(body).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
   return (await fetch(`${API}?${qs}`)).json();
 }
-
 function g(id) { return document.getElementById(id); }
+
+function setBtnLoading(btnId, spinnerId, txtId, loadingTxt, doneTxt) {
+  const btn = g(btnId);
+  if (loadingTxt) { btn.disabled = true; g(spinnerId).style.display = 'inline-block'; g(txtId).textContent = loadingTxt; }
+  else { btn.disabled = false; g(spinnerId).style.display = 'none'; g(txtId).textContent = doneTxt; }
+}
 
 function fDate(v) {
   if (!v) return '—';
@@ -216,6 +243,24 @@ function fDate(v) {
   const d = new Date(s);
   if (!isNaN(d)) return d.toLocaleDateString('uz-UZ');
   return s;
+}
+
+function fChiqgan(v) {
+  if (!v) return '—';
+  const s = String(v).trim();
+  if (!s || s === 'undefined' || s === 'null') return '—';
+  const months = ['','Yan','Feb','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
+  // DD.MM.YYYY
+  if (s.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+    const [d, m, y] = s.split('.');
+    return `<span class="badge-chiqgan">${parseInt(d)} ${months[parseInt(m)]} ${y}</span>`;
+  }
+  // YYYY-MM-DD
+  const dt = new Date(s);
+  if (!isNaN(dt)) {
+    return `<span class="badge-chiqgan">${dt.getDate()} ${months[dt.getMonth()+1]} ${dt.getFullYear()}</span>`;
+  }
+  return `<span class="badge-chiqgan">${s}</span>`;
 }
 
 function fTug(v) {

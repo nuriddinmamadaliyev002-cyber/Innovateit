@@ -11,7 +11,8 @@ const { handleLogin }                             = require('./routes/auth');
 const { handleGetStudents, handleAddStudent,
         handleEditStudent, handleDeleteStudent,
         handleMoveToInactive, handleGetNofaol,
-        handleMoveToActive }                      = require('./routes/students');
+        handleMoveToActive, handleEditNofaol,
+        handleDeleteNofaol }                      = require('./routes/students');
 const { handleGetAdmins, handleCreateAdmin,
         handleEditAdmin, handleDeleteAdmin }       = require('./routes/admins');
 const { handleSaveDavomat, handleGetDavomat,
@@ -90,6 +91,10 @@ async function handleAction(req, res) {
         result = await handleGetNofaol(p); break;
       case 'moveToActive':
         result = await handleMoveToActive(p); break;
+      case 'editNofaol':
+        result = await handleEditNofaol(p); break;
+      case 'deleteNofaol':
+        result = await handleDeleteNofaol(p); break;
 
       // ═══ ADMINLAR ═══
       case 'getAdmins':

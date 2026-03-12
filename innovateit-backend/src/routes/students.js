@@ -223,3 +223,41 @@ module.exports = {
   handleGetNofaol,
   handleMoveToActive
 };
+// ─── Nofaol o'quvchini tahrirlash (chiqgan sana + izoh) ───
+async function handleEditNofaol(p) {
+  const admin = await verifyAdmin(p.username, p.parol);
+  if (!admin) return { ok: false, error: "Ruxsat yo'q" };
+
+  const chiqgan = (p.chiqgan || '').trim();
+  const izoh    = (p.izoh    || '').trim();
+
+  if (!chiqgan) return { ok: false, error: "Chiqgan sana majburiy" };
+  if (!izoh)    return { ok: false, error: "Chiqish sababi majburiy" };
+  if (izoh.length < 10) return { ok: false, error: "Chiqish sababi kamida 10 ta belgi bo'lishi kerak" };
+
+  const result = await pool.query(
+    `UPDATE nofaol_oquvchilar SET chiqgan=$1, izoh=$2
+     WHERE ism=$3 AND familiya=$4 ${!admin.isSuper ? 'AND admin=$5' : ''}`,
+    admin.isSuper
+      ? [chiqgan, izoh, p.delIsm, p.delFamiliya]
+      : [chiqgan, izoh, p.delIsm, p.delFamiliya, p.username]
+  );
+  if (result.rowCount === 0) return { ok: false, error: "O'quvchi topilmadi" };
+  return { ok: true };
+}
+
+// ─── Nofaol o'quvchini o'chirish ───
+async function handleDeleteNofaol(p) {
+  const admin = await verifyAdmin(p.username, p.parol);
+  if (!admin) return { ok: false, error: "Ruxsat yo'q" };
+
+  const result = await pool.query(
+    `DELETE FROM nofaol_oquvchilar WHERE ism=$1 AND familiya=$2 ${!admin.isSuper ? 'AND admin=$3' : ''}`,
+    admin.isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, p.username]
+  );
+  if (result.rowCount === 0) return { ok: false, error: "O'quvchi topilmadi" };
+  return { ok: true };
+}
+
+// ─── Export yangilash ───
+Object.assign(module.exports, { handleEditNofaol, handleDeleteNofaol });
