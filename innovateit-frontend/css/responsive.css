@@ -219,13 +219,14 @@ button, a, input, select, textarea, [role="button"] {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   7. DESKTOP TABLE — gorizontal scroll
+   7. DESKTOP TABLE — mobilda yashirin, faqat karta ko'rinadi
 ───────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .tbl-wrap {
-    display: block !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+    display: none !important;
+  }
+  .mobile-list {
+    display: flex !important;
   }
 }
 
