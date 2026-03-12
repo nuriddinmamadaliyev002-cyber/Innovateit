@@ -22,7 +22,9 @@ let U          = null;
 let TEACHERS   = [];      // Bugun dars o'tadigan o'qituvchilar
 let attendance = {};      // { "Ism Familiya": "keldi"|... }
 let izohlar    = {};      // { "Ism Familiya": "izoh" }
-let pendingIzoh = null;   // { key, btnEl }
+let pendingIzoh  = null;   // { key, btnEl, type }
+let darsVaqtlar  = {};      // { key: { soat, daqiqa } }
+let kechSabablar = {};      // { key: sabab }
 
 const TODAY = (() => { const d=new Date(); d.setHours(0,0,0,0); return d; })();
 let currentDate = skipWeekend(new Date(TODAY), -1);
@@ -84,7 +86,7 @@ async function changeDate(dir) {
   if (nd.getDay() === 0) nd.setDate(nd.getDate() + dir); // Yakshanbani o'tkazib yuborish
   if (nd > TODAY) return;
   currentDate = nd;
-  attendance = {}; izohlar = {};
+  attendance = {}; izohlar = {}; darsVaqtlar = {}; kechSabablar = {};
   setDateUI(currentDate);
   updateNextBtn();
   await loadTeachersAndDavomat(currentDate);
@@ -102,7 +104,7 @@ async function onDatePick() {
     g('date-picker').value = dateStr(currentDate); return;
   }
   currentDate = d;
-  attendance = {}; izohlar = {};
+  attendance = {}; izohlar = {}; darsVaqtlar = {}; kechSabablar = {};
   setDateUI(currentDate);
   updateNextBtn();
   await loadTeachersAndDavomat(currentDate);
@@ -121,36 +123,16 @@ function updateNextBtn() {
 async function loadTeachersAndDavomat(date) {
   g('loading-ov').style.display = 'flex';
   try {
-    // Dars jadvali orqali bugun dars o'tadigan o'qituvchilarni ol
-    const jd = await req({ action:'getJadvallar', username:U.username, parol:U.parol });
-    if (!jd.ok) { toast('❌ '+jd.error,'error'); g('loading-ov').style.display='none'; return; }
+    // Barcha o'qituvchilarni ol
+    const td = await req({ action:'getTeachers', username:U.username, parol:U.parol });
+    if (!td.ok) { toast('❌ '+td.error,'error'); g('loading-ov').style.display='none'; return; }
 
-    // Bugun (selectedDate) dars o'tadigan o'qituvchilarni jadvaldan filterlash
+    // Bugun (selectedDate) dars o'tadigan o'qituvchilarni filterlash
     const dayOfWeek = date.getDay(); // 0=Ya,1=Du…6=Sha
-    // Har bir jadval yozuvidan unique o'qituvchi ob'ektlari yasaymiz
-    const seen = new Set();
-    TEACHERS = jd.jadvallar
-      .filter(j => parseDays(j.kunlar).includes(dayOfWeek))
-      .reduce((acc, j) => {
-        const key = j.teacher_ism + ' ' + j.teacher_familiya;
-        if (!seen.has(key)) {
-          seen.add(key);
-          // Birinchi mos jadvaldan vaqt va sinf ma'lumotini olamiz
-          const sinflar = jd.jadvallar
-            .filter(x => x.teacher_ism===j.teacher_ism && x.teacher_familiya===j.teacher_familiya && parseDays(x.kunlar).includes(dayOfWeek))
-            .flatMap(x => parseSinflar(x.sinflar));
-          acc.push({
-            ism: j.teacher_ism,
-            familiya: j.teacher_familiya,
-            fan: j.fan || '—',
-            boshlanish: j.boshlanish || '',
-            tugash: j.tugash || '',
-            sinflar: [...new Set(sinflar)].join(','),
-            kunlar: j.kunlar
-          });
-        }
-        return acc;
-      }, []);
+    TEACHERS = td.teachers.filter(t => {
+      const kunlar = parseDays(t.kunlar);
+      return kunlar.includes(dayOfWeek);
+    });
 
     // Mavjud davomatni yuklash
     const dd = await req({ action:'getTeacherDavomat', username:U.username, parol:U.parol, sana:dateStr(date) });
@@ -162,7 +144,7 @@ async function loadTeachersAndDavomat(date) {
     }
 
     render();
-    if (dd.ok && dd.records.length) toast(`✅ ${dd.records.length} ta yozuv yuklandi`,'success');
+    // yozuv yuklandi xabari olib tashlandi
 
   } catch { toast("❌ Yuklashda xatolik",'error'); }
   g('loading-ov').style.display = 'none';
@@ -204,6 +186,7 @@ function render() {
             onclick="setStatus('${esc(key)}','${st.key}',this)"
           >${st.emoji}</button>`).join('')}
       </div>
+      ${(()=>{ const dv=darsVaqtlar[key]; return dv ? `<span class="dv-badge" id="dvinfo-${safeId(key)}">\u{1F550} ${dv.soat}s ${dv.daqiqa}d</span>` : `<span class="dv-badge" id="dvinfo-${safeId(key)}" style="display:none"></span>`; })()}
     </div>`;
   }).join('');
 
@@ -215,10 +198,27 @@ function render() {
 // ─────────────────────────────────────────────
 function setStatus(key, status, btn) {
   if (status === 'sababli') {
-    pendingIzoh = { key, btn };
+    pendingIzoh = { key, btn, type: 'sababli' };
     g('izoh-input').value = izohlar[key] || '';
     g('izoh-modal').classList.add('show');
     setTimeout(() => g('izoh-input').focus(), 100);
+    return;
+  }
+  if (status === 'keldi' || status === 'kech') {
+    if (attendance[key] === status) { applyStatus(key, status, btn); return; }
+    pendingIzoh = { key, btn, type: status };
+    g('dv-soat').value   = darsVaqtlar[key] ? darsVaqtlar[key].soat   : '';
+    g('dv-daqiqa').value = darsVaqtlar[key] ? darsVaqtlar[key].daqiqa : '';
+    if (status === 'kech') {
+      g('kech-sabab-wrap').style.display = 'block';
+      g('kech-sabab-input').value = kechSabablar[key] || '';
+      g('dv-modal-title').textContent = "Kech keldi — ma'lumot kiriting";
+    } else {
+      g('kech-sabab-wrap').style.display = 'none';
+      g('dv-modal-title').textContent = "Keldi — dars soatini kiriting";
+    }
+    g('dv-modal').classList.add('show');
+    setTimeout(() => g('dv-soat').focus(), 100);
     return;
   }
   applyStatus(key, status, btn);
@@ -254,6 +254,25 @@ function confirmIzoh() {
   applyStatus(key, 'sababli', btn);
 }
 function closeIzoh() { g('izoh-modal').classList.remove('show'); pendingIzoh=null; }
+
+function confirmDarsVaqt() {
+  if (!pendingIzoh) return;
+  const {key, btn, type} = pendingIzoh;
+  const soat   = parseInt(g('dv-soat').value)   || 0;
+  const daqiqa = parseInt(g('dv-daqiqa').value) || 0;
+  if (soat === 0 && daqiqa === 0) { g('dv-err').style.display='block'; return; }
+  g('dv-err').style.display = 'none';
+  darsVaqtlar[key] = { soat, daqiqa };
+  if (type === 'kech') {
+    kechSabablar[key] = g('kech-sabab-input').value.trim();
+    izohlar[key] = kechSabablar[key];
+  }
+  closeDvModal();
+  applyStatus(key, type, btn);
+  const inf = g('dvinfo-'+safeId(key));
+  if (inf) { inf.textContent = '\u{1F550} '+soat+'s '+daqiqa+'d'; inf.style.display='inline-flex'; }
+}
+function closeDvModal() { g('dv-modal').classList.remove('show'); pendingIzoh=null; }
 
 // ─────────────────────────────────────────────
 //  STATISTIKA
@@ -305,7 +324,15 @@ function closeConfirm() { g('confirm-modal').classList.remove('show'); }
 async function doSave() {
   const records = TEACHERS.map(t => {
     const key = t.ism + ' ' + t.familiya;
-    return { ism: key, fan: t.fan, status: attendance[key]||'', izoh: izohlar[key]||'' };
+    const dv  = darsVaqtlar[key];
+    return {
+      ism:         key,
+      fan:         t.fan,
+      status:      attendance[key]||'',
+      izoh:        izohlar[key]||'',
+      dars_soat:   dv ? dv.soat   : 0,
+      dars_daqiqa: dv ? dv.daqiqa : 0
+    };
   }).filter(r => r.status);
 
   if (!records.length) { toast('⚠️ Hech narsa belgilanmadi','error'); closeConfirm(); return; }

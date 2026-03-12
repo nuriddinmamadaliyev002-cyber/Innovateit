@@ -89,6 +89,43 @@
   </div>
 </div>
 
+
+<!-- MODAL: Dars vaqti (keldi / kech) -->
+<div class="modal-overlay" id="dv-modal" onclick="if(event.target===this)closeDvModal()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="dv-modal-title">Keldi — dars soatini kiriting</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">O'tgan dars vaqtini kiriting:</p>
+    <div style="display:flex;gap:10px;margin-bottom:8px;">
+      <div style="flex:1;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Soat</label>
+        <input id="dv-soat" type="number" min="0" max="12" placeholder="0"
+          class="field-input" style="text-align:center;font-size:18px;font-weight:700;"
+          oninput="g('dv-err').style.display='none'">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:10px;font-size:20px;font-weight:700;color:var(--muted);">:</div>
+      <div style="flex:1;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Daqiqa</label>
+        <input id="dv-daqiqa" type="number" min="0" max="59" placeholder="0"
+          class="field-input" style="text-align:center;font-size:18px;font-weight:700;"
+          oninput="g('dv-err').style.display='none'"
+          onkeydown="if(event.key==='Enter')confirmDarsVaqt()">
+      </div>
+    </div>
+    <p id="dv-err" style="display:none;font-size:12px;color:var(--danger);margin-bottom:8px;">⚠️ Kamida 1 daqiqa kiriting</p>
+    <div id="kech-sabab-wrap" style="display:none;margin-bottom:8px;">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Kech qolish sababi (ixtiyoriy):</label>
+      <textarea id="kech-sabab-input" class="field-input"
+        placeholder="Masalan: Transport muammosi…"
+        style="resize:none;height:60px;font-size:13px;display:block;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDvModal()">Bekor</button>
+      <button class="btn-submit" onclick="confirmDarsVaqt()">Tasdiqlash</button>
+    </div>
+  </div>
+</div>
+
 <div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
 <div class="toast" id="toast"></div>
 

@@ -226,10 +226,18 @@ function renderByTeacher(wrap, filterT, today) {
       const lessons = tJad.filter(j => j.kunlar.includes(kun));
       if (lessons.length) {
         html += `<td class="${kun===today?'today-col':''}"><div class="jadval-cell">`;
+        // Bir xil vaqtdagi darslarni guruhlash
+        const grouped = [];
         lessons.forEach(j => {
+          const vaqt = (j.boshlanish||'') + '-' + (j.tugash||'');
+          const found = grouped.find(g => g.vaqt === vaqt);
+          if (found) { found.sinflar = [...new Set([...found.sinflar, ...j.sinflar])]; }
+          else { grouped.push({ vaqt, sinflar: [...j.sinflar], boshlanish: j.boshlanish, tugash: j.tugash }); }
+        });
+        grouped.forEach(g => {
           html += `<div class="jcell sinf">
-            <div class="jcell-name">${j.sinflar.join(', ')}</div>
-            ${j.boshlanish ? `<div class="jcell-sub">⏰ ${j.boshlanish}–${j.tugash}</div>` : ''}
+            <div class="jcell-name">${g.sinflar.join(', ')}</div>
+            ${g.boshlanish ? `<div class="jcell-sub">⏰ ${g.boshlanish}–${g.tugash}</div>` : ''}
           </div>`;
         });
         html += `</div></td>`;
