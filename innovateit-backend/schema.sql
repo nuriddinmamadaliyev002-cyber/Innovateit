@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS nofaol_oquvchilar (
     admin      TEXT,
     qoshilgan  TEXT,
     boshlagan  TEXT,
-    chiqgan    TEXT    -- safdan chiqgan sana
+    chiqgan    TEXT,    -- safdan chiqgan sana
+    izoh       TEXT     DEFAULT ''  -- chiqish sababi
 );
 
 -- ─── O'quvchilar Davomati ───

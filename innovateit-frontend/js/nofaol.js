@@ -104,6 +104,9 @@ function renderTbl(d) {
     <td class="mono">${fTug(s.tug)}</td>
     <td class="mono">${fDate(s.boshlagan)}</td>
     <td><span class="badge-chiqgan">${fDate(s.chiqgan)}</span></td>
+    <td style="max-width:200px;">
+      ${s.izoh ? `<span style="font-size:12px;color:#7a7870;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.izoh.replace(/"/g,'&quot;')}">${s.izoh}</span>` : '<span style="color:#ccc;font-size:12px;">—</span>'}
+    </td>
     ${sup ? `<td class="mono" style="font-size:11px;">${s.admin || '—'}</td>` : ''}
     <td>
       <button class="btn-faollashtir" onclick="openFaolModal(${s.ri})">✅ Faollashtirish</button>
@@ -138,6 +141,7 @@ function renderMob(d) {
         <div class="sc-row"><span class="sc-lbl">🎂 Tug'ilgan</span><span class="sc-val m">${fTug(s.tug)}</span></div>
         <div class="sc-row"><span class="sc-lbl">📅 Boshlagan</span><span class="sc-val m">${fDate(s.boshlagan)}</span></div>
         <div class="sc-row"><span class="sc-lbl">🚪 Chiqgan</span><span class="sc-val m" style="color:#c2410c;font-weight:600;">${fDate(s.chiqgan)}</span></div>
+        ${s.izoh ? `<div class="sc-row sc-full"><span class="sc-lbl">💬 Sabab</span><span class="sc-val" style="color:#7a7870;font-style:italic;">${s.izoh}</span></div>` : ''}
         <div class="sc-row"><span class="sc-lbl">📍 Manzil</span><span class="sc-val">${s.manzil || '—'}</span></div>
         ${sup ? `<div class="sc-row sc-full"><span class="sc-lbl">👤 Admin</span><span class="sc-val m" style="font-size:11px;">${s.admin || '—'}</span></div>` : ''}
       </div>

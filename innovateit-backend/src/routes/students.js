@@ -94,6 +94,11 @@ async function handleMoveToInactive(p) {
   const admin = await verifyAdmin(p.username, p.parol);
   if (!admin) return { ok: false, error: "Ruxsat yo'q" };
 
+  // Izoh majburiy tekshiruv
+  const izoh = (p.izoh || '').trim();
+  if (!izoh) return { ok: false, error: "Chiqish sababi (izoh) majburiy" };
+  if (izoh.length < 10) return { ok: false, error: "Chiqish sababi kamida 10 ta belgi bo'lishi kerak" };
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -115,11 +120,11 @@ async function handleMoveToInactive(p) {
     // Nofaol jadvaliga qo'shish
     await client.query(
       `INSERT INTO nofaol_oquvchilar
-        (ism, familiya, maktab, sinf, telefon, telefon2, tug, manzil, admin, qoshilgan, boshlagan, chiqgan)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        (ism, familiya, maktab, sinf, telefon, telefon2, tug, manzil, admin, qoshilgan, boshlagan, chiqgan, izoh)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [s.ism, s.familiya, s.maktab, s.sinf, s.telefon, s.telefon2,
        s.tug, s.manzil, s.admin, s.qoshilgan, s.boshlagan,
-       p.chiqgan || todayUZ()]
+       p.chiqgan || todayUZ(), izoh]
     );
 
     // Faol jadvalddan o'chirish
@@ -161,7 +166,8 @@ async function handleGetNofaol(p) {
     admin:     r.admin,
     date:      r.qoshilgan,
     boshlagan: r.boshlagan,
-    chiqgan:   r.chiqgan
+    chiqgan:   r.chiqgan,
+    izoh:      r.izoh || ''
   }));
   return { ok: true, students };
 }

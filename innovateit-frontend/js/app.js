@@ -388,17 +388,70 @@ function openNofaolModal(idx) {
   g('nofaol-modal').style.display = 'flex';
 }
 
+const IZOH_MIN = 10;
+
+function onNofaolIzohInput(el) {
+  const len = el.value.trim().length;
+  const counter = g('nofaol-izoh-counter');
+  const hint    = g('nofaol-izoh-hint');
+  const ok      = g('nofaol-izoh-ok');
+
+  counter.textContent = len + ' / ' + IZOH_MIN + ' ta belgi minimum';
+
+  if (len === 0) {
+    el.classList.remove('field-error');
+    counter.style.color = '#9ca3af';
+    hint.style.display = 'none';
+    ok.style.display   = 'none';
+  } else if (len < IZOH_MIN) {
+    el.classList.add('field-error');
+    counter.style.color = '#dc2626';
+    hint.style.display = 'block';
+    ok.style.display   = 'none';
+  } else {
+    el.classList.remove('field-error');
+    counter.style.color = '#16a34a';
+    hint.style.display = 'none';
+    ok.style.display   = 'block';
+  }
+}
+
 function closeNofaolModal() {
   g('nofaol-modal').style.display = 'none';
+  g('nofaol-izoh').value = '';
+  g('nofaol-izoh').classList.remove('field-error');
+  g('nofaol-izoh-hint').style.display = 'none';
+  g('nofaol-izoh-ok').style.display   = 'none';
+  g('nofaol-izoh-counter').textContent = '0 / ' + IZOH_MIN + ' ta belgi minimum';
+  g('nofaol-izoh-counter').style.color = '#9ca3af';
   nofaolIdx = null;
 }
 
 async function confirmNofaol() {
   const s = S[nofaolIdx]; if (!s) return;
   const chiqgan = g('nofaol-chiqgan').value;
+  const izoh    = (g('nofaol-izoh').value || '').trim();
 
   if (!chiqgan) { toast("⚠️ Safdan chiqgan sanani kiriting", 'error'); return; }
   if (chiqgan > todayStr()) { toast("⚠️ Sana bugundan kech bo'lmasligi kerak", 'error'); return; }
+  if (!izoh) {
+    g('nofaol-izoh').focus();
+    g('nofaol-izoh').classList.add('field-error');
+    g('nofaol-izoh-hint').style.display = 'block';
+    g('nofaol-izoh-ok').style.display   = 'none';
+    toast("⚠️ Chiqish sababini kiriting — majburiy maydon", 'error');
+    return;
+  }
+  if (izoh.length < IZOH_MIN) {
+    g('nofaol-izoh').focus();
+    g('nofaol-izoh').classList.add('field-error');
+    g('nofaol-izoh-hint').style.display = 'block';
+    g('nofaol-izoh-ok').style.display   = 'none';
+    toast("⚠️ Sabab kamida " + IZOH_MIN + " ta belgi bo'lishi kerak", 'error');
+    return;
+  }
+  g('nofaol-izoh').classList.remove('field-error');
+  g('nofaol-izoh-hint').style.display = 'none';
 
   g('nofaol-confirm-btn').disabled = true;
   g('nofaol-spinner').style.display = 'inline-block';
@@ -409,7 +462,7 @@ async function confirmNofaol() {
       action: 'moveToInactive',
       username: U.username, parol: U.parol,
       delIsm: s.ism, delFamiliya: s.familiya,
-      chiqgan
+      chiqgan, izoh
     });
     if (r.ok) {
       closeNofaolModal();

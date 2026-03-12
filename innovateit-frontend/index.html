@@ -338,6 +338,19 @@
       <p class="field-hint">Bugungi sanadan kech bo'lmasligi kerak</p>
     </div>
 
+    <div class="field-group">
+      <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Chiqish sababi <span style="color:#dc2626;">*</span></span>
+        <span id="nofaol-izoh-counter" style="font-size:11px;font-weight:400;color:#9ca3af;">0 / 10 ta belgi minimum</span>
+      </label>
+      <textarea class="field-input" id="nofaol-izoh" rows="3"
+        placeholder="Masalan: O'qishni to'xtatdi, boshqa shaharga ko'chdi, to'lov qilmadi…"
+        style="resize:vertical;min-height:90px;line-height:1.5;font-size:14px;"
+        oninput="onNofaolIzohInput(this)"></textarea>
+      <p class="field-hint" id="nofaol-izoh-hint" style="color:#dc2626;font-weight:500;display:none;">⚠️ Chiqish sababi kamida 10 ta belgi bo'lishi kerak</p>
+      <p class="field-hint" id="nofaol-izoh-ok" style="color:#16a34a;font-weight:500;display:none;">✅ Sabab kiritildi</p>
+    </div>
+
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeNofaolModal()">Bekor qilish</button>
       <button class="btn-submit" id="nofaol-confirm-btn"
