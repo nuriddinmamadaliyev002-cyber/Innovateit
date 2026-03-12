@@ -246,7 +246,7 @@ function renderTbl(d) {
   }
   tb.innerHTML = d.map((s, i) => `<tr>
     <td class="mono">${i + 1}</td>
-    <td><strong>${s.ism}</strong> ${s.familiya}</td>
+    <td><strong>${s.familiya}</strong> ${s.ism}</td>
     <td><span class="maktab-badge">${s.maktab || '—'}</span></td>
     <td><span class="sinf-badge">${s.sinf || '—'}</span></td>
     <td class="mono">${s.telefon || '—'}</td>
@@ -274,7 +274,7 @@ function renderMob(d) {
     <div class="sc">
       <div class="sc-header">
         <div>
-          <div class="sc-name">${s.ism} ${s.familiya}</div>
+          <div class="sc-name">${s.familiya} ${s.ism}</div>
           <div class="sc-num">#${i + 1}</div>
           <div class="sc-tags">
             <span class="maktab-badge">${s.maktab || '—'}-maktab</span>
