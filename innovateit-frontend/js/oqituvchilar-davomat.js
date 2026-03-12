@@ -123,15 +123,38 @@ function updateNextBtn() {
 async function loadTeachersAndDavomat(date) {
   g('loading-ov').style.display = 'flex';
   try {
-    // Barcha o'qituvchilarni ol
-    const td = await req({ action:'getTeachers', username:U.username, parol:U.parol });
-    if (!td.ok) { toast('❌ '+td.error,'error'); g('loading-ov').style.display='none'; return; }
+    // Dars jadvali orqali bugun dars o'tadigan o'qituvchilarni ol
+    const jd = await req({ action:'getJadvallar', username:U.username, parol:U.parol });
+    if (!jd.ok) { toast('❌ '+jd.error,'error'); g('loading-ov').style.display='none'; return; }
 
-    // Bugun (selectedDate) dars o'tadigan o'qituvchilarni filterlash
-    const dayOfWeek = date.getDay(); // 0=Ya,1=Du…6=Sha
-    TEACHERS = td.teachers.filter(t => {
-      const kunlar = parseDays(t.kunlar);
-      return kunlar.includes(dayOfWeek);
+    // Bugungi kun indeksi (0=Ya,1=Du...6=Sha)
+    const dayOfWeek = date.getDay();
+
+    // Bir xil o'qituvchi bir kunda bir marta chiqishi uchun unique filterlash
+    const seen = new Set();
+    TEACHERS = [];
+    jd.jadvallar.forEach(j => {
+      if (!parseDays(j.kunlar).includes(dayOfWeek)) return;
+      const key = j.teacher_ism + ' ' + j.teacher_familiya;
+      if (seen.has(key)) {
+        // Sinflarni qo'shib qo'yamiz (bir xil vaqtda bir necha sinf bo'lsa)
+        const existing = TEACHERS.find(t => t.ism+' '+t.familiya === key);
+        if (existing) {
+          const newSinflar = parseSinflar(j.sinflar);
+          newSinflar.forEach(s => { if (!parseSinflar(existing.sinflar).includes(s)) existing.sinflar += ','+s; });
+        }
+        return;
+      }
+      seen.add(key);
+      TEACHERS.push({
+        ism:        j.teacher_ism,
+        familiya:   j.teacher_familiya,
+        fan:        j.fan || '—',
+        boshlanish: j.boshlanish || '',
+        tugash:     j.tugash || '',
+        sinflar:    j.sinflar || '',
+        kunlar:     j.kunlar || ''
+      });
     });
 
     // Mavjud davomatni yuklash
@@ -144,9 +167,8 @@ async function loadTeachersAndDavomat(date) {
     }
 
     render();
-    // yozuv yuklandi xabari olib tashlandi
 
-  } catch { toast("❌ Yuklashda xatolik",'error'); }
+  } catch(e) { console.error(e); toast("❌ Yuklashda xatolik",'error'); }
   g('loading-ov').style.display = 'none';
 }
 
