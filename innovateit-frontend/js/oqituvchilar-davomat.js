@@ -130,32 +130,40 @@ async function loadTeachersAndDavomat(date) {
     // Bugungi kun indeksi (0=Ya,1=Du...6=Sha)
     const dayOfWeek = date.getDay();
 
-    // Bir xil o'qituvchi bir kunda bir marta chiqishi uchun unique filterlash
-    const seen = new Set();
+    // O'qituvchilarni jadvaldan yuklash
+    // Bir xil o'qituvchi, bir xil vaqt → sinflarni birlashtirish
+    // Har xil vaqt → alohida yozuv (Shoiraxon kabi)
+    // Davomat kaliti: "Ism Familiya|boshlanish" (vaqt bilan unique)
+    const vaqtMap = new Map(); // "key|vaqt" -> teacher obj
     TEACHERS = [];
     jd.jadvallar.forEach(j => {
       if (!parseDays(j.kunlar).includes(dayOfWeek)) return;
-      const key = j.teacher_ism + ' ' + j.teacher_familiya;
-      if (seen.has(key)) {
-        // Sinflarni qo'shib qo'yamiz (bir xil vaqtda bir necha sinf bo'lsa)
-        const existing = TEACHERS.find(t => t.ism+' '+t.familiya === key);
-        if (existing) {
-          const newSinflar = parseSinflar(j.sinflar);
-          newSinflar.forEach(s => { if (!parseSinflar(existing.sinflar).includes(s)) existing.sinflar += ','+s; });
-        }
-        return;
+      const name  = j.teacher_ism + ' ' + j.teacher_familiya;
+      const vaqt  = (j.boshlanish||'') + '-' + (j.tugash||'');
+      const uniq  = name + '|' + vaqt;
+      if (vaqtMap.has(uniq)) {
+        // Bir xil vaqt — sinflarni birlashtir
+        const ex = vaqtMap.get(uniq);
+        parseSinflar(j.sinflar).forEach(s => {
+          if (!parseSinflar(ex.sinflar).includes(s)) ex.sinflar += ','+s;
+        });
+      } else {
+        const obj = {
+          ism:        j.teacher_ism,
+          familiya:   j.teacher_familiya,
+          fan:        j.fan || '—',
+          boshlanish: j.boshlanish || '',
+          tugash:     j.tugash || '',
+          sinflar:    j.sinflar || '',
+          kunlar:     j.kunlar || ''
+        };
+        vaqtMap.set(uniq, obj);
+        TEACHERS.push(obj);
       }
-      seen.add(key);
-      TEACHERS.push({
-        ism:        j.teacher_ism,
-        familiya:   j.teacher_familiya,
-        fan:        j.fan || '—',
-        boshlanish: j.boshlanish || '',
-        tugash:     j.tugash || '',
-        sinflar:    j.sinflar || '',
-        kunlar:     j.kunlar || ''
-      });
     });
+    // Davomat kaliti ham vaqt bilan bo'lishi uchun key funksiyasi
+    // Agar bitta o'qituvchi 2 vaqtda dars o'tsa — ular alohida satr bo'ladi
+    // key = "Ism Familiya" (vaqtsiz) — chunki davomat oqituvchi bo'yicha saqlanadi
 
     // Mavjud davomatni yuklash
     const dd = await req({ action:'getTeacherDavomat', username:U.username, parol:U.parol, sana:dateStr(date) });
@@ -163,6 +171,9 @@ async function loadTeachersAndDavomat(date) {
       dd.records.forEach(r => {
         attendance[r.ism] = r.status;
         if (r.izoh) izohlar[r.ism] = r.izoh;
+        if (r.dars_soat || r.dars_daqiqa) {
+          darsVaqtlar[r.ism] = { soat: r.dars_soat || 0, daqiqa: r.dars_daqiqa || 0 };
+        }
       });
     }
 
@@ -188,7 +199,11 @@ function render() {
   }
 
   el.innerHTML = TEACHERS.map((t, i) => {
-    const key = t.ism + ' ' + t.familiya;
+    // Agar bir xil o'qituvchi 2 xil vaqtda dars o'tsa — uni vaqt bilan farqlaymiz
+    const sameNameCount = TEACHERS.filter(x=>x.ism===t.ism&&x.familiya===t.familiya).length;
+    const key = sameNameCount > 1
+      ? t.ism + ' ' + t.familiya + ' ' + (t.boshlanish||i)
+      : t.ism + ' ' + t.familiya;
     const cur = attendance[key] || '';
     const sinflar = parseSinflar(t.sinflar);
     return `<div class="teacher-row${cur?' done':''}" id="row-${safeId(key)}" style="animation-delay:${i*0.04}s">
@@ -299,7 +314,10 @@ function confirmDarsVaqt() {
     izohlar[key] = kechSabablar[key];
   }
   closeDvModal();
-  applyStatus(key, type, btn);
+  // Agar status allaqachon o'rnatilgan bo'lsa (tahrirlash rejimi) — faqat badge yangilansin
+  if (attendance[key] !== type) {
+    applyStatus(key, type, btn);
+  }
   const inf = g('dvinfo-'+safeId(key));
   if (inf) { inf.textContent = fmtDv(soat,daqiqa); inf.style.display='inline-flex'; inf.onclick=()=>editDarsVaqt(key); inf.title='Tahrirlash uchun bosing'; }
 }
@@ -376,8 +394,11 @@ function confirmSave() {
 function closeConfirm() { g('confirm-modal').classList.remove('show'); }
 
 async function doSave() {
-  const records = TEACHERS.map(t => {
-    const key = t.ism + ' ' + t.familiya;
+  const records = TEACHERS.map((t, i) => {
+    const sameNameCount = TEACHERS.filter(x=>x.ism===t.ism&&x.familiya===t.familiya).length;
+    const key = sameNameCount > 1
+      ? t.ism + ' ' + t.familiya + ' ' + (t.boshlanish||i)
+      : t.ism + ' ' + t.familiya;
     const dv  = darsVaqtlar[key];
     return {
       ism:         key,

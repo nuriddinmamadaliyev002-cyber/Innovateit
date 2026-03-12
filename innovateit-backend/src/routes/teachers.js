@@ -150,9 +150,10 @@ async function handleSaveTeacherDavomat(p) {
     for (const rec of records) {
       await client.query(
         `INSERT INTO oqituvchilar_davomat
-          (sana, admin_username, oqituvchi_ism, fan, status, izoh, vaqt_belgilangan)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [sana, p.username, rec.ism, rec.fan || '', rec.status, rec.izoh || '', now]
+          (sana, admin_username, oqituvchi_ism, fan, status, izoh, vaqt_belgilangan, dars_soat, dars_daqiqa)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [sana, p.username, rec.ism, rec.fan || '', rec.status, rec.izoh || '', now,
+         rec.dars_soat || 0, rec.dars_daqiqa || 0]
       );
     }
     await client.query('COMMIT');
@@ -173,15 +174,17 @@ async function handleGetTeacherDavomat(p) {
 
   try {
     const result = await pool.query(
-      `SELECT oqituvchi_ism, fan, status, izoh FROM oqituvchilar_davomat
+      `SELECT oqituvchi_ism, fan, status, izoh, dars_soat, dars_daqiqa FROM oqituvchilar_davomat
        WHERE sana=$1 AND admin_username=$2`,
       [p.sana, p.username]
     );
     const records = result.rows.map(r => ({
-      ism:    r.oqituvchi_ism,
-      fan:    r.fan,
-      status: r.status,
-      izoh:   r.izoh
+      ism:        r.oqituvchi_ism,
+      fan:        r.fan,
+      status:     r.status,
+      izoh:       r.izoh,
+      dars_soat:   r.dars_soat   || 0,
+      dars_daqiqa: r.dars_daqiqa || 0
     }));
     return { ok: true, records };
   } catch (err) {
