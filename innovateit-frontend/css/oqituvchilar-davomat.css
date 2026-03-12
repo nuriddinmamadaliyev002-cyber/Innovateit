@@ -193,3 +193,8 @@
 }
 .dv-badge:hover { background: #dbeafe; }
 .teacher-meta { flex-wrap: wrap; gap: 5px; }
+
+/* ══ SABAB BADGE RANGLARI ══ */
+.dv-badge.dv-edit    { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.dv-badge.dv-kelmadi { background:#fef2f2; color:#dc2626; border-color:#fecaca; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dv-badge.dv-sababli { background:#fffbeb; color:#d97706; border-color:#fde68a; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

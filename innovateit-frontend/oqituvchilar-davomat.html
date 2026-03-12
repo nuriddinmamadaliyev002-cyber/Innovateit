@@ -49,19 +49,21 @@
   </div>
 </div>
 
-<!-- MODAL: Sababli izoh -->
-<div class="modal-overlay" id="izoh-modal" onclick="if(event.target===this)closeIzoh()">
+<!-- MODAL: Sabab (sababli + kelmadi) -->
+<div class="modal-overlay" id="sabab-modal" onclick="if(event.target===this)closeSababModal()">
   <div class="modal">
     <div class="modal-drag"></div>
-    <div class="modal-title">📋 Sababli — izoh kiriting</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Sabab (ixtiyoriy):</p>
-    <textarea id="izoh-input" class="field-input"
+    <div class="modal-title" id="sabab-modal-title">Sabab kiriting</div>
+    <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Sabab <span style="color:var(--danger);">*</span></label>
+    <textarea id="sabab-input" class="field-input"
       placeholder="Masalan: Kasalligi sababli…"
       style="resize:none;height:80px;margin-bottom:4px;display:block;font-size:14px;"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();confirmIzoh();}"></textarea>
+      oninput="g('sabab-err').style.display='none'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();confirmSabab();}"></textarea>
+    <p id="sabab-err" style="display:none;font-size:12px;color:var(--danger);margin-bottom:8px;">⚠️ Sabab kiritish majburiy</p>
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeIzoh()">Bekor</button>
-      <button class="btn-submit" onclick="confirmIzoh()">Tasdiqlash</button>
+      <button class="btn-cancel" onclick="closeSababModal()">Bekor</button>
+      <button class="btn-submit" onclick="confirmSabab()">Tasdiqlash</button>
     </div>
   </div>
 </div>
@@ -113,6 +115,13 @@
       </div>
     </div>
     <p id="dv-err" style="display:none;font-size:12px;color:var(--danger);margin-bottom:8px;">⚠️ Kamida 1 daqiqa kiriting</p>
+    <div id="kech-minut-wrap" style="display:none;margin-bottom:8px;">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Necha daqiqa kech qoldi <span style="color:var(--danger);">*</span></label>
+      <input id="kech-minut-input" type="number" min="1" max="120" placeholder="0"
+        class="field-input" style="text-align:center;font-size:18px;font-weight:700;"
+        oninput="g('dv-minut-err').style.display='none'">
+      <p id="dv-minut-err" style="display:none;font-size:12px;color:var(--danger);margin-top:4px;">⚠️ Kech qolgan daqiqani kiriting</p>
+    </div>
     <div id="kech-sabab-wrap" style="display:none;margin-bottom:8px;">
       <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Kech qolish sababi <span style="color:var(--danger);">*</span></label>
       <textarea id="kech-sabab-input" class="field-input"

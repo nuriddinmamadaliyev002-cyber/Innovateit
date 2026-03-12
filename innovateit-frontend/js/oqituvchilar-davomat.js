@@ -24,7 +24,10 @@ let attendance = {};      // { "Ism Familiya": "keldi"|... }
 let izohlar    = {};      // { "Ism Familiya": "izoh" }
 let pendingIzoh  = null;   // { key, btnEl, type }
 let darsVaqtlar  = {};      // { key: { soat, daqiqa } }
-let kechSabablar = {};      // { key: sabab }
+let kechSabablar  = {};     // { key: sabab } — kech uchun
+let kelmadiSabab  = {};     // { key: sabab } — kelmadi uchun
+let sababliIzoh   = {};     // { key: sabab } — sababli uchun
+let kechMinutlar  = {};     // { key: minut } — kech qolgan minut
 
 const TODAY = (() => { const d=new Date(); d.setHours(0,0,0,0); return d; })();
 let currentDate = skipWeekend(new Date(TODAY), -1);
@@ -86,7 +89,7 @@ async function changeDate(dir) {
   if (nd.getDay() === 0) nd.setDate(nd.getDate() + dir); // Yakshanbani o'tkazib yuborish
   if (nd > TODAY) return;
   currentDate = nd;
-  attendance = {}; izohlar = {}; darsVaqtlar = {}; kechSabablar = {};
+  attendance = {}; izohlar = {}; darsVaqtlar = {}; kechSabablar = {}; kelmadiSabab = {}; sababliIzoh = {}; kechMinutlar = {};
   setDateUI(currentDate);
   updateNextBtn();
   await loadTeachersAndDavomat(currentDate);
@@ -104,7 +107,7 @@ async function onDatePick() {
     g('date-picker').value = dateStr(currentDate); return;
   }
   currentDate = d;
-  attendance = {}; izohlar = {}; darsVaqtlar = {}; kechSabablar = {};
+  attendance = {}; izohlar = {}; darsVaqtlar = {}; kechSabablar = {}; kelmadiSabab = {}; sababliIzoh = {}; kechMinutlar = {};
   setDateUI(currentDate);
   updateNextBtn();
   await loadTeachersAndDavomat(currentDate);
@@ -170,10 +173,16 @@ async function loadTeachersAndDavomat(date) {
     if (dd.ok && dd.records.length) {
       dd.records.forEach(r => {
         attendance[r.ism] = r.status;
-        if (r.izoh) izohlar[r.ism] = r.izoh;
+        if (r.izoh) {
+          izohlar[r.ism] = r.izoh;
+          if (r.status === 'kelmadi') kelmadiSabab[r.ism] = r.izoh;
+          if (r.status === 'sababli') sababliIzoh[r.ism]  = r.izoh;
+          if (r.status === 'kech')    kechSabablar[r.ism] = r.izoh;
+        }
         if (r.dars_soat || r.dars_daqiqa) {
           darsVaqtlar[r.ism] = { soat: r.dars_soat || 0, daqiqa: r.dars_daqiqa || 0 };
         }
+        if (r.kech_minut) kechMinutlar[r.ism] = r.kech_minut;
       });
     }
 
@@ -223,7 +232,23 @@ function render() {
             onclick="setStatus('${esc(key)}','${st.key}',this)"
           >${st.emoji}</button>`).join('')}
       </div>
-      ${(()=>{ const dv=darsVaqtlar[key]; return dv ? `<span class="dv-badge" id="dvinfo-${safeId(key)}" onclick="editDarsVaqt('${esc(key)}')" title="Tahrirlash uchun bosing">${fmtDv(dv.soat,dv.daqiqa)}</span>` : `<span class="dv-badge" id="dvinfo-${safeId(key)}" style="display:none"></span>`; })()}
+      ${(()=>{
+        const dv  = darsVaqtlar[key];
+        const st  = cur;
+        let badge = '';
+        if ((st==='keldi'||st==='kech') && dv) {
+          const km = kechMinutlar[key];
+          const extra = (st==='kech'&&km) ? ` · ${km} daq kech` : '';
+          badge = `<span class="dv-badge dv-edit" id="dvinfo-${safeId(key)}" onclick="editDarsVaqt('${esc(key)}')" title="Tahrirlash">${fmtDv(dv.soat,dv.daqiqa)}${extra}</span>`;
+        } else if (st==='kelmadi' && kelmadiSabab[key]) {
+          badge = `<span class="dv-badge dv-kelmadi" id="dvinfo-${safeId(key)}" onclick="editSabab('${esc(key)}','kelmadi')" title="Tahrirlash">❌ ${kelmadiSabab[key]}</span>`;
+        } else if (st==='sababli' && sababliIzoh[key]) {
+          badge = `<span class="dv-badge dv-sababli" id="dvinfo-${safeId(key)}" onclick="editSabab('${esc(key)}','sababli')" title="Tahrirlash">📋 ${sababliIzoh[key]}</span>`;
+        } else {
+          badge = `<span class="dv-badge" id="dvinfo-${safeId(key)}" style="display:none"></span>`;
+        }
+        return badge;
+      })()}
     </div>`;
   }).join('');
 
@@ -234,26 +259,36 @@ function render() {
 //  STATUS BELGILASH
 // ─────────────────────────────────────────────
 function setStatus(key, status, btn) {
-  if (status === 'sababli') {
-    pendingIzoh = { key, btn, type: 'sababli' };
-    g('izoh-input').value = izohlar[key] || '';
-    g('izoh-modal').classList.add('show');
-    setTimeout(() => g('izoh-input').focus(), 100);
+  // Toggle: allaqachon tanlangan bo'lsa — o'chirish
+  if (attendance[key] === status) { applyStatus(key, status, btn); return; }
+
+  if (status === 'sababli' || status === 'kelmadi') {
+    pendingIzoh = { key, btn, type: status };
+    const cur = status === 'sababli' ? (sababliIzoh[key]||'') : (kelmadiSabab[key]||'');
+    g('sabab-modal-title').textContent = status === 'sababli' ? "📋 Sababli — sabab kiriting" : "❌ Kelmadi — sabab kiriting";
+    g('sabab-input').value = cur;
+    g('sabab-err').style.display = 'none';
+    g('sabab-modal').classList.add('show');
+    setTimeout(() => g('sabab-input').focus(), 100);
     return;
   }
   if (status === 'keldi' || status === 'kech') {
-    if (attendance[key] === status) { applyStatus(key, status, btn); return; }
     pendingIzoh = { key, btn, type: status };
     g('dv-soat').value   = darsVaqtlar[key] ? darsVaqtlar[key].soat   : '';
     g('dv-daqiqa').value = darsVaqtlar[key] ? darsVaqtlar[key].daqiqa : '';
     if (status === 'kech') {
       g('kech-sabab-wrap').style.display = 'block';
-      g('kech-sabab-input').value = kechSabablar[key] || '';
-      g('dv-modal-title').textContent = "Kech keldi — ma'lumot kiriting";
+      g('kech-minut-wrap').style.display = 'block';
+      g('kech-sabab-input').value  = kechSabablar[key]  || '';
+      g('kech-minut-input').value  = kechMinutlar[key]  || '';
+      g('dv-modal-title').textContent = "⏰ Kech keldi — ma'lumot kiriting";
     } else {
       g('kech-sabab-wrap').style.display = 'none';
-      g('dv-modal-title').textContent = "Keldi — dars soatini kiriting";
+      g('kech-minut-wrap').style.display = 'none';
+      g('dv-modal-title').textContent = "✅ Keldi — dars soatini kiriting";
     }
+    g('dv-err').style.display = 'none';
+    g('dv-sabab-err').style.display = 'none';
     g('dv-modal').classList.add('show');
     setTimeout(() => g('dv-soat').focus(), 100);
     return;
@@ -269,17 +304,20 @@ function applyStatus(key, status, btn) {
     // Toggle — o'chirish
     delete attendance[key];
     if (status === 'sababli') delete izohlar[key];
-    if (status === 'keldi' || status === 'kech') { delete darsVaqtlar[key]; delete kechSabablar[key]; }
+    if (status === 'keldi' || status === 'kech') { delete darsVaqtlar[key]; delete kechSabablar[key]; delete kechMinutlar[key]; }
+    if (status === 'kelmadi') { delete kelmadiSabab[key]; delete izohlar[key]; }
+    if (status === 'sababli') { delete sababliIzoh[key]; delete izohlar[key]; }
     btns.forEach(b => b.className='s-btn');
     row.classList.remove('done');
     const inf = g('dvinfo-'+safeId(key));
     if (inf) { inf.style.display='none'; inf.textContent=''; }
   } else {
-    // kelmadi yoki sababli tanlanganda vaqtni o'chir
+    // keldi/kech → badge o'chir; kelmadi/sababli → darsVaqt o'chir
     if (status === 'kelmadi' || status === 'sababli') {
-      delete darsVaqtlar[key]; delete kechSabablar[key];
-      const inf = g('dvinfo-'+safeId(key));
-      if (inf) { inf.style.display='none'; inf.textContent=''; }
+      delete darsVaqtlar[key]; delete kechSabablar[key]; delete kechMinutlar[key];
+    }
+    if (status === 'keldi' || status === 'kech') {
+      delete kelmadiSabab[key]; delete sababliIzoh[key];
     }
     attendance[key] = status;
     btns.forEach(b => b.className='s-btn');
@@ -292,14 +330,41 @@ function applyStatus(key, status, btn) {
 // ─────────────────────────────────────────────
 //  IZOH MODAL
 // ─────────────────────────────────────────────
-function confirmIzoh() {
+function confirmSabab() {
   if (!pendingIzoh) return;
-  const {key, btn} = pendingIzoh;
-  izohlar[key] = g('izoh-input').value.trim();
-  closeIzoh();
-  applyStatus(key, 'sababli', btn);
+  const {key, btn, type} = pendingIzoh;
+  const sabab = g('sabab-input').value.trim();
+  if (!sabab) { g('sabab-err').style.display='block'; return; }
+  g('sabab-err').style.display='none';
+  izohlar[key] = sabab;
+  if (type === 'sababli') sababliIzoh[key]  = sabab;
+  if (type === 'kelmadi') kelmadiSabab[key] = sabab;
+  closeSababModal();
+  applyStatus(key, type, btn);
+  // badge yangilash
+  const inf = g('dvinfo-'+safeId(key));
+  if (inf) {
+    inf.textContent = type==='sababli' ? '📋 '+sabab : '❌ '+sabab;
+    inf.style.display = 'inline-flex';
+    inf.onclick = ()=>editSabab(key,type);
+    inf.title = 'Tahrirlash';
+    inf.className = 'dv-badge ' + (type==='sababli'?'dv-sababli':'dv-kelmadi');
+  }
 }
-function closeIzoh() { g('izoh-modal').classList.remove('show'); pendingIzoh=null; }
+function closeSababModal() { g('sabab-modal').classList.remove('show'); pendingIzoh=null; }
+
+function editSabab(key, type) {
+  if (attendance[key] !== type) return;
+  const row = g('row-'+safeId(key));
+  if (!row) return;
+  const btn = row.querySelector('.s-btn.active-'+type);
+  pendingIzoh = { key, btn: btn||row.querySelector('.s-btn'), type };
+  g('sabab-modal-title').textContent = type==='sababli' ? "📋 Sababli — sabab tahrirlash" : "❌ Kelmadi — sabab tahrirlash";
+  g('sabab-input').value = type==='sababli' ? (sababliIzoh[key]||'') : (kelmadiSabab[key]||'');
+  g('sabab-err').style.display='none';
+  g('sabab-modal').classList.add('show');
+  setTimeout(()=>g('sabab-input').focus(),100);
+}
 
 function confirmDarsVaqt() {
   if (!pendingIzoh) return;
@@ -309,9 +374,13 @@ function confirmDarsVaqt() {
   if (soat === 0 && daqiqa === 0) { g('dv-err').textContent = '⚠️ Kamida 1 daqiqa kiriting'; g('dv-err').style.display='block'; return; }
   if (type === 'kech') {
     const sabab = g('kech-sabab-input').value.trim();
+    const minut = parseInt(g('kech-minut-input').value)||0;
     if (!sabab) { g('dv-sabab-err').style.display='block'; return; }
+    if (!minut) { g('dv-minut-err').style.display='block'; return; }
     g('dv-sabab-err').style.display='none';
-    kechSabablar[key] = sabab;
+    g('dv-minut-err').style.display='none';
+    kechSabablar[key]  = sabab;
+    kechMinutlar[key]  = minut;
     izohlar[key] = sabab;
   }
   g('dv-err').style.display = 'none';
@@ -322,7 +391,15 @@ function confirmDarsVaqt() {
     applyStatus(key, type, btn);
   }
   const inf = g('dvinfo-'+safeId(key));
-  if (inf) { inf.textContent = fmtDv(soat,daqiqa); inf.style.display='inline-flex'; inf.onclick=()=>editDarsVaqt(key); inf.title='Tahrirlash uchun bosing'; }
+  if (inf) {
+    const km = kechMinutlar[key];
+    const extra = (type==='kech'&&km) ? ` · ${km} daq kech` : '';
+    inf.textContent = fmtDv(soat,daqiqa)+extra;
+    inf.style.display='inline-flex';
+    inf.className='dv-badge dv-edit';
+    inf.onclick=()=>editDarsVaqt(key);
+    inf.title='Tahrirlash uchun bosing';
+  }
 }
 function closeDvModal() { g('dv-modal').classList.remove('show'); pendingIzoh=null; }
 
@@ -340,10 +417,13 @@ function editDarsVaqt(key) {
   if (status === 'kech') {
     g('kech-sabab-wrap').style.display = 'block';
     g('kech-sabab-input').value = kechSabablar[key] || '';
-    g('dv-modal-title').textContent = "Kech keldi — ma'lumotni tahrirlash";
+    g('kech-minut-input').value = kechMinutlar[key]  || '';
+    g('kech-minut-wrap').style.display = 'block';
+    g('dv-modal-title').textContent = "⏰ Kech keldi — ma'lumotni tahrirlash";
   } else {
     g('kech-sabab-wrap').style.display = 'none';
-    g('dv-modal-title').textContent = "Keldi — dars soatini tahrirlash";
+    g('kech-minut-wrap').style.display = 'none';
+    g('dv-modal-title').textContent = "✅ Keldi — dars soatini tahrirlash";
   }
   g('dv-modal').classList.add('show');
   setTimeout(() => g('dv-soat').focus(), 100);
@@ -409,7 +489,8 @@ async function doSave() {
       status:      attendance[key]||'',
       izoh:        izohlar[key]||'',
       dars_soat:   dv ? dv.soat   : 0,
-      dars_daqiqa: dv ? dv.daqiqa : 0
+      dars_daqiqa: dv ? dv.daqiqa : 0,
+      kech_minut:  kechMinutlar[key] || 0
     };
   }).filter(r => r.status);
 
