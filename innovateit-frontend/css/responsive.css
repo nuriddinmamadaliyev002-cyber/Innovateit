@@ -1,751 +1,424 @@
 /* ═══════════════════════════════════════════════════════════
-   InnovateIT School — RESPONSIVE CSS
-   Barcha sahifalar uchun: Mobile, Tablet, Desktop
+   InnovateIT School — RESPONSIVE CSS  v2.0
+   Barcha sahifalar uchun
    Breakpoints:
-     xs  < 480px   (kichik telefonlar)
-     sm  < 640px   (telefonlar)
-     md  < 768px   (katta telefonlar / kichik tablet)
-     lg  < 1024px  (tablet)
-     xl  < 1280px  (katta tablet / kichik desktop)
+     sm  ≤ 520px  — kichik telefonlar
+     md  ≤ 768px  — telefonlar / kichik tabletlar
+     lg  ≤ 1024px — tabletlar
 ═══════════════════════════════════════════════════════════ */
 
-/* ─── 1. BASE: viewport, box-sizing, touch ─── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
-}
-
-img, video, iframe {
-  max-width: 100%;
-}
-
-/* Touch-friendly minimum tap target */
-button, a, select, input[type="checkbox"], input[type="radio"] {
-  min-height: 40px;
-}
-
-/* ─── 2. HAMBURGER MENU BUTTON ─── */
-.mobile-menu-btn {
-  display: none;
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 1100;
-  background: var(--primary, #4f46e5);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-  transition: background 0.2s;
-}
-.mobile-menu-btn:hover {
-  background: var(--primary-dark, #4338ca);
-}
-.mobile-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 900;
-  backdrop-filter: blur(2px);
-}
-.mobile-overlay.active {
-  display: block;
-}
-
-/* ─── 3. SIDEBAR / NAV ─── */
-.sidebar,
-.nav,
-nav.sidebar {
-  transition: transform 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s;
-  will-change: transform;
-}
-
-/* ─── 4. LAYOUT: main wrapper ─── */
-.container,
-.main-wrapper,
-.page-wrapper,
-.content-wrap {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* ─── 5. TABLE — horizontal scroll on all screens ─── */
-.table-wrap,
-.table-responsive,
-.jadval-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 10px;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-/* Jadval table specific */
-.jadval-table {
-  min-width: 600px;
-}
-
-/* ─── 6. MODAL — base ─── */
-.modal,
-.modal-overlay {
-  padding: 12px;
-}
-
-.modal-content,
-.modal-box,
-.modal-inner {
-  max-height: 90vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ─── 7. CHIPS — always wrap ─── */
-.b-sinf-chips,
-.b-kun-chips,
-.chips-wrap,
-.chip-group {
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* ─── 8. TOAST — mobile fix ─── */
-.toast {
-  max-width: calc(100vw - 32px) !important;
-}
-
-/* ─── 9. EMPTY STATE ─── */
-.empty-state {
-  padding: 32px 16px !important;
-  text-align: center;
-}
+/* ─── BASE ─── */
+*, *::before, *::after { box-sizing: border-box; }
+img, video { max-width: 100%; }
 
 /* ═══════════════════════════════════════════════════════════
-   TABLET LANDSCAPE  (max-width: 1024px)
+   TOPBAR — ASOSIY MUAMMO: tugmalar g'oyib bo'lishi
 ═══════════════════════════════════════════════════════════ */
+
+/* 
+  Muammo:
+    .topbar-brand  { flex-shrink: 0; white-space: nowrap; }
+    .topbar-right  { overflow: hidden; flex-wrap: nowrap; }
+  
+  Yechim:
+    Brand text qisqarsin (ellipsis), topbar-right ko'rinsin
+*/
+
+/* TABLET (≤1024px) */
 @media (max-width: 1024px) {
-  /* Sidebar — narrower */
-  .sidebar {
-    width: 220px !important;
-    min-width: 220px !important;
+  .topbar-brand {
+    font-size: 11px !important;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-
-  /* Main content expands */
-  .main-content,
-  .page-content,
-  .content-area {
-    margin-left: 220px !important;
-    padding: 20px !important;
+  .topbar-right {
+    overflow: visible !important;
+    flex-shrink: 0;
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
   }
+}
 
-  /* Header padding */
-  .header,
+/* TELEFON (≤768px) */
+@media (max-width: 768px) {
+  /* Topbar 2 qatorga chiqadi */
   .topbar {
-    padding: 0 16px !important;
+    height: auto !important;
+    min-height: var(--topbar-h, 52px);
+    flex-wrap: wrap !important;
+    padding: 8px var(--p, 14px) !important;
+    gap: 6px !important;
+    row-gap: 8px !important;
   }
 
-  /* Stats/cards grid */
-  .stats-grid,
-  .cards-grid,
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 16px !important;
-  }
-
-  /* Table font size */
-  .jadval-table th,
-  .jadval-table td {
-    padding: 10px 8px !important;
-    font-size: 13px !important;
-  }
-
-  .jcell-name {
-    font-size: 13px !important;
-  }
-
-  .jcell-sub {
+  /* Brand — 1-qator, qisqa */
+  .topbar-brand {
+    flex-shrink: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 50% !important;
     font-size: 11px !important;
   }
+
+  /* O'ng tugmalar — ko'rinadi, scroll bilan */
+  .topbar-right {
+    overflow: visible !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    flex-shrink: 0 !important;
+    gap: 5px !important;
+    max-width: 55% !important;
+    scrollbar-width: none;
+  }
+  .topbar-right::-webkit-scrollbar { display: none; }
+
+  /* Admin badge — kichik telefonda yashirin */
+  .admin-badge {
+    display: none !important;
+  }
+
+  /* Har bir tugma kichikroq */
+  .btn-teachers,
+  .btn-davomat,
+  .btn-jadval,
+  .btn-logout {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Sticky offset — topbar 2 qator bo'lgani uchun */
+  :root {
+    --topbar-h: 90px !important;
+  }
+}
+
+/* KICHIK TELEFON (≤520px) */
+@media (max-width: 520px) {
+  .topbar {
+    padding: 8px 12px !important;
+  }
+  .topbar-brand {
+    font-size: 10px !important;
+    max-width: 45% !important;
+  }
+  .topbar-right {
+    max-width: 54% !important;
+    gap: 4px !important;
+  }
+  .btn-teachers,
+  .btn-davomat,
+  .btn-jadval {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+  }
+  .btn-logout {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+  .stat-badge {
+    display: none !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TABLET PORTRAIT  (max-width: 768px)
+   TABS / JAD-TABS
 ═══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Show hamburger button */
-  .mobile-menu-btn {
-    display: flex !important;
-  }
-
-  /* Sidebar — slide out */
-  .sidebar,
-  .nav,
-  nav.sidebar {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    height: 100vh !important;
-    width: 260px !important;
-    min-width: 260px !important;
-    z-index: 1000 !important;
-    transform: translateX(-100%) !important;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.18) !important;
-    overflow-y: auto !important;
-  }
-
-  .sidebar.open,
-  nav.sidebar.open,
-  .nav.open {
-    transform: translateX(0) !important;
-  }
-
-  /* Main content — full width */
-  .main-content,
-  .page-content,
-  .content-area,
-  .content-wrap {
-    margin-left: 0 !important;
-    padding: 16px !important;
-    padding-top: 68px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  /* Header */
-  .header,
-  .topbar {
-    padding: 0 12px 0 64px !important;
-    font-size: 14px !important;
-  }
-
-  .header h1,
-  .topbar h1,
-  .page-title {
-    font-size: 18px !important;
-  }
-
-  /* ── TABLES ── */
-  .table-scroll-wrapper,
-  .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 8px;
-    margin: 0 -4px;
-    padding: 0 4px;
-  }
-
-  /* Davomat table: card mode */
-  .davomat-table-wrap,
-  .students-table-wrap {
-    overflow-x: auto;
-  }
-
-  table th,
-  table td {
-    padding: 8px 6px !important;
-    font-size: 12px !important;
-    white-space: nowrap;
-  }
-
-  table th:first-child,
-  table td:first-child {
-    white-space: normal;
-    min-width: 100px;
-  }
-
-  /* Jadval table */
-  .jadval-table {
-    min-width: 560px;
-  }
-
-  .jadval-table th {
-    font-size: 12px !important;
-    padding: 8px 6px !important;
-  }
-
-  .jadval-table td {
-    padding: 6px 4px !important;
-  }
-
-  .jcell {
-    padding: 4px 6px !important;
-    margin-bottom: 3px !important;
-  }
-
-  .jcell-name {
-    font-size: 12px !important;
-  }
-
-  .jcell-sub {
-    font-size: 10px !important;
-  }
-
-  .sinf-badge {
-    font-size: 11px !important;
-    padding: 2px 6px !important;
-  }
-
-  /* ── TABS ── */
   .tabs,
-  .jad-tabs,
-  .tab-list {
+  .jad-tabs {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    gap: 4px !important;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    display: flex;
     flex-wrap: nowrap !important;
-    gap: 4px !important;
-    padding-bottom: 4px;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar,
+  .jad-tabs::-webkit-scrollbar { display: none; }
 
-  .jad-tab,
-  .tab-btn {
+  .tab-btn,
+  .jad-tab {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
     white-space: nowrap;
-    padding: 8px 14px !important;
-    font-size: 13px !important;
+    flex-shrink: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN CONTENT PADDINGS
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .main,
+  .jad-main,
+  .dav-main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: 48px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FORMA GRID
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .create-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .birik-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .btn-submit {
+    width: 100% !important;
+    padding: 13px !important;
+    font-size: 15px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLE — JADVAL + O'QUVCHILAR
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .tbl-wrap {
+    display: block !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* ── STATS / CARDS ── */
-  .stats-grid,
-  .cards-grid,
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+  .table-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 12px !important;
   }
-
-  .stat-card,
-  .info-card {
-    padding: 14px !important;
-  }
-
-  .stat-value,
-  .stat-number {
-    font-size: 24px !important;
-  }
-
-  /* ── FORMS ── */
-  .form-row,
-  .form-grid,
-  .input-row {
-    flex-direction: column !important;
-    gap: 12px !important;
-  }
-
-  .form-group,
-  .input-group {
+  .search-input {
     width: 100% !important;
     min-width: unset !important;
   }
-
-  input[type="text"],
-  input[type="number"],
-  input[type="date"],
-  input[type="time"],
-  input[type="tel"],
-  input[type="email"],
-  select,
-  textarea {
-    width: 100% !important;
-    font-size: 16px !important; /* prevents iOS zoom */
+  .filters {
+    width: 100%;
   }
-
-  /* ── MODAL ── */
-  .modal,
-  .modal-overlay,
-  [id$="-modal"] {
-    padding: 8px !important;
-    align-items: flex-end !important;
-  }
-
-  .modal-content,
-  .modal-box,
-  .modal-inner,
-  .modal > div {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 88vh !important;
-    border-radius: 20px 20px 0 0 !important;
-    overflow-y: auto !important;
-    padding: 20px 16px !important;
-  }
-
-  /* Export modal */
-  #export-jad-modal > div,
-  #export-modal > div,
-  .export-modal-inner {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    padding: 20px 16px !important;
-    max-height: 85vh !important;
-    overflow-y: auto;
-  }
-
-  .export-tabs,
-  #exp-jad-tabs {
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-  }
-
-  .export-tab {
+  .filter-sel {
     flex: 1 !important;
-    min-width: 80px !important;
-    text-align: center !important;
-    padding: 8px 10px !important;
-    font-size: 13px !important;
+    min-width: 100px !important;
   }
 
-  /* ── FILTERS ── */
-  .filters-bar,
-  .filter-row,
-  .toolbar {
-    flex-wrap: wrap !important;
-    gap: 8px !important;
+  .jadval-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-
-  .filter-group,
-  .filter-item {
-    flex: 1 1 140px !important;
-    min-width: 120px !important;
-  }
-
-  /* ── SEGMENTS ── */
-  .seg-group,
-  .segment-control {
-    width: 100% !important;
-    display: flex !important;
-  }
-
-  .seg-btn {
-    flex: 1 !important;
-    text-align: center !important;
-    padding: 8px 10px !important;
-    font-size: 13px !important;
-  }
-
-  /* ── ACTION BUTTONS ── */
-  .page-actions,
-  .btn-group,
-  .action-row {
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-  }
-
-  .btn-primary,
-  .btn-secondary,
-  .btn-danger {
-    flex: 1 !important;
-    min-width: 120px !important;
-    justify-content: center !important;
-    text-align: center !important;
-  }
-
-  /* ── CHIPS ── */
-  .b-sinf-chips,
-  .b-kun-chips {
-    gap: 6px !important;
-  }
-
-  .sinf-chip,
-  .kun-chip {
+  .jadval-table {
+    min-width: 560px;
     font-size: 12px !important;
-    padding: 5px 10px !important;
   }
+  .jadval-table th {
+    padding: 8px 6px !important;
+    font-size: 10px !important;
+  }
+  .jadval-table td {
+    padding: 6px 5px !important;
+  }
+  .jcell {
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+  }
+  .jcell-name { font-size: 11px !important; }
+  .jcell-sub  { font-size: 9px !important; }
+}
 
-  /* ── SAVED JADVAL ITEMS ── */
+/* ═══════════════════════════════════════════════════════════
+   DATE BAR — DAVOMAT
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
+  .date-bar {
+    height: auto !important;
+    flex-wrap: wrap !important;
+    padding: 8px 12px !important;
+    gap: 8px !important;
+  }
+  .date-nav {
+    width: 100%;
+    justify-content: center;
+  }
+  .date-input {
+    flex: 1;
+    min-width: 0;
+  }
+  .date-display {
+    min-width: unset !important;
+    font-size: 13px !important;
+  }
+  :root {
+    --topbar-h: 120px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
+  .modal {
+    padding: 16px 14px 28px !important;
+  }
+  .modal-footer {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+  .modal-footer .btn-submit,
+  .modal-footer .btn-cancel {
+    width: 100% !important;
+    padding: 13px !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  .confirm-box {
+    width: calc(100vw - 24px) !important;
+    padding: 20px 16px !important;
+  }
+  .confirm-btns {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .btn-yes, .btn-no {
+    flex: none !important;
+    width: 100% !important;
+    padding: 12px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   JAD FILTER BAR
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .jad-filter-bar {
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 12px !important;
+  }
+  .jad-select {
+    min-width: 120px !important;
+    font-size: 13px !important;
+    padding: 7px 10px !important;
+  }
+  .seg-ctrl { flex: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAVED JAD ITEMS
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
   .saved-jad-item {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 10px !important;
     padding: 12px !important;
   }
-
   .sji-btns {
     align-self: flex-end !important;
-    display: flex;
-    gap: 8px;
+    width: 100% !important;
+    justify-content: flex-end !important;
+    border-top: 1px solid var(--border) !important;
+    padding-top: 8px !important;
   }
+  .sji-name { font-size: 13px !important; }
+}
 
-  /* ── VAQT INPUTS ── */
-  .vaqt-row,
-  .time-inputs {
+/* ═══════════════════════════════════════════════════════════
+   O'QITUVCHILAR DAVOMAT
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
+  .teacher-row {
     flex-wrap: wrap !important;
     gap: 8px !important;
-  }
-
-  /* ── CURRENT SINFLAR ── */
-  .cs-sinf,
-  .sji-sinf,
-  .sji-kun {
-    font-size: 11px !important;
-    padding: 2px 8px !important;
-  }
-
-  /* ── LOGIN PAGE ── */
-  .login-wrapper,
-  .auth-wrapper {
-    padding: 16px !important;
-  }
-
-  .login-card,
-  .auth-card {
-    width: 100% !important;
-    max-width: 420px !important;
-    margin: auto !important;
-    padding: 28px 20px !important;
-  }
-
-  /* ── O'QUVCHILAR LIST ── */
-  .student-card,
-  .teacher-card,
-  .list-item {
     padding: 12px !important;
   }
+  .teacher-info { flex: 1 0 60% !important; }
+}
 
-  /* ── TOAST ── */
+/* ═══════════════════════════════════════════════════════════
+   ADMIN CARD
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
+  .admin-item {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .admin-acts {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    border-top: 1px solid var(--border) !important;
+    padding-top: 8px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATS BAR
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .stats-bar {
+    gap: 6px !important;
+    padding: 8px 12px !important;
+  }
+  .stat-pill {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+  }
+  .stat-num { font-size: 13px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
   .toast {
     bottom: 16px !important;
     left: 16px !important;
     right: 16px !important;
+    transform: translateX(0) !important;
+    max-width: unset !important;
     text-align: center !important;
-  }
-
-  /* ── LOADING OVERLAY ── */
-  #loading-ov {
-    padding: 16px !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   MOBILE  (max-width: 640px)
-═══════════════════════════════════════════════════════════ */
-@media (max-width: 640px) {
-  /* Main content */
-  .main-content,
-  .page-content,
-  .content-area {
-    padding: 12px !important;
-    padding-top: 64px !important;
-  }
-
-  /* Stats — single column */
-  .stats-grid,
-  .cards-grid,
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-  }
-
-  /* Tables — aggressive mobile-first */
-  /* O'quvchilar table: convert to cards */
-  .students-table-wrap table,
-  .nofaol-table-wrap table {
-    display: block;
-  }
-
-  .students-table-wrap thead,
-  .nofaol-table-wrap thead {
-    display: none;
-  }
-
-  .students-table-wrap tbody,
-  .nofaol-table-wrap tbody {
-    display: block;
-  }
-
-  .students-table-wrap tr,
-  .nofaol-table-wrap tr {
-    display: flex;
-    flex-wrap: wrap;
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 10px;
-    background: var(--card-bg, #fff);
-    gap: 6px;
-    position: relative;
-  }
-
-  .students-table-wrap td,
-  .nofaol-table-wrap td {
-    display: inline-flex !important;
-    align-items: center;
-    padding: 2px 6px !important;
-    font-size: 12px !important;
     white-space: normal !important;
-    border: none !important;
   }
-
-  .students-table-wrap td[data-label]::before,
-  .nofaol-table-wrap td[data-label]::before {
-    content: attr(data-label) ": ";
-    font-weight: 600;
-    color: var(--muted, #6b7280);
-    font-size: 11px;
-    margin-right: 4px;
-  }
-
-  /* Last td (actions) full width */
-  .students-table-wrap td:last-child,
-  .nofaol-table-wrap td:last-child {
-    width: 100%;
-    justify-content: flex-end;
-    margin-top: 4px;
-    padding-top: 8px !important;
-    border-top: 1px solid var(--border, #e5e7eb) !important;
-  }
-
-  /* Davomat table stays scrollable */
-  .davomat-table-wrap {
-    overflow-x: auto;
-    border-radius: 8px;
-  }
-
-  /* Page title */
-  .page-title,
-  h1.title {
-    font-size: 16px !important;
-  }
-
-  /* Header badge */
-  #jad-badge,
-  .user-badge,
-  .admin-badge {
-    font-size: 12px !important;
-    padding: 4px 10px !important;
-  }
-
-  /* Back button */
-  .back-btn,
-  .btn-back {
-    padding: 8px 14px !important;
-    font-size: 13px !important;
-  }
-
-  /* Vaqt section label */
-  .vaqt-label,
-  .section-label {
-    font-size: 12px !important;
-  }
-
-  /* Biriktirish panel */
-  #b-sinf-panel {
-    padding: 14px !important;
-  }
-
-  /* Group chips */
-  .group-chip {
-    font-size: 11px !important;
-    padding: 4px 10px !important;
-  }
-
-  /* Save button */
-  #b-save-btn {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  /* Modal full screen on very small */
-  .modal > div,
-  .modal-box {
-    border-radius: 16px 16px 0 0 !important;
-  }
-
-  /* Filter toolbar */
-  .filters-bar {
-    flex-direction: column !important;
-  }
-
-  .filter-group {
-    width: 100% !important;
-  }
-
-  /* Segment in jadval */
-  .seg-group {
-    margin-bottom: 8px !important;
-  }
-
-  /* Export section */
-  .exp-section label {
-    font-size: 13px !important;
-  }
-
-  /* Section titles */
-  .section-title,
-  h2.subtitle {
-    font-size: 15px !important;
+  .toast.show {
+    transform: translateY(0) !important;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SMALL MOBILE  (max-width: 400px)
+   VAQT INPUT
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 520px) {
+  .birik-vaqt-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .vaqt-group { flex: 1 !important; }
+  .vaqt-inp   { width: 48px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOGIN
 ═══════════════════════════════════════════════════════════ */
 @media (max-width: 400px) {
-  /* Stats — single column */
-  .stats-grid,
-  .dashboard-grid {
-    grid-template-columns: 1fr 1fr !important;
+  .login-card {
+    padding: 24px 14px !important;
   }
-
-  .stat-value {
-    font-size: 20px !important;
-  }
-
-  .stat-label {
-    font-size: 11px !important;
-  }
-
-  .sinf-chip,
-  .kun-chip {
-    font-size: 11px !important;
-    padding: 4px 8px !important;
-  }
-
-  .jad-tab {
-    padding: 7px 10px !important;
-    font-size: 12px !important;
-  }
-
-  .modal-box,
-  .modal-content {
-    padding: 16px 12px !important;
-  }
-
-  /* Time inputs */
-  .time-inp {
-    width: 44px !important;
-    font-size: 15px !important;
-  }
+  .login-title { font-size: 20px !important; }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PRINT  (bonus)
+   PRINT
 ═══════════════════════════════════════════════════════════ */
 @media print {
-  .sidebar, .mobile-menu-btn, .btn-group,
-  .filters-bar, .page-actions, .topbar {
-    display: none !important;
-  }
-
-  .main-content {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  table {
-    font-size: 11px !important;
-  }
+  .topbar, .tabs, .jad-tabs, .stats-bar,
+  .jad-filter-bar, .modal-overlay { display: none !important; }
+  .main, .jad-main, .dav-main { padding: 0 !important; }
 }
