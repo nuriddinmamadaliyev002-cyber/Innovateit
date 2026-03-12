@@ -114,10 +114,12 @@
     </div>
     <p id="dv-err" style="display:none;font-size:12px;color:var(--danger);margin-bottom:8px;">⚠️ Kamida 1 daqiqa kiriting</p>
     <div id="kech-sabab-wrap" style="display:none;margin-bottom:8px;">
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Kech qolish sababi (ixtiyoriy):</label>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Kech qolish sababi <span style="color:var(--danger);">*</span></label>
       <textarea id="kech-sabab-input" class="field-input"
         placeholder="Masalan: Transport muammosi…"
-        style="resize:none;height:60px;font-size:13px;display:block;"></textarea>
+        style="resize:none;height:60px;font-size:13px;display:block;"
+        oninput="g('dv-sabab-err').style.display='none'"></textarea>
+      <p id="dv-sabab-err" style="display:none;font-size:12px;color:var(--danger);margin-top:4px;">⚠️ Sabab kiritish majburiy</p>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeDvModal()">Bekor</button>

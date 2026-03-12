@@ -306,13 +306,16 @@ function confirmDarsVaqt() {
   const {key, btn, type} = pendingIzoh;
   const soat   = parseInt(g('dv-soat').value)   || 0;
   const daqiqa = parseInt(g('dv-daqiqa').value) || 0;
-  if (soat === 0 && daqiqa === 0) { g('dv-err').style.display='block'; return; }
+  if (soat === 0 && daqiqa === 0) { g('dv-err').textContent = '⚠️ Kamida 1 daqiqa kiriting'; g('dv-err').style.display='block'; return; }
+  if (type === 'kech') {
+    const sabab = g('kech-sabab-input').value.trim();
+    if (!sabab) { g('dv-sabab-err').style.display='block'; return; }
+    g('dv-sabab-err').style.display='none';
+    kechSabablar[key] = sabab;
+    izohlar[key] = sabab;
+  }
   g('dv-err').style.display = 'none';
   darsVaqtlar[key] = { soat, daqiqa };
-  if (type === 'kech') {
-    kechSabablar[key] = g('kech-sabab-input').value.trim();
-    izohlar[key] = kechSabablar[key];
-  }
   closeDvModal();
   // Agar status allaqachon o'rnatilgan bo'lsa (tahrirlash rejimi) — faqat badge yangilansin
   if (attendance[key] !== type) {
