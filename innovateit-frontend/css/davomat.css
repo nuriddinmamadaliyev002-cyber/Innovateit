@@ -135,6 +135,11 @@
 
 /* ══ ASOSIY KONTENT ══ */
 .dav-main { max-width: 1200px; margin: 0 auto; padding: 16px var(--p) 60px; }
+
+/* Sinf kartalar sticky barlar ostiga kirib qolmasin */
+.sinf-card {
+  scroll-margin-top: calc(var(--topbar-h, 52px) + var(--datebar-h, 56px) + var(--statsbar-h, 52px) + 8px);
+}
 .sinf-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 700px)  { .sinf-grid { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 1100px) { .sinf-grid { grid-template-columns: 1fr 1fr 1fr; } }

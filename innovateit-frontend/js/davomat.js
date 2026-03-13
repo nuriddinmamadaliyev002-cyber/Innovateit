@@ -36,7 +36,21 @@ let pendingIzoh = null; // { key, btnEl }
 // ─────────────────────────────────────────────
 //  YUKLANGANDA
 // ─────────────────────────────────────────────
+// ─── Sticky bar balandliklarini dinamik hisoblash ───
+function updateStickyHeights() {
+  const topbar  = document.querySelector('.topbar');
+  const datebar = document.querySelector('.date-bar');
+  const statsbar = document.querySelector('.stats-bar');
+  const root = document.documentElement;
+  if (topbar)   root.style.setProperty('--topbar-h',   topbar.offsetHeight   + 'px');
+  if (datebar)  root.style.setProperty('--datebar-h',  datebar.offsetHeight  + 'px');
+  if (statsbar) root.style.setProperty('--statsbar-h', statsbar.offsetHeight + 'px');
+}
+window.addEventListener('resize', updateStickyHeights);
+
 window.addEventListener('DOMContentLoaded', async () => {
+  // Sahifa yuklangandan keyin haqiqiy balandliklarni o'lchash
+  requestAnimationFrame(updateStickyHeights);
   // Session dan foydalanuvchini olish
   try {
     const saved = sessionStorage.getItem('iit_davomat_user');
