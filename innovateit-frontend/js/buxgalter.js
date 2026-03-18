@@ -775,26 +775,26 @@ function kvitFileSelected(e, idx) {
   if (file) doUploadFile(file, idx);
 }
 
-// Telegram/Windows clipboard BMP bug fix: rasmni Canvas orqali haqiqiy PNG ga o'tkazish
+// Telegram/Windows clipboard BMP/DIB bug fix
+// createImageBitmap() — BMP, DIB, PNG, JPEG va boshqa formatlarni to'g'ridan-to'g'ri qabul qiladi
 async function normalizeImageFile(file) {
   if (!file.type.startsWith('image/')) return file;
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width  = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width  = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return await new Promise(resolve => {
       canvas.toBlob(blob => {
-        if (!blob) { resolve(file); return; }
-        resolve(new File([blob], 'kvit.png', { type: 'image/png' }));
+        resolve(blob ? new File([blob], 'kvit.png', { type: 'image/png' }) : file);
       }, 'image/png');
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-    img.src = url;
-  });
+    });
+  } catch(e) {
+    console.warn('normalizeImageFile xatolik:', e);
+    return file;
+  }
 }
 
 async function doUploadFile(file, idx) {
