@@ -38,13 +38,46 @@ router.put('/', async (req, res) => {
   const admin = await verifyAdmin(username, parol);
   if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
 
-  const q = np?.trim()
-    ? 'UPDATE adminlar SET ism=$1,username=$2,parol=$3 WHERE username=$4'
-    : 'UPDATE adminlar SET ism=$1,username=$2 WHERE username=$3';
-  const params = np?.trim() ? [newIsm, nu, np, oldUsername] : [newIsm, nu, oldUsername];
-  const result = await pool.query(q, params);
-  if (result.rowCount === 0) return res.status(404).json({ ok: false, error: 'Admin topilmadi' });
-  res.json({ ok: true });
+  const oldU = oldUsername?.trim();
+  const newU = nu?.trim();
+  const newI = newIsm?.trim();
+  if (!oldU || !newU || !newI) return res.status(400).json({ ok: false, error: 'Majburiy maydonlar yetishmaydi' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. adminlar jadvalini yangilash
+    const q = np?.trim()
+      ? 'UPDATE adminlar SET ism=$1,username=$2,parol=$3 WHERE username=$4'
+      : 'UPDATE adminlar SET ism=$1,username=$2 WHERE username=$3';
+    const params = np?.trim() ? [newI, newU, np.trim(), oldU] : [newI, newU, oldU];
+    const result = await client.query(q, params);
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ ok: false, error: 'Admin topilmadi' });
+    }
+
+    // 2. Username o'zgargan bo'lsa — bog'liq barcha jadvallarda ham yangilash
+    if (oldU !== newU) {
+      await client.query('UPDATE oquvchilar             SET admin=$1 WHERE admin=$2', [newU, oldU]);
+      await client.query('UPDATE nofaol_oquvchilar      SET admin=$1 WHERE admin=$2', [newU, oldU]);
+      await client.query('UPDATE davomat                SET admin_username=$1 WHERE admin_username=$2', [newU, oldU]);
+      await client.query('UPDATE oqituvchilar           SET admin=$1 WHERE admin=$2', [newU, oldU]);
+      await client.query('UPDATE oqituvchilar_davomat   SET admin_username=$1 WHERE admin_username=$2', [newU, oldU]);
+      await client.query('UPDATE dars_jadvali           SET admin_username=$1 WHERE admin_username=$2', [newU, oldU]);
+      await client.query('UPDATE tolovlar               SET admin_username=$1 WHERE admin_username=$2', [newU, oldU]);
+      await client.query('UPDATE buxgalter_adminlar     SET admin_username=$1 WHERE admin_username=$2', [newU, oldU]);
+    }
+
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 router.delete('/', async (req, res) => {
