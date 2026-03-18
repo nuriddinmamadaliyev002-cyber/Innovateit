@@ -124,6 +124,22 @@ CREATE TABLE IF NOT EXISTS dars_jadvali (
     tugash           TEXT
 );
 
+-- ─── O'qituvchi — Maktab (many-to-many) ───
+CREATE TABLE IF NOT EXISTS oqituvchi_maktablar (
+    id               SERIAL PRIMARY KEY,
+    oqituvchi_id     INTEGER NOT NULL REFERENCES oqituvchilar(id) ON DELETE CASCADE,
+    admin_username   TEXT NOT NULL,
+    biriktirilgan    TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY'),
+    UNIQUE(oqituvchi_id, admin_username)
+);
+
+-- ─── Mavjud oqituvchilar.admin => oqituvchi_maktablar ga ko'chirish ───
+INSERT INTO oqituvchi_maktablar (oqituvchi_id, admin_username)
+SELECT id, admin
+FROM oqituvchilar
+WHERE admin IS NOT NULL AND admin != ''
+ON CONFLICT DO NOTHING;
+
 -- ─── Ustunlar mavjud bo'lmasa qo'shish ───
 ALTER TABLE oqituvchilar_davomat ADD COLUMN IF NOT EXISTS dars_soat   INTEGER DEFAULT 0;
 ALTER TABLE oqituvchilar_davomat ADD COLUMN IF NOT EXISTS dars_daqiqa INTEGER DEFAULT 0;
@@ -135,6 +151,8 @@ CREATE INDEX IF NOT EXISTS idx_nofaol_admin        ON nofaol_oquvchilar(admin);
 CREATE INDEX IF NOT EXISTS idx_davomat_sana_admin  ON davomat(sana, admin_username);
 CREATE INDEX IF NOT EXISTS idx_oqituvchilar_admin  ON oqituvchilar(admin);
 CREATE INDEX IF NOT EXISTS idx_tdavomat_sana_admin ON oqituvchilar_davomat(sana, admin_username);
+CREATE INDEX IF NOT EXISTS idx_oqitmak_oqitid      ON oqituvchi_maktablar(oqituvchi_id);
+CREATE INDEX IF NOT EXISTS idx_oqitmak_admin       ON oqituvchi_maktablar(admin_username);
 
 -- ─── RUXSATLAR (eng muhimi!) ───
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO innovateit_user;

@@ -141,6 +141,39 @@
   </div>
 </div>
 
+<!-- MODAL: Maktabga biriktirish (superadmin) -->
+<div class="modal-overlay" id="assign-modal" onclick="if(event.target===this)closeAssign()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">🏫 Maktabga biriktirish</div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;" id="assign-teacher-name"></div>
+      <div style="font-size:12px;color:var(--muted);">
+        Hozirgi maktab:
+        <span style="font-weight:600;color:var(--text);" id="assign-current-maktab"></span>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Yangi maktab</label>
+      <select class="field-input" id="assign-maktab-sel">
+        <option value="">— Tanlang —</option>
+      </select>
+    </div>
+
+    <div id="assign-err" style="display:none;color:#dc2626;font-size:13px;margin-top:8px;padding:8px 12px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;"></div>
+
+    <div class="modal-footer" style="margin-top:16px;">
+      <button class="btn-cancel" onclick="closeAssign()">Bekor</button>
+      <button class="btn-submit" id="assign-save-btn" onclick="saveAssign()">
+        <span class="spinner" id="assign-spinner"></span>
+        <span id="assign-btn-txt">Saqlash</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
 <div class="toast" id="toast"></div>
 

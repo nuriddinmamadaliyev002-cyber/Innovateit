@@ -103,6 +103,15 @@ CREATE TABLE IF NOT EXISTS dars_jadvali (
     tugash           TEXT
 );
 
+-- ─── O'qituvchi — Maktab bog'lanish (many-to-many) ───
+CREATE TABLE IF NOT EXISTS oqituvchi_maktablar (
+    id               SERIAL PRIMARY KEY,
+    oqituvchi_id     INTEGER NOT NULL REFERENCES oqituvchilar(id) ON DELETE CASCADE,
+    admin_username   TEXT NOT NULL,
+    biriktirilgan    TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY'),
+    UNIQUE(oqituvchi_id, admin_username)
+);
+
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO innovateit_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO innovateit_user;
 GRANT USAGE ON SCHEMA public TO innovateit_user;
@@ -114,6 +123,8 @@ CREATE INDEX IF NOT EXISTS idx_nofaol_admin        ON nofaol_oquvchilar(admin);
 CREATE INDEX IF NOT EXISTS idx_davomat_sana_admin  ON davomat(sana, admin_username);
 CREATE INDEX IF NOT EXISTS idx_oqituvchilar_admin  ON oqituvchilar(admin);
 CREATE INDEX IF NOT EXISTS idx_tdavomat_sana_admin ON oqituvchilar_davomat(sana, admin_username);
+CREATE INDEX IF NOT EXISTS idx_oqitmak_oqitid      ON oqituvchi_maktablar(oqituvchi_id);
+CREATE INDEX IF NOT EXISTS idx_oqitmak_admin       ON oqituvchi_maktablar(admin_username);
 
 -- ─── Buxgalterlar ───
 CREATE TABLE IF NOT EXISTS buxgalterlar (

@@ -76,6 +76,9 @@ const api = {
   addTeacher:      (d) => api.post('/api/teachers', d),
   editTeacher:     (d) => api.put('/api/teachers', d),
   deleteTeacher:   (d) => api.del('/api/teachers', d),
+  assignTeacher:   (d) => api.put('/api/teachers/assign', d),
+  addTeacherMaktab:    (d) => api.post('/api/teachers/maktab', d),
+  removeTeacherMaktab: (d) => api.del('/api/teachers/maktab', d),
 
   // ─── Buxgalter ───
   getBiriktirmalar:(d) => api.get('/api/buxgalter', d),
