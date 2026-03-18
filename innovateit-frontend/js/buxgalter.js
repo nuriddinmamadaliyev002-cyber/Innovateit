@@ -725,22 +725,21 @@ async function kvitDzClick(e, idx) {
   // Paste rejimi faol bo'lsa — pasteClickHandler o'zi hal qiladi, bu yerda to'xtatamiz
   if (_pasteActive) return;
 
-  // Clipboard API orqali rasm olishga harakat
+  // Clipboard API — rasm bor bo'lsa canvas orqali PNG ga o'tkazib upload
   if (navigator.clipboard && navigator.clipboard.read) {
     try {
       const clipItems = await navigator.clipboard.read();
       for (const clipItem of clipItems) {
-        for (const type of clipItem.types) {
-          if (type.startsWith('image/')) {
-            const blob = await clipItem.getType(type);
-            const file = new File([blob], `paste.${type.split('/')[1] || 'png'}`, { type });
-            await doUploadFile(file, idx);
-            return;
-          }
+        const imgType = clipItem.types.find(t => t === 'image/png')
+                     || clipItem.types.find(t => t.startsWith('image/'));
+        if (imgType) {
+          const rawBlob = await clipItem.getType(imgType);
+          const file    = await blobToCleanPng(rawBlob);
+          if (file) { await doUploadFile(file, idx); return; }
         }
       }
     } catch(err) {
-      // Clipboard ruxsati yo'q yoki rasm yo'q — file dialog ochamiz
+      // Ruxsat yo'q yoki rasm yo'q — file dialog ochamiz
     }
   }
 
@@ -767,36 +766,82 @@ async function kvitDrop(e, idx) {
   const dz = g(`kvit-dz-${idx}`);
   if (dz) dz.classList.remove('drag-over');
 
-  // 1-usul: oddiy fayl (file manager, screenshot)
-  const file = e.dataTransfer?.files?.[0];
-  if (file) { doUploadFile(file, idx); return; }
+  const dt = e.dataTransfer;
 
-  // 2-usul: Telegram drag — text/html ichidan base64 rasm olish
-  const html = e.dataTransfer?.getData('text/html') || '';
-  const imgMatch = html.match(/src=["']([^"']+)["']/i);
-  if (imgMatch) {
-    const src = imgMatch[1];
-    // data:image/... base64
-    if (src.startsWith('data:image')) {
-      const [meta, b64] = src.split(',');
-      const mime  = meta.split(':')[1].split(';')[0];
-      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      const blob  = new Blob([bytes], { type: mime });
-      const f     = new File([blob], 'paste.png', { type: mime });
-      doUploadFile(f, idx); return;
-    }
-    // http/https URL
-    if (src.startsWith('http')) {
-      try {
-        showToast('⏳ Rasm yuklanmoqda…');
-        const resp = await fetch(src);
-        const blob = await resp.blob();
-        const f    = new File([blob], 'paste.png', { type: blob.type || 'image/png' });
-        doUploadFile(f, idx); return;
-      } catch(err) {}
+  // ── Debug: console da nima borligini ko'ramiz ──
+  console.log('[kvitDrop] files:', dt?.files?.length, '| items:', dt?.items?.length, '| types:', dt?.types);
+  if (dt?.items) {
+    Array.from(dt.items).forEach((it, i) => console.log(`  item[${i}]: kind=${it.kind} type=${it.type}`));
+  }
+
+  // 1-usul: files array (file manager, Windows Explorer, ba'zi Telegram versiyalar)
+  if (dt?.files?.length > 0) {
+    const file = dt.files[0];
+    console.log('[kvitDrop] file:', file.name, file.type, file.size);
+    doUploadFile(file, idx);
+    return;
+  }
+
+  // 2-usul: items dan getAsFile() — Telegram ba'zida items'da beradi, files'da emas
+  if (dt?.items) {
+    for (const item of Array.from(dt.items)) {
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file && file.size > 0) {
+          console.log('[kvitDrop] item file:', file.name, file.type, file.size);
+          doUploadFile(file, idx);
+          return;
+        }
+      }
     }
   }
-  showToast('❌ Telegram dragdan fayl olinmadi. Ctrl+V bilan yuboring.', 'error');
+
+  // 3-usul: text/html ichidan <img src> (Telegram ayrim versiyalar)
+  const html = dt?.getData('text/html') || '';
+  if (html) {
+    console.log('[kvitDrop] html:', html.slice(0, 200));
+    const imgMatch = html.match(/src=["']([^"']+)["']/i);
+    if (imgMatch) {
+      const src = imgMatch[1];
+      if (src.startsWith('data:image')) {
+        try {
+          const [meta, b64] = src.split(',');
+          const mime  = meta.split(':')[1].split(';')[0];
+          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          const blob  = new Blob([bytes], { type: mime });
+          doUploadFile(new File([blob], 'kvit.png', { type: mime }), idx);
+          return;
+        } catch(err) { console.warn('base64 parse error', err); }
+      }
+      if (src.startsWith('http')) {
+        try {
+          showToast('⏳ Rasm yuklanmoqda…');
+          const resp = await fetch(src);
+          const blob = await resp.blob();
+          doUploadFile(new File([blob], 'kvit.png', { type: blob.type || 'image/png' }), idx);
+          return;
+        } catch(err) { console.warn('fetch error', err); }
+      }
+    }
+  }
+
+  // 4-usul: text/uri-list (ba'zi ilovalar image URL beradi)
+  const uri = dt?.getData('text/uri-list') || '';
+  if (uri && uri.startsWith('http')) {
+    try {
+      console.log('[kvitDrop] uri:', uri);
+      showToast('⏳ Rasm yuklanmoqda…');
+      const resp = await fetch(uri);
+      const blob = await resp.blob();
+      if (blob.type.startsWith('image/')) {
+        doUploadFile(new File([blob], 'kvit.png', { type: blob.type }), idx);
+        return;
+      }
+    } catch(err) { console.warn('uri fetch error', err); }
+  }
+
+  console.warn('[kvitDrop] Hech narsa topilmadi. types:', dt?.types, 'html len:', html.length);
+  showToast('❌ Faylni topa olmadi — iltimos Ctrl+V yoki "Yuklash" tugmasini ishlating', 'error');
 }
 
 function kvitFileSelected(e, idx) {
@@ -804,92 +849,10 @@ function kvitFileSelected(e, idx) {
   if (file) doUploadFile(file, idx);
 }
 
-// ── Rasm normalizatsiya: har qanday formatni haqiqiy PNG ga o'tkazish ──
-// Ishlash tartibi:
-//   1) FileReader → dataURL → Image → canvas  (PNG/JPEG/GIF uchun)
-//   2) Agar img yuklanmasa → arrayBuffer olib BM header qo'shamiz → createImageBitmap → canvas
-//   3) Agar bu ham ishlamasa → original faylni qaytaramiz
-async function normalizeImageFile(file) {
-  if (!file.type.startsWith('image/')) return file;
-
-  // --- 1-urinish: FileReader + Image ---
-  const tryViaImage = () => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width  = img.naturalWidth  || img.width;
-        canvas.height = img.naturalHeight || img.height;
-        if (!canvas.width || !canvas.height) { resolve(null); return; }
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        canvas.toBlob(blob => resolve(blob || null), 'image/png');
-      };
-      img.onerror = () => resolve(null);
-      img.src = ev.target.result;
-    };
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
-  });
-
-  // --- 2-urinish: DIB → BMP header qo'shish → createImageBitmap ---
-  const tryViaBitmap = async () => {
-    try {
-      const ab    = await file.arrayBuffer();
-      const bytes = new Uint8Array(ab);
-      let bmpBlob;
-
-      if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
-        // To'liq BMP
-        bmpBlob = new Blob([ab], { type: 'image/bmp' });
-      } else {
-        // DIB (BM header yo'q) — qo'shamiz
-        const infoSize   = new DataView(ab).getUint32(0, true);
-        const pixOffset  = 14 + infoSize;
-        const totalSize  = 14 + ab.byteLength;
-        const hdr = new Uint8Array(14);
-        const dv  = new DataView(hdr.buffer);
-        hdr[0] = 0x42; hdr[1] = 0x4D;
-        dv.setUint32(2,  totalSize, true);
-        dv.setUint32(6,  0,         true);
-        dv.setUint32(10, pixOffset, true);
-        const full = new Uint8Array(14 + ab.byteLength);
-        full.set(hdr, 0); full.set(bytes, 14);
-        bmpBlob = new Blob([full], { type: 'image/bmp' });
-      }
-
-      const bitmap = await createImageBitmap(bmpBlob);
-      const canvas = document.createElement('canvas');
-      canvas.width  = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext('2d').drawImage(bitmap, 0, 0);
-      bitmap.close();
-      return await new Promise(resolve => {
-        canvas.toBlob(blob => resolve(blob || null), 'image/png');
-      });
-    } catch(e) {
-      return null;
-    }
-  };
-
-  try {
-    let blob = await tryViaImage();
-    if (!blob) blob = await tryViaBitmap();
-    if (blob) return new File([blob], 'kvit.png', { type: 'image/png' });
-  } catch(e) {
-    console.warn('normalizeImageFile xatolik:', e);
-  }
-  return file; // fallback
-}
-
 async function doUploadFile(file, idx) {
   if (!file || file.size === 0) {
     showToast('❌ Fayl bo\'sh yoki o\'qib bo\'lmadi', 'error');
     return;
-  }
-  // Telegram/Windows clipboard BMP bytes ni haqiqiy PNG ga konvert qilish
-  if (file.type.startsWith('image/')) {
-    try { file = await normalizeImageFile(file); } catch(e) {}
   }
   if (file.size > 5 * 1024 * 1024) {
     showToast('❌ Fayl 5MB dan katta bo\'lmasin', 'error');
@@ -1011,8 +974,9 @@ window.kvitDrop       = kvitDrop;
 window.kvitFileSelected = kvitFileSelected;
 window.kvitLbClose    = kvitLbClose;
 // ─── Ctrl+V paste → kvitansiya yuklash ──────────
-// navigator.clipboard.read() ishlatiladi — brauzer DIB/BMP ni avtomatik PNG ga decode qiladi
-// e.clipboardData.getAsFile() emas, chunki u raw Windows DIB bytes qaytaradi
+// Telegram Windows'da CF_DIB (raw BMP data) clipboard'ga qo'yadi.
+// e.clipboardData.getAsFile() raw bytes qaytaradi — server saqlaydi lekin brauzer ocholmaydi.
+// Yechim: clipboard.read() → image/png blob olish → canvas orqali haqiqiy PNG ga konvert.
 document.addEventListener('paste', async (e) => {
   const app = g('app');
   if (!app || app.style.display === 'none') return;
@@ -1022,40 +986,65 @@ document.addEventListener('paste', async (e) => {
 
   e.preventDefault();
 
-  // Clipboard API (eng ishonchli — brauzer o'zi decode qiladi)
+  let fileToUpload = null;
+
+  // 1-usul: navigator.clipboard.read() — brauzer DIB/BMP ni PNG ga o'zi decode qiladi
   if (navigator.clipboard && navigator.clipboard.read) {
     try {
       const clipItems = await navigator.clipboard.read();
       for (const clipItem of clipItems) {
-        // 'image/png' ni afzal ko'ramiz, bo'lmasa boshqa image type
         const imgType = clipItem.types.find(t => t === 'image/png')
                      || clipItem.types.find(t => t.startsWith('image/'));
         if (imgType) {
-          const blob = await clipItem.getType(imgType);
-          const file = new File([blob], 'kvit.png', { type: 'image/png' });
-          await handlePasteFile(file);
-          return;
+          const rawBlob = await clipItem.getType(imgType);
+          // Canvas orqali haqiqiy PNG yasaymiz (brauzer DIB → PNG decode qiladi)
+          fileToUpload = await blobToCleanPng(rawBlob);
+          break;
         }
       }
     } catch(err) {
-      // clipboard.read() ruxsat yo'q yoki ishlamadi — fallback
+      // Ruxsat rad etildi yoki API yo'q — fallback
     }
   }
 
-  // Fallback: e.clipboardData (faqat haqiqiy PNG/JPEG uchun ishlaydi)
-  const items = Array.from(e.clipboardData?.items || []);
-  for (const item of items) {
-    if (item.kind === 'file' && item.type.startsWith('image/')) {
-      const file = item.getAsFile();
-      if (file && file.size > 0) {
-        // Bu raw bytes bo'lishi mumkin — normalize qilamiz
-        const normalized = await normalizeImageFile(file);
-        await handlePasteFile(normalized);
-        return;
+  // 2-usul: e.clipboardData — oddiy screenshot/PNG uchun (Telegram uchun ishlamaydi)
+  if (!fileToUpload) {
+    const items = Array.from(e.clipboardData?.items || []);
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const f = item.getAsFile();
+        if (f && f.size > 0) {
+          fileToUpload = await blobToCleanPng(f);
+          break;
+        }
       }
     }
   }
+
+  if (!fileToUpload) return;
+  await handlePasteFile(fileToUpload);
 });
+
+// Blob/File ni canvas orqali haqiqiy PNG ga o'tkazish
+// createImageBitmap brauzer ichida decode qiladi — DIB, BMP, PNG, JPEG hammasi ishlaydi
+async function blobToCleanPng(blob) {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width  = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return await new Promise(resolve => {
+      canvas.toBlob(b => {
+        resolve(b ? new File([b], 'kvit.png', { type: 'image/png' }) : null);
+      }, 'image/png');
+    });
+  } catch(e) {
+    // createImageBitmap ishlamadi — original qaytaramiz
+    return blob instanceof File ? blob : new File([blob], 'kvit.png', { type: blob.type || 'image/png' });
+  }
+}
 
 async function handlePasteFile(file) {
   if (!file) return;
