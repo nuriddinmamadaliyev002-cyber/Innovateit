@@ -722,6 +722,9 @@ async function kvitDzClick(e, idx) {
   e.preventDefault();
   e.stopPropagation();
 
+  // Paste rejimi faol bo'lsa — pasteClickHandler o'zi hal qiladi, bu yerda to'xtatamiz
+  if (_pasteActive) return;
+
   // Clipboard API orqali rasm olishga harakat
   if (navigator.clipboard && navigator.clipboard.read) {
     try {
@@ -974,8 +977,9 @@ async function pasteClickHandler(e) {
   const dz  = e.currentTarget;
   const row = dz.closest('tr');
   const idx = parseInt(row?.dataset?.idx ?? '-1');
+  const fileToUpload = _pasteFile;   // cancelPasteHint dan OLDIN saqlab olamiz
   cancelPasteHint();
-  if (idx >= 0 && _pasteFile) await doUploadFile(_pasteFile, idx);
+  if (idx >= 0 && fileToUpload) await doUploadFile(fileToUpload, idx);
 }
 
 function cancelPasteHint(e) {
