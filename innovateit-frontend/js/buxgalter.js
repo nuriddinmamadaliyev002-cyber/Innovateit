@@ -1011,60 +1011,69 @@ window.kvitDrop       = kvitDrop;
 window.kvitFileSelected = kvitFileSelected;
 window.kvitLbClose    = kvitLbClose;
 // ─── Ctrl+V paste → kvitansiya yuklash ──────────
+// navigator.clipboard.read() ishlatiladi — brauzer DIB/BMP ni avtomatik PNG ga decode qiladi
+// e.clipboardData.getAsFile() emas, chunki u raw Windows DIB bytes qaytaradi
 document.addEventListener('paste', async (e) => {
-  // App ko'rinib turganini tekshirish
   const app = g('app');
   if (!app || app.style.display === 'none') return;
 
-  // Agar input/textarea fokusda bo'lsa — oddiy paste
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-  const items = Array.from(e.clipboardData?.items || []);
+  e.preventDefault();
 
-  // 1-usul: to'g'ridan image/* item
-  let imageFile = null;
-  for (const item of items) {
-    if (item.kind === 'file' && item.type.startsWith('image/')) {
-      imageFile = item.getAsFile();
-      break;
+  // Clipboard API (eng ishonchli — brauzer o'zi decode qiladi)
+  if (navigator.clipboard && navigator.clipboard.read) {
+    try {
+      const clipItems = await navigator.clipboard.read();
+      for (const clipItem of clipItems) {
+        // 'image/png' ni afzal ko'ramiz, bo'lmasa boshqa image type
+        const imgType = clipItem.types.find(t => t === 'image/png')
+                     || clipItem.types.find(t => t.startsWith('image/'));
+        if (imgType) {
+          const blob = await clipItem.getType(imgType);
+          const file = new File([blob], 'kvit.png', { type: 'image/png' });
+          await handlePasteFile(file);
+          return;
+        }
+      }
+    } catch(err) {
+      // clipboard.read() ruxsat yo'q yoki ishlamadi — fallback
     }
   }
 
-  // 2-usul: Telegram kabi ilovalar HTML + rasm keltirganda — file bo'lganini olish
-  if (!imageFile) {
-    for (const item of items) {
-      if (item.kind === 'file') {
-        const f = item.getAsFile();
-        if (f) { imageFile = f; break; }
+  // Fallback: e.clipboardData (faqat haqiqiy PNG/JPEG uchun ishlaydi)
+  const items = Array.from(e.clipboardData?.items || []);
+  for (const item of items) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file && file.size > 0) {
+        // Bu raw bytes bo'lishi mumkin — normalize qilamiz
+        const normalized = await normalizeImageFile(file);
+        await handlePasteFile(normalized);
+        return;
       }
     }
   }
+});
 
-  if (!imageFile) return;
-
-  // Faqat rasm va PDF qabul qilinadi
-  const okMime = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','application/pdf'];
-  if (!okMime.includes(imageFile.type) && !imageFile.type.startsWith('image/')) return;
-
-  e.preventDefault();
-
+async function handlePasteFile(file) {
+  if (!file) return;
   const dropZones = document.querySelectorAll('.kvit-drop-zone');
   if (dropZones.length === 0) {
-    showToast('❌ Yuklash uchun avval kvitansiya katakchasi kerak', 'error');
+    showToast('❌ Yuklash uchun kvitansiya katakchasi kerak', 'error');
     return;
   }
-
   if (dropZones.length === 1) {
     const row = dropZones[0].closest('tr');
     const idx = parseInt(row?.dataset?.idx ?? '-1');
     if (idx < 0) return;
-    showToast('📋 Clipboard rasmi yuklanmoqda...');
-    await doUploadFile(imageFile, idx);
+    showToast('📋 Rasm yuklanmoqda...');
+    await doUploadFile(file, idx);
   } else {
-    showPasteHint(imageFile);
+    showPasteHint(file);
   }
-});
+}
 
 let _pasteFile   = null;
 let _pasteActive = false;
