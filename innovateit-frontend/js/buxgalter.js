@@ -775,10 +775,36 @@ function kvitFileSelected(e, idx) {
   if (file) doUploadFile(file, idx);
 }
 
+// Telegram/Windows clipboard BMP bug fix: rasmni Canvas orqali haqiqiy PNG ga o'tkazish
+async function normalizeImageFile(file) {
+  if (!file.type.startsWith('image/')) return file;
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => {
+        if (!blob) { resolve(file); return; }
+        resolve(new File([blob], 'kvit.png', { type: 'image/png' }));
+      }, 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 async function doUploadFile(file, idx) {
   if (!file || file.size === 0) {
     showToast('❌ Fayl bo\'sh yoki o\'qib bo\'lmadi', 'error');
     return;
+  }
+  // Telegram/Windows clipboard BMP bytes ni haqiqiy PNG ga konvert qilish
+  if (file.type.startsWith('image/')) {
+    try { file = await normalizeImageFile(file); } catch(e) {}
   }
   if (file.size > 5 * 1024 * 1024) {
     showToast('❌ Fayl 5MB dan katta bo\'lmasin', 'error');
