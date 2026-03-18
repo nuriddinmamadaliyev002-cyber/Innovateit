@@ -775,12 +775,47 @@ function kvitFileSelected(e, idx) {
   if (file) doUploadFile(file, idx);
 }
 
-// Telegram/Windows clipboard BMP/DIB bug fix
-// createImageBitmap() — BMP, DIB, PNG, JPEG va boshqa formatlarni to'g'ridan-to'g'ri qabul qiladi
+// Telegram/Windows clipboard BMP/DIB → haqiqiy PNG ga o'tkazish
+// Telegram Windows'da CF_DIB formatda (BM header'siz raw DIB) joylaydi.
+// Magic bytes tekshirib, kerakli formatga convert qilamiz.
 async function normalizeImageFile(file) {
   if (!file.type.startsWith('image/')) return file;
   try {
-    const bitmap = await createImageBitmap(file);
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    // Magic bytes bo'yicha haqiqiy formatni aniqlash
+    const isPNG  = bytes[0] === 0x89 && bytes[1] === 0x50; // \x89PNG
+    const isJPEG = bytes[0] === 0xFF && bytes[1] === 0xD8; // JFIF/EXIF
+    const isGIF  = bytes[0] === 0x47 && bytes[1] === 0x49; // GI...
+    const isBMP  = bytes[0] === 0x42 && bytes[1] === 0x4D; // BM
+
+    // Haqiqiy PNG/JPEG/GIF bo'lsa — canvas'ga chizib qaytarish
+    let blobForBitmap;
+    if (isPNG || isJPEG || isGIF) {
+      blobForBitmap = new Blob([arrayBuffer], { type: file.type });
+    } else if (isBMP) {
+      // BM header bor — to'liq BMP
+      blobForBitmap = new Blob([arrayBuffer], { type: 'image/bmp' });
+    } else {
+      // Telegram DIB (raw BITMAPINFOHEADER, BM header yo'q) — header qo'shamiz
+      // BITMAPINFOHEADER size = 40 (0x28) — birinchi 4 bayt: 28 00 00 00
+      const infoSize = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+      const pixelOffset = 14 + infoSize; // BITMAPFILEHEADER (14) + InfoHeader
+      const fileSize    = 14 + arrayBuffer.byteLength;
+      const bmHeader = new Uint8Array(14);
+      const dv = new DataView(bmHeader.buffer);
+      bmHeader[0] = 0x42; bmHeader[1] = 0x4D;          // 'BM'
+      dv.setUint32(2,  fileSize,    true);              // file size
+      dv.setUint32(6,  0,           true);              // reserved
+      dv.setUint32(10, pixelOffset, true);              // pixel data offset
+      const full = new Uint8Array(14 + arrayBuffer.byteLength);
+      full.set(bmHeader, 0);
+      full.set(bytes, 14);
+      blobForBitmap = new Blob([full], { type: 'image/bmp' });
+    }
+
+    const bitmap = await createImageBitmap(blobForBitmap);
     const canvas = document.createElement('canvas');
     canvas.width  = bitmap.width;
     canvas.height = bitmap.height;
