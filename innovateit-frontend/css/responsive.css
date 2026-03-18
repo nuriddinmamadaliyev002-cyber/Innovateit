@@ -1,0 +1,645 @@
+/* ═══════════════════════════════════════════════════════════════════
+   InnovateIT School — RESPONSIVE CSS  v3.0
+   Barcha qurilmalar uchun to'liq optimizatsiya
+
+   Breakpoints:
+     xs  < 360px   — juda kichik telefonlar
+     sm  360–520px — kichik telefonlar
+     md  520–768px — o'rta telefonlar / kichik plansheti
+     lg  768–1024px — katta telefonlar / plansheti
+     xl  > 1024px  — desktop
+═══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   1. GLOBAL RESET & BASE
+───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+img, video, svg        { max-width: 100%; display: block; }
+
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe Area — notch/Dynamic Island uchun */
+:root {
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,  0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   2. TOPBAR
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .topbar-brand {
+    font-size: 11px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-right { gap: 5px; }
+}
+
+@media (max-width: 768px) {
+  :root { --topbar-h: 100px; }
+
+  .topbar {
+    height: auto !important;
+    min-height: 52px;
+    flex-wrap: wrap;
+    padding: 8px calc(14px + var(--safe-left)) !important;
+    padding-right: calc(14px + var(--safe-right)) !important;
+    gap: 6px;
+    row-gap: 6px;
+  }
+
+  .topbar-brand {
+    flex: 0 0 auto;
+    max-width: 55%;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-right {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 5px;
+    padding-bottom: 2px;
+  }
+  .topbar-right::-webkit-scrollbar { display: none; }
+
+  .btn-teachers,
+  .btn-davomat,
+  .btn-jadval,
+  .btn-logout {
+    padding: 7px 11px !important;
+    font-size: 12px !important;
+    min-height: 34px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .admin-badge  { display: none !important; }
+  .stat-badge   { flex-shrink: 0; }
+  .admin-selector { max-width: 120px !important; font-size: 12px !important; }
+}
+
+@media (max-width: 520px) {
+  :root { --topbar-h: 96px; }
+
+  .topbar {
+    padding: 7px calc(12px + var(--safe-left)) !important;
+    padding-right: calc(12px + var(--safe-right)) !important;
+  }
+  .topbar-brand { font-size: 10px; max-width: 50%; }
+
+  .btn-teachers,
+  .btn-davomat,
+  .btn-jadval,
+  .btn-logout { padding: 6px 9px !important; font-size: 11px !important; }
+
+  .stat-badge { display: none !important; }
+  .admin-selector { max-width: 100px !important; font-size: 11px !important; }
+}
+
+@media (max-width: 360px) {
+  :root { --topbar-h: 92px; }
+  .topbar { padding: 6px 10px !important; }
+  .btn-teachers,
+  .btn-davomat,
+  .btn-jadval,
+  .btn-logout { padding: 5px 8px !important; font-size: 10px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   3. TABS / NAV
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .tabs,
+  .jad-tabs {
+    padding: 10px 12px 0 !important;
+    gap: 4px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+  .tabs::-webkit-scrollbar,
+  .jad-tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn,
+  .jad-tab {
+    padding: 7px 13px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 36px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   4. MAIN CONTENT PADDING
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .main,
+  .jad-main,
+  .dav-main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: calc(48px + var(--safe-bottom)) !important;
+  }
+}
+@media (max-width: 360px) {
+  .main, .jad-main, .dav-main {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   5. FORMA / GRID
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .form-grid    { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .create-grid  { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .birik-grid   { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .dob-row      { grid-template-columns: 70px 1fr 88px !important; gap: 6px !important; }
+}
+
+@media (max-width: 520px) {
+  .btn-submit {
+    width: 100% !important;
+    padding: 14px !important;
+    font-size: 15px !important;
+    justify-content: center !important;
+  }
+  /* iOS zoom oldini olish — 16px minimum */
+  .field-input,
+  .search-input,
+  .filter-sel,
+  .jad-select,
+  .date-input,
+  .admin-selector,
+  .vaqt-inp { font-size: 16px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   6. TABLE HEADER (qidiruv + filter)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .table-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+  .table-title { font-size: 13px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .search-input {
+    width: 100% !important;
+    min-width: unset !important;
+    font-size: 16px !important;
+  }
+  .filter-sel {
+    flex: 1 !important;
+    min-width: 100px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   7. DESKTOP TABLE — mobilda yashirin, faqat karta ko'rinadi
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .tbl-wrap {
+    display: none !important;
+  }
+  .mobile-list {
+    display: flex !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   8. DARS JADVALI TABLE
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .jadval-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .jadval-table {
+    min-width: 540px;
+    font-size: 12px !important;
+  }
+  .jadval-table th { padding: 8px 8px !important; font-size: 10px !important; }
+  .jadval-table td { padding: 7px 6px !important; min-width: 90px !important; }
+  .jcell           { padding: 4px 6px !important; font-size: 10px !important; }
+  .jcell-name      { font-size: 11px !important; }
+  .jcell-sub       { font-size: 9px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   9. DATE BAR — davomat sahifasi
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .date-bar {
+    height: auto !important;
+    flex-wrap: wrap !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    row-gap: 8px !important;
+  }
+  .date-nav { flex: 1; justify-content: center; }
+  .date-display { min-width: unset !important; font-size: 14px !important; }
+  .date-input   { flex: 1; font-size: 16px !important; min-width: 0; }
+}
+
+@media (max-width: 360px) {
+  .date-bar { padding: 8px 10px !important; gap: 8px !important; }
+  .date-display { font-size: 13px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   10. STATS BAR
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .stats-bar {
+    padding: 6px 12px !important;
+    gap: 6px !important;
+    height: auto !important;
+  }
+  .stat-pill { padding: 5px 10px !important; font-size: 11px !important; }
+  .stat-num  { font-size: 13px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   11. SINF GRID — davomat
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .sinf-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   12. STUDENT ROWS — davomat
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .status-btns { gap: 5px !important; }
+  .s-btn {
+    width: 34px !important;
+    height: 32px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+  }
+  .student-name { font-size: 13px !important; }
+  .student-row  { padding: 8px 6px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   13. O'QITUVCHI ROWS
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .teacher-row {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  .teacher-info { flex: 1 0 calc(100% - 48px) !important; }
+
+  .teacher-row > .status-btns {
+    flex: 0 0 100% !important;
+    justify-content: flex-end !important;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 2px;
+  }
+
+  .dv-badge { font-size: 10px !important; padding: 2px 6px !important; }
+  .teacher-name { font-size: 14px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   14. MOBILE CARDS (o'quvchilar)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mobile-list { padding: 10px !important; gap: 8px !important; }
+  .sc { border-radius: 10px !important; padding: 12px !important; }
+  .sc-name { font-size: 14px !important; }
+}
+@media (max-width: 520px) {
+  .sc-body { grid-template-columns: 1fr !important; gap: 6px !important; }
+  .sc-btns { gap: 5px !important; }
+  .btn-action { min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   15. O'QITUVCHILAR — MOBILE CARDS (tc)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .tc      { border-radius: 10px !important; }
+  .tc-head { padding: 10px 12px !important; }
+  .tc-body { padding: 8px 12px !important; gap: 5px !important; }
+  .tc-row  { font-size: 12px !important; }
+  .tc-lbl  { min-width: 90px !important; width: 90px !important; }
+  .tc-btns .btn-action { min-width: 34px; min-height: 34px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   16. ADMIN CARD
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .admin-card { padding: 12px !important; }
+  .admin-item {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  .admin-acts {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   17. JAD FILTER BAR
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .jad-filter-bar {
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 12px !important;
+    flex-wrap: wrap !important;
+  }
+  .jad-filter-group { flex: 1 1 calc(50% - 4px); }
+  .jad-select { width: 100% !important; min-width: unset !important; font-size: 16px !important; }
+  .seg-ctrl { flex: 0 0 100%; }
+}
+@media (max-width: 400px) {
+  .jad-filter-group { flex: 1 1 100%; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   18. SAVED JAD ITEMS
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .saved-jad-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+  .sji-info { width: 100% !important; }
+  .sji-name { font-size: 13px !important; }
+  .sji-btns {
+    align-self: flex-end !important;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    padding-top: 8px;
+    justify-content: flex-end;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   19. VAQT INPUT
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .birik-vaqt-row { flex-wrap: wrap !important; gap: 8px !important; }
+  .vaqt-group { flex: 1 !important; }
+  .vaqt-inp   { width: 50px !important; font-size: 16px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   20. MODAL — bottom sheet (mobil)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 540px) {
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modal {
+    border-radius: 20px 20px 0 0 !important;
+    padding: 18px 14px calc(20px + var(--safe-bottom)) !important;
+    max-height: 92vh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    animation: slideUpMob .28s cubic-bezier(.32,0,.15,1) !important;
+  }
+  .modal-drag { display: block !important; }
+  .modal-title { font-size: 15px !important; }
+  .modal-footer {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+  .modal-footer .btn-submit,
+  .modal-footer .btn-cancel {
+    width: 100% !important;
+    padding: 14px !important;
+    font-size: 15px !important;
+    text-align: center;
+    justify-content: center !important;
+  }
+}
+
+@keyframes slideUpMob {
+  from { transform: translateY(100%); opacity: .6; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   21. CONFIRM BOX
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .confirm-box {
+    width: calc(100vw - 24px) !important;
+    padding: 20px 16px !important;
+    border-radius: 16px !important;
+  }
+  .confirm-btns { flex-direction: column !important; gap: 8px !important; }
+  .btn-yes,
+  .btn-no {
+    width: 100% !important;
+    padding: 13px !important;
+    flex: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   22. STATUS DETAIL MODAL (davomat)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .status-detail-modal  { padding: 0 !important; align-items: flex-end !important; }
+  .status-detail-sheet  { border-radius: 20px 20px 0 0 !important; max-height: 80vh !important; max-width: 100% !important; }
+  .status-detail-header { padding: 12px 14px 10px !important; }
+  .status-detail-body   { padding: 10px 12px 20px !important; }
+  .status-detail-name   { font-size: 13px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   23. TOAST
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .toast {
+    bottom: calc(16px + var(--safe-bottom)) !important;
+    left: 12px !important;
+    right: 12px !important;
+    transform: translateX(0) translateY(80px) !important;
+    max-width: unset !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+  .toast.show { transform: translateX(0) translateY(0) !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   24. FORM CARD / TABLE CARD
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .form-card  { padding: 14px 12px !important; margin-bottom: 10px !important; border-radius: 12px !important; }
+  .table-card { border-radius: 10px !important; }
+  .admin-card { padding: 14px 12px !important; border-radius: 10px !important; }
+  .card-title { font-size: 13px !important; margin-bottom: 12px !important; }
+  .card-box   { padding: 14px 12px !important; border-radius: 10px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   25. LOGIN SAHIFASI
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .login-card  { padding: 28px 18px 32px !important; border-radius: 16px !important; }
+  .login-title { font-size: 22px !important; }
+}
+@media (max-width: 360px) {
+  .login-card  { padding: 22px 14px 28px !important; }
+  .login-title { font-size: 20px !important; }
+  .btn-primary { font-size: 15px !important; padding: 14px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   26. CHIP ROWS (kun, sinf)
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .chip-row,
+  .kun-chips,
+  .sinf-chips,
+  .group-chips { gap: 5px !important; }
+  .kun-chip,
+  .sinf-chip,
+  .group-chip {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    min-height: 36px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   27. EXPORT MODAL TABS
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 420px) {
+  .export-tabs { gap: 3px !important; }
+  .export-tab  { font-size: 11px !important; padding: 6px 0 !important; }
+  .export-hint { font-size: 12px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   28. JAD-MAIN
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .jad-main {
+    border-radius: 0 10px 10px 10px !important;
+    padding: 12px !important;
+    padding-bottom: calc(48px + var(--safe-bottom)) !important;
+  }
+  .jad-filter-bar { margin-bottom: 10px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   29. LANDSCAPE — telefon yotiq holati
+───────────────────────────────────────────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --topbar-h: 52px !important; }
+
+  .topbar {
+    flex-wrap: nowrap !important;
+    height: 52px !important;
+    padding: 0 12px !important;
+    overflow-x: auto;
+  }
+  .topbar-right { flex-wrap: nowrap !important; }
+
+  .modal {
+    max-height: 85vh !important;
+    border-radius: 14px !important;
+  }
+  .date-bar {
+    height: 48px !important;
+    flex-wrap: nowrap !important;
+  }
+  .sinf-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   30. KATTA EKRAN — 1024px+
+───────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  .sinf-grid    { grid-template-columns: repeat(3, 1fr) !important; }
+  .form-grid    { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; }
+  .table-header { flex-direction: row !important; align-items: center !important; }
+  .search-input { width: 240px !important; }
+}
+
+@media (min-width: 1280px) {
+  .sinf-grid { grid-template-columns: repeat(4, 1fr) !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   31. PRINT
+───────────────────────────────────────────────────────────────── */
+@media print {
+  .topbar, .tabs, .jad-tabs, .stats-bar, .date-bar,
+  .jad-filter-bar, .modal-overlay, .loading-overlay,
+  .btn-submit, .btn-action, .btn-davomat, .btn-logout,
+  .btn-teachers, .btn-jadval { display: none !important; }
+
+  .main, .jad-main, .dav-main { padding: 0 !important; max-width: 100% !important; }
+  body { font-size: 12px; background: #fff; }
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   32. ACCESSIBILITY — prefers-reduced-motion
+───────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   33. STICKY BARS HEIGHT CORRECTION — davomat sahifasi
+   Date bar mobilda wrap bo'lganda balandligi oshadi
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  :root {
+    /* Mobilda date-bar ikki qatorga tushadi ~ 90px */
+    --datebar-h: 90px;
+    --statsbar-h: 44px;
+  }
+}
+@media (max-width: 360px) {
+  :root {
+    --datebar-h: 86px;
+    --statsbar-h: 40px;
+  }
+}

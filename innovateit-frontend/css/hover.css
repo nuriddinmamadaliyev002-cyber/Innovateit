@@ -1,0 +1,213 @@
+/* ═══════════════════════════════════════════════════
+   InnovateIT School — Hover effektlar  (hover.css)
+   Barcha sahifalar uchun yagona hover to'plami
+   ═══════════════════════════════════════════════════ */
+
+/* Umumiy transition — barcha interaktiv elementlarga */
+button, .btn-action, .tab-btn, .jad-tab,
+.kun-chip, .sinf-chip, .group-chip, .seg-btn,
+.admin-item, .sc, .saved-jad-item, .teacher-row {
+  transition: all .15s ease;
+}
+
+/* ─────────────────────────────────────────────────
+   1. TOPBAR TUGMALARI
+───────────────────────────────────────────────── */
+.btn-teachers:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+.btn-davomat:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+.btn-nofaol:hover {
+  background: #b91c1c;
+  color: #fff;
+}
+.btn-logout:hover {
+  background: var(--bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-jadval:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+}
+
+/* ─────────────────────────────────────────────────
+   2. TAB TUGMALARI
+───────────────────────────────────────────────── */
+.tab-btn:not(.active):hover {
+  background: var(--bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.jad-tab:not(.active):hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.seg-btn:not(.active):hover {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+/* ─────────────────────────────────────────────────
+   3. FORMA ELEMENTLARI
+───────────────────────────────────────────────── */
+.field-input:hover:not(:focus) {
+  border-color: #b0aea6;
+}
+.admin-selector:hover:not(:focus) {
+  border-color: #b0aea6;
+}
+.search-input:hover:not(:focus) {
+  border-color: #b0aea6;
+}
+.filter-sel:hover:not(:focus) {
+  border-color: #b0aea6;
+}
+.eye-btn:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* ─────────────────────────────────────────────────
+   4. ASOSIY TUGMALAR
+───────────────────────────────────────────────── */
+.btn-submit:hover:not(:disabled) {
+  opacity: .88;
+  transform: translateY(-1px);
+}
+.btn-cancel:hover {
+  background: var(--bg);
+  border-color: #b0aea6;
+}
+.btn-small:hover {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-action:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.btn-action.btn-action-del:hover {
+  border-color: var(--danger);
+  background: #fef2f2;
+}
+
+/* ─────────────────────────────────────────────────
+   5. CHIP / TAG ELEMENTLARI
+───────────────────────────────────────────────── */
+.kun-chip:not(.sel):hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: #f5f3ff;
+}
+.sinf-chip:not(.sel):hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ─────────────────────────────────────────────────
+   6. KARTA / LIST ELEMENTLARI
+───────────────────────────────────────────────── */
+.admin-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(37,99,235,.1);
+}
+.sc:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+.teacher-row:not(.done):hover {
+  border-color: var(--accent);
+  background: #fafffe;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+/* ─────────────────────────────────────────────────
+   7. VAQT INPUT
+───────────────────────────────────────────────── */
+.vaqt-inp:hover:not(:focus) {
+  border-color: #b0aea6;
+}
+
+/* ─────────────────────────────────────────────────
+   8. BUXGALTER SAHIFASI
+───────────────────────────────────────────────── */
+.kvit-drop-zone:hover,
+.kvit-drop-zone.drag-over {
+  border-color: #16a34a;
+  background: #dcfce7;
+}
+
+/* ─────────────────────────────────────────────────
+   9. MODAL TUGMALAR
+───────────────────────────────────────────────── */
+.btn-yes:hover { background: #15803d; }
+.btn-no:hover  { background: var(--bg); border-color: #b0aea6; }
+
+/* ─────────────────────────────────────────────────
+   10. MOBIL QURILMALAR — hover o'chirilsin
+   (mobilda hover bug chiqarishi mumkin)
+───────────────────────────────────────────────── */
+@media (hover: none) {
+  .btn-teachers:hover,
+  .btn-davomat:hover,
+  .btn-logout:hover,
+  .tab-btn:hover,
+  .jad-tab:hover,
+  .admin-item:hover,
+  .sc:hover,
+  .teacher-row:hover { transform: none; box-shadow: none; }
+}
+
+/* ─────────────────────────────────────────────────
+   11. BUXGALTER RO'YXATI TUGMALARI (JS inline dan class ga)
+───────────────────────────────────────────────── */
+.bux-edit-btn {
+  padding: 5px 10px; border-radius: 7px;
+  border: 1px solid #e2e0d8; background: #fff;
+  font-size: 12px; cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+.bux-edit-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.bux-del-btn {
+  padding: 5px 10px; border-radius: 7px;
+  border: 1px solid #fecaca; background: #fff5f5;
+  color: #dc2626; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+.bux-del-btn:hover {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+
+.bux-biriktiruv-btn {
+  padding: 5px 12px; border-radius: 7px;
+  border: 1px solid #bfdbfe; background: #eff4ff;
+  color: #2563eb; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  transition: all .15s;
+}
+.bux-biriktiruv-btn:hover {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}

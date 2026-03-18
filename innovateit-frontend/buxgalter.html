@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>InnovateIT School — Buxgalter</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/buxgalter.css">
+  <link rel="stylesheet" href="css/hover.css"> 
+</head>
+<body>
+
+<!-- ════════════ LOGIN ════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">InnovateIT School</div>
+    <h1 class="login-title">Buxgalter Panel</h1>
+    <p class="login-sub">To'lovlarni boshqarish tizimiga kiring</p>
+
+    <div class="field-group">
+      <label class="field-label">Username</label>
+      <input class="field-input" type="text" id="inp-username"
+        placeholder="buxgalter_login" autocomplete="username">
+    </div>
+
+    <div class="field-group" style="margin-top:14px;">
+      <label class="field-label">Parol</label>
+      <div class="pw-wrap" style="position:relative;">
+        <input class="field-input" type="password" id="inp-parol"
+          placeholder="••••••" autocomplete="current-password"
+          style="padding-right:44px;">
+        <button type="button" onclick="togglePw()"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                 background:none;border:none;cursor:pointer;font-size:18px;padding:0;color:#7a7870;"
+          id="pw-eye">👁</button>
+      </div>
+    </div>
+
+    <p id="login-err" style="display:none;color:#dc2626;font-size:13px;margin-top:10px;"></p>
+
+    <button class="btn-primary" id="login-btn" onclick="doLogin()"
+      style="width:100%;margin-top:20px;padding:13px;border-radius:10px;
+             background:#2563eb;color:#fff;border:none;font-size:15px;
+             font-weight:600;cursor:pointer;font-family:inherit;
+             transition:opacity .15s;"
+      onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+      Kirish
+    </button>
+
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:#9ca3af;">
+      ← <a href="index.html" style="color:#2563eb;">Asosiy panelga qaytish</a>
+    </p>
+  </div>
+</div>
+
+<!-- ════════════ APP ════════════ -->
+<div id="app" style="display:none;">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">💼 InnovateIT — Buxgalter To'lovlar</div>
+    <div class="topbar-right">
+      <span class="admin-badge" id="bux-badge"></span>
+      <button class="btn-export-bux" onclick="exportExcel()">📊 Excel</button>
+      <button class="btn-logout"     onclick="doLogout()">Chiqish</button>
+    </div>
+  </div>
+
+  <!-- CONTROLS BAR -->
+  <div class="ctrl-bar">
+    <!-- Oy navigatsiyasi -->
+    <div class="oy-nav">
+      <button class="oy-nav-btn" onclick="changeOy(-1)" title="Oldingi oy">‹</button>
+      <span class="oy-label" id="oy-label">—</span>
+      <button class="oy-nav-btn" onclick="changeOy(1)"  title="Keyingi oy">›</button>
+    </div>
+
+    <!-- Filtrlar -->
+    <select class="filter-select" id="filter-maktab" onchange="applyFilters()">
+      <option value="">🏫 Barcha maktablar</option>
+    </select>
+    <select class="filter-select" id="filter-sinf" onchange="applyFilters()">
+      <option value="">📚 Barcha sinflar</option>
+    </select>
+    <select class="filter-select" id="filter-tolov" onchange="applyFilters()">
+      <option value="">💳 Hammasi</option>
+      <option value="yopgan">✅ To'lovni yopganlar</option>
+      <option value="qarzdor">❌ Qarzdorlar</option>
+      <option value="umuman">⛔ Umuman to'lov qilmaganlar</option>
+    </select>
+    <input class="search-input" type="text" id="filter-search"
+      placeholder="🔍 Ism / telefon…" oninput="applyFilters()">
+
+    <!-- Berkitilgan ustunlar chiplari -->
+    <div class="hidden-cols-bar" id="hidden-cols-bar"></div>
+
+    <div class="ctrl-spacer"></div>
+
+    <button class="btn-init-oy" onclick="initOy()" title="Bu oyni barcha o'quvchilar uchun boshlash">
+      ▶ Oyni boshlash
+    </button>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">O'quvchilar</span>
+      <span class="stat-val blue" id="stat-total">—</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">To'lov kerak</span>
+      <span class="stat-val orange" id="stat-kerak">—</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">To'lov qilindi</span>
+      <span class="stat-val green" id="stat-qildi">—</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Umumiy qarz</span>
+      <span class="stat-val red" id="stat-qarz">—</span>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="bux-main">
+    <div class="bux-table-wrap" id="bux-table-wrap">
+      <table class="bux-table" id="bux-table-main">
+        <thead id="bux-thead">
+          <tr>
+            <th class="col-num"    data-col="num">№</th>
+            <th class="col-name"   data-col="name">Familiya Ismi</th>
+            <th class="col-maktab" data-col="maktab" onclick="toggleCol('maktab')">Maktabi</th>
+            <th class="col-sinf"   data-col="sinf"   onclick="toggleCol('sinf')">Sinfi</th>
+            <th class="col-tel"    data-col="tel"     onclick="toggleCol('tel')">Telefon raqami</th>
+            <th class="col-qayd"   data-col="qayd"    onclick="toggleCol('qayd')">Qaydnoma</th>
+            <th class="col-gap"    data-col="gap"     onclick="toggleCol('gap')">Gaplashilgan vaqt</th>
+            <th class="col-kerak"  data-col="kerak"   onclick="toggleCol('kerak')">To'lov qilish kerak</th>
+            <th class="col-qildi"  data-col="qildi"   onclick="toggleCol('qildi')">To'lov qildi</th>
+            <th class="col-sana"   data-col="sana"    onclick="toggleCol('sana')">To'lov sanasi</th>
+            <th class="col-holat"  data-col="holat"   onclick="toggleCol('holat')">To'lov holati</th>
+            <th class="col-kvit"   data-col="kvit"    onclick="toggleCol('kvit')">Kvitansiya fayli</th>
+          </tr>
+        </thead>
+        <tbody id="bux-tbody">
+          <tr><td colspan="12" class="bux-loading">⏳ Yuklanmoqda…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="bux-toast" id="bux-toast"></div>
+
+<!-- ── In-page Kvitansiya Lightbox ── -->
+<div id="kvit-lightbox" onclick="kvitLbClose(event)">
+  <div id="kvit-lb-inner">
+    <button id="kvit-lb-close" onclick="kvitLbClose(event)">✕</button>
+    <div id="kvit-lb-name"></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+  <script src="js/buxgalter.js"></script>
+<script>
+function togglePw() {
+  const inp = document.getElementById('inp-parol');
+  const eye = document.getElementById('pw-eye');
+  if (inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+  else                         { inp.type = 'password'; eye.textContent = '👁'; }
+}
+</script>
+</body>
+</html>

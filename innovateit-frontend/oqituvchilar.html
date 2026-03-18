@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>InnovateIT School — O'qituvchilar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/oqituvchilar.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/hover.css"> 
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">InnovateIT School · O'qituvchilar</div>
+  <div class="topbar-right">
+    <span class="admin-badge" id="admin-badge"></span>
+    <span class="stat-badge"  id="total-count">0</span>
+    <button class="btn-jadval"  id="btn-jadval-teacher"  onclick="openJadval()">📅 Dars jadvali</button>
+    <button class="btn-davomat" id="btn-davomat-teacher" onclick="openDavomat()">📋 O'qituvchilar davomati</button>
+    <button class="btn-logout"  onclick="goBack()">← Orqaga</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- QOSHISH FORMASI -->
+  <div class="form-card" id="add-form">
+    <div class="card-title">➕ Yangi o'qituvchi qo'shish</div>
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">Ism</label>
+        <input class="field-input" id="f-ism" placeholder="Nodira" autocomplete="off">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Familiya</label>
+        <input class="field-input" id="f-familiya" placeholder="Yusupova" autocomplete="off">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Fan</label>
+        <select class="field-input" id="f-fan">
+          <option value="">— Tanlang —</option>
+          <option value="Matematika">Matematika</option>
+          <option value="Ingliz tili">Ingliz tili</option>
+          <option value="IT">IT</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Telefon</label>
+        <div class="tel-wrap">
+          <input class="field-input tel-input" id="f-tel" placeholder="+998 __ ___ __ __" maxlength="17" inputmode="tel">
+          <div class="tel-hint" id="f-tel-hint"></div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Qo'sh. telefon <span style="font-weight:400;text-transform:none;font-size:10px;">(ixtiyoriy)</span></label>
+        <div class="tel-wrap">
+          <input class="field-input tel-input" id="f-tel2" placeholder="+998 __ ___ __ __" maxlength="17" inputmode="tel">
+          <div class="tel-hint" id="f-tel2-hint"></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-submit" id="submit-btn" onclick="addTeacher()">
+      <span class="spinner" id="spinner"></span>
+      <span id="btn-txt">Saqlash</span>
+    </button>
+  </div>
+
+  <!-- JADVAL -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">O'qituvchilar ro'yxati</div>
+      <input class="search-input" id="f-search" placeholder="🔍 Ism, fan…" oninput="applyFilter()">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th>
+          <th>Ism Familiya</th>
+          <th>Fan</th>
+          <th id="th-maktab" style="display:none;">Maktab</th>
+          <th>Telefon</th>
+          <th>Qo'sh. tel</th>
+          <th id="th-amal">Amal</th>
+        </tr></thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+    <div class="mobile-list" id="mob-cards"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- MODAL: Tahrirlash -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">✏️ O'qituvchini tahrirlash</div>
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">Ism</label>
+        <input class="field-input" id="e-ism">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Familiya</label>
+        <input class="field-input" id="e-familiya">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Fan</label>
+        <select class="field-input" id="e-fan">
+          <option value="">— Tanlang —</option>
+          <option value="Matematika">Matematika</option>
+          <option value="Ingliz tili">Ingliz tili</option>
+          <option value="IT">IT</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Telefon</label>
+        <div class="tel-wrap">
+          <input class="field-input tel-input" id="e-tel" maxlength="17" inputmode="tel">
+          <div class="tel-hint" id="e-tel-hint"></div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Qo'sh. telefon</label>
+        <div class="tel-wrap">
+          <input class="field-input tel-input" id="e-tel2" maxlength="17" inputmode="tel">
+          <div class="tel-hint" id="e-tel2-hint"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEdit()">Bekor</button>
+      <button class="btn-submit" id="e-save-btn" onclick="saveEdit()">
+        <span class="spinner" id="e-spinner"></span>
+        <span id="e-btn-txt">Saqlash</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="js/api.js"></script>
+  <script src="js/oqituvchilar.js"></script>
+<script src="js/mobile-nav.js"></script>
+</body>
+</html>

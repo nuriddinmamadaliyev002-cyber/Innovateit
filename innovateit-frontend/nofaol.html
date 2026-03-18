@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>InnovateIT School — Nofaol O'quvchilar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/hover.css"> 
+  <style>
+    .badge-nofaol {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca;
+    }
+    .badge-chiqgan {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      font-family: 'DM Mono', monospace;
+      background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+    }
+    .nofaol-count {
+      font-size: 11px; color: #dc2626;
+      background: #fff5f5; border: 1px solid #fecaca;
+      padding: 3px 8px; border-radius: 20px;
+      font-family: 'DM Mono', monospace; white-space: nowrap; flex-shrink: 0;
+    }
+    /* ── Amal tugmalari ── */
+    .btn-faollashtir {
+      padding: 6px 10px; font-size: 15px;
+      border: 1.5px solid #bbf7d0; border-radius: 8px;
+      cursor: pointer; background: #f0fdf4;
+      transition: background .15s; line-height: 1;
+    }
+    .btn-faollashtir:hover { background: #dcfce7; }
+    .btn-edit-nofaol {
+      padding: 6px 10px; font-size: 15px;
+      border: 1.5px solid #e5e7eb; border-radius: 8px;
+      cursor: pointer; background: #f9fafb;
+      transition: background .15s; line-height: 1;
+    }
+    .btn-edit-nofaol:hover { background: #f3f4f6; }
+    .btn-ochir {
+      padding: 6px 10px; font-size: 15px;
+      border: 1.5px solid #fecaca; border-radius: 8px;
+      cursor: pointer; background: #fff5f5;
+      transition: background .15s; line-height: 1;
+    }
+    .btn-ochir:hover { background: #fee2e2; }
+    .confirm-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: 14px; margin-bottom: 16px;
+    }
+    .confirm-box-name { font-weight: 600; font-size: 15px; color: #15803d; margin-bottom: 6px; }
+    .confirm-box-desc { font-size: 13px; color: #7a7870; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">InnovateIT School · Nofaol O'quvchilar</div>
+  <div class="topbar-right">
+    <span class="admin-badge" id="nofaol-badge"></span>
+    <span class="nofaol-count" id="nofaol-count">0</span>
+    <button class="btn-logout" onclick="goBack()">← Orqaga</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" style="padding-top:16px;">
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">🚫 Nofaol o'quvchilar ro'yxati</div>
+      <div class="filters">
+        <input class="search-input" id="f-search" placeholder="🔍  Ism, telefon…" oninput="applyFilters()">
+        <select class="filter-sel" id="f-maktab-f" onchange="applyFilters()">
+          <option value="">Barcha maktab</option>
+        </select>
+        <select class="filter-sel" id="f-sinf-f" onchange="applyFilters()">
+          <option value="">Barcha sinf</option>
+          <option>1-sinf</option><option>2-sinf</option><option>3-sinf</option>
+          <option>4-sinf</option><option>5-sinf</option><option>6-sinf</option>
+          <option>7-sinf</option><option>8-sinf</option><option>9-sinf</option>
+        </select>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Ism Familiya</th><th>Maktab</th><th>Sinf</th>
+          <th>Telefon</th><th>Tug'ilgan</th>
+          <th>Boshlagan</th><th>Chiqgan</th><th>Chiqish sababi</th>
+          <th id="admin-col-n" style="display:none;">Admin</th>
+          <th>Amal</th>
+        </tr></thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+    <div id="mob-cards" class="mobile-list"></div>
+  </div>
+</div>
+
+<!-- ♻️ MODAL: Faollashtirish -->
+<div class="modal-overlay" id="faol-modal" onclick="if(event.target===this)closeFaolModal()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">♻️ O'quvchini faollashtirish</div>
+    <div class="confirm-box">
+      <div class="confirm-box-name" id="faol-name-display">—</div>
+      <div class="confirm-box-desc">Bu o'quvchi nofaol ro'yxatdan olib, yana faol o'quvchilar ro'yxatiga qo'shiladi.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeFaolModal()">Bekor qilish</button>
+      <button class="btn-submit" id="faol-confirm-btn" style="background:#16a34a;" onclick="confirmFaollashtir()">
+        <span class="spinner" id="faol-spinner"></span>
+        <span id="faol-btn-txt">Ha, faollashtirish</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✏️ MODAL: Tahrirlash -->
+<div class="modal-overlay" id="edit-nofaol-modal" onclick="if(event.target===this)closeEditNofaol()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">✏️ Ma'lumotlarni tahrirlash</div>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-weight:600;font-size:15px;color:#374151;" id="edit-nofaol-name">—</div>
+    </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label class="field-label">Safdan chiqgan sana</label>
+      <input class="field-input" type="date" id="edit-chiqgan">
+    </div>
+    <div class="field-group">
+      <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Chiqish sababi <span style="color:#dc2626;">*</span></span>
+        <span id="edit-izoh-counter" style="font-size:11px;font-weight:400;color:#9ca3af;font-family:'DM Mono',monospace;">0 / 10</span>
+      </label>
+      <textarea class="field-input" id="edit-izoh" rows="3"
+        style="resize:vertical;min-height:80px;line-height:1.5;font-size:14px;"
+        oninput="onEditIzohInput(this)"></textarea>
+      <p class="field-hint" id="edit-izoh-hint" style="color:#dc2626;display:none;">⚠️ Kamida 10 ta belgi kiriting</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditNofaol()">Bekor qilish</button>
+      <button class="btn-submit" id="edit-nofaol-btn" onclick="saveEditNofaol()">
+        <span class="spinner" id="edit-nofaol-spinner"></span>
+        <span id="edit-nofaol-txt">Saqlash</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 🗑️ MODAL: O'chirish -->
+<div class="modal-overlay" id="del-nofaol-modal" onclick="if(event.target===this)closeDelNofaol()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">🗑️ O'quvchini o'chirish</div>
+    <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-weight:600;font-size:15px;color:#dc2626;margin-bottom:6px;" id="del-nofaol-name">—</div>
+      <div style="font-size:13px;color:#7a7870;line-height:1.5;">Bu o'quvchi <strong>butunlay o'chiriladi</strong> va tiklash mumkin bo'lmaydi.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDelNofaol()">Bekor qilish</button>
+      <button class="btn-submit" id="del-nofaol-btn" style="background:#dc2626;" onclick="confirmDeleteNofaol()">
+        <span class="spinner" id="del-nofaol-spinner"></span>
+        <span id="del-nofaol-txt">Ha, o'chirish</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="js/api.js"></script>
+  <script src="js/nofaol.js"></script>
+<script src="js/mobile-nav.js"></script>
+</body>
+</html>
