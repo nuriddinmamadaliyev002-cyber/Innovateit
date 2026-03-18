@@ -761,13 +761,42 @@ function kvitDragLeave(e, idx) {
   if (dz) dz.classList.remove('drag-over');
 }
 
-function kvitDrop(e, idx) {
+async function kvitDrop(e, idx) {
   e.preventDefault();
   e.stopPropagation();
   const dz = g(`kvit-dz-${idx}`);
   if (dz) dz.classList.remove('drag-over');
+
+  // 1-usul: oddiy fayl (file manager, screenshot)
   const file = e.dataTransfer?.files?.[0];
-  if (file) doUploadFile(file, idx);
+  if (file) { doUploadFile(file, idx); return; }
+
+  // 2-usul: Telegram drag — text/html ichidan base64 rasm olish
+  const html = e.dataTransfer?.getData('text/html') || '';
+  const imgMatch = html.match(/src=["']([^"']+)["']/i);
+  if (imgMatch) {
+    const src = imgMatch[1];
+    // data:image/... base64
+    if (src.startsWith('data:image')) {
+      const [meta, b64] = src.split(',');
+      const mime  = meta.split(':')[1].split(';')[0];
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const blob  = new Blob([bytes], { type: mime });
+      const f     = new File([blob], 'paste.png', { type: mime });
+      doUploadFile(f, idx); return;
+    }
+    // http/https URL
+    if (src.startsWith('http')) {
+      try {
+        showToast('⏳ Rasm yuklanmoqda…');
+        const resp = await fetch(src);
+        const blob = await resp.blob();
+        const f    = new File([blob], 'paste.png', { type: blob.type || 'image/png' });
+        doUploadFile(f, idx); return;
+      } catch(err) {}
+    }
+  }
+  showToast('❌ Telegram dragdan fayl olinmadi. Ctrl+V bilan yuboring.', 'error');
 }
 
 function kvitFileSelected(e, idx) {
@@ -775,61 +804,82 @@ function kvitFileSelected(e, idx) {
   if (file) doUploadFile(file, idx);
 }
 
-// Telegram/Windows clipboard BMP/DIB → haqiqiy PNG ga o'tkazish
-// Telegram Windows'da CF_DIB formatda (BM header'siz raw DIB) joylaydi.
-// Magic bytes tekshirib, kerakli formatga convert qilamiz.
+// ── Rasm normalizatsiya: har qanday formatni haqiqiy PNG ga o'tkazish ──
+// Ishlash tartibi:
+//   1) FileReader → dataURL → Image → canvas  (PNG/JPEG/GIF uchun)
+//   2) Agar img yuklanmasa → arrayBuffer olib BM header qo'shamiz → createImageBitmap → canvas
+//   3) Agar bu ham ishlamasa → original faylni qaytaramiz
 async function normalizeImageFile(file) {
   if (!file.type.startsWith('image/')) return file;
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
 
-    // Magic bytes bo'yicha haqiqiy formatni aniqlash
-    const isPNG  = bytes[0] === 0x89 && bytes[1] === 0x50; // \x89PNG
-    const isJPEG = bytes[0] === 0xFF && bytes[1] === 0xD8; // JFIF/EXIF
-    const isGIF  = bytes[0] === 0x47 && bytes[1] === 0x49; // GI...
-    const isBMP  = bytes[0] === 0x42 && bytes[1] === 0x4D; // BM
+  // --- 1-urinish: FileReader + Image ---
+  const tryViaImage = () => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = img.naturalWidth  || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        if (!canvas.width || !canvas.height) { resolve(null); return; }
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        canvas.toBlob(blob => resolve(blob || null), 'image/png');
+      };
+      img.onerror = () => resolve(null);
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
 
-    // Haqiqiy PNG/JPEG/GIF bo'lsa — canvas'ga chizib qaytarish
-    let blobForBitmap;
-    if (isPNG || isJPEG || isGIF) {
-      blobForBitmap = new Blob([arrayBuffer], { type: file.type });
-    } else if (isBMP) {
-      // BM header bor — to'liq BMP
-      blobForBitmap = new Blob([arrayBuffer], { type: 'image/bmp' });
-    } else {
-      // Telegram DIB (raw BITMAPINFOHEADER, BM header yo'q) — header qo'shamiz
-      // BITMAPINFOHEADER size = 40 (0x28) — birinchi 4 bayt: 28 00 00 00
-      const infoSize = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
-      const pixelOffset = 14 + infoSize; // BITMAPFILEHEADER (14) + InfoHeader
-      const fileSize    = 14 + arrayBuffer.byteLength;
-      const bmHeader = new Uint8Array(14);
-      const dv = new DataView(bmHeader.buffer);
-      bmHeader[0] = 0x42; bmHeader[1] = 0x4D;          // 'BM'
-      dv.setUint32(2,  fileSize,    true);              // file size
-      dv.setUint32(6,  0,           true);              // reserved
-      dv.setUint32(10, pixelOffset, true);              // pixel data offset
-      const full = new Uint8Array(14 + arrayBuffer.byteLength);
-      full.set(bmHeader, 0);
-      full.set(bytes, 14);
-      blobForBitmap = new Blob([full], { type: 'image/bmp' });
+  // --- 2-urinish: DIB → BMP header qo'shish → createImageBitmap ---
+  const tryViaBitmap = async () => {
+    try {
+      const ab    = await file.arrayBuffer();
+      const bytes = new Uint8Array(ab);
+      let bmpBlob;
+
+      if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
+        // To'liq BMP
+        bmpBlob = new Blob([ab], { type: 'image/bmp' });
+      } else {
+        // DIB (BM header yo'q) — qo'shamiz
+        const infoSize   = new DataView(ab).getUint32(0, true);
+        const pixOffset  = 14 + infoSize;
+        const totalSize  = 14 + ab.byteLength;
+        const hdr = new Uint8Array(14);
+        const dv  = new DataView(hdr.buffer);
+        hdr[0] = 0x42; hdr[1] = 0x4D;
+        dv.setUint32(2,  totalSize, true);
+        dv.setUint32(6,  0,         true);
+        dv.setUint32(10, pixOffset, true);
+        const full = new Uint8Array(14 + ab.byteLength);
+        full.set(hdr, 0); full.set(bytes, 14);
+        bmpBlob = new Blob([full], { type: 'image/bmp' });
+      }
+
+      const bitmap = await createImageBitmap(bmpBlob);
+      const canvas = document.createElement('canvas');
+      canvas.width  = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      bitmap.close();
+      return await new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob || null), 'image/png');
+      });
+    } catch(e) {
+      return null;
     }
+  };
 
-    const bitmap = await createImageBitmap(blobForBitmap);
-    const canvas = document.createElement('canvas');
-    canvas.width  = bitmap.width;
-    canvas.height = bitmap.height;
-    canvas.getContext('2d').drawImage(bitmap, 0, 0);
-    bitmap.close();
-    return await new Promise(resolve => {
-      canvas.toBlob(blob => {
-        resolve(blob ? new File([blob], 'kvit.png', { type: 'image/png' }) : file);
-      }, 'image/png');
-    });
+  try {
+    let blob = await tryViaImage();
+    if (!blob) blob = await tryViaBitmap();
+    if (blob) return new File([blob], 'kvit.png', { type: 'image/png' });
   } catch(e) {
     console.warn('normalizeImageFile xatolik:', e);
-    return file;
   }
+  return file; // fallback
 }
 
 async function doUploadFile(file, idx) {
