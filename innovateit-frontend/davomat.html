@@ -132,9 +132,12 @@
     <!-- Davr -->
     <div id="exp-davr" class="export-section" style="display:none;">
       <label class="field-label">Boshlanish sanasi</label>
-      <input type="date" id="exp-from" class="field-input" style="margin-bottom:8px;">
+      <input type="text" id="exp-from" class="field-input" placeholder="DD.MM.YYYY" maxlength="10"
+        style="margin-bottom:8px;letter-spacing:1px;" oninput="onDavrInput(this)" autocomplete="off">
       <label class="field-label">Tugash sanasi</label>
-      <input type="date" id="exp-to" class="field-input" style="margin-bottom:8px;">
+      <input type="text" id="exp-to" class="field-input" placeholder="DD.MM.YYYY" maxlength="10"
+        style="margin-bottom:8px;letter-spacing:1px;" oninput="onDavrInput(this)" autocomplete="off">
+      <div class="export-preview" id="exp-davr-preview"></div>
     </div>
 
     <div class="modal-footer" style="margin-top:16px;">

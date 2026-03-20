@@ -42,15 +42,16 @@ const api = {
   loginBuxgalter:  (d) => api.post('/api/auth/login-buxgalter', d),
 
   // ─── O'quvchilar ───
-  getStudents:     (d) => api.get('/api/students', d),
-  addStudent:      (d) => api.post('/api/students', d),
-  editStudent:     (d) => api.put('/api/students', d),
-  deleteStudent:   (d) => api.del('/api/students', d),
-  moveToInactive:  (d) => api.post('/api/students/inactive', d),
-  getNofaol:       (d) => api.get('/api/students/inactive', d),
-  moveToActive:    (d) => api.post('/api/students/activate', d),
-  editNofaol:      (d) => api.put('/api/students/inactive', d),
-  deleteNofaol:    (d) => api.del('/api/students/inactive', d),
+  getStudents:         (d) => api.get('/api/students', d),
+  addStudent:          (d) => api.post('/api/students', d),
+  editStudent:         (d) => api.put('/api/students', d),
+  deleteStudent:       (d) => api.del('/api/students', d),
+  moveToInactive:      (d) => api.post('/api/students/inactive', d),
+  getNofaol:           (d) => api.get('/api/students/inactive', d),
+  getInactiveStudents: (d) => api.get('/api/students/inactive', d), // davomat filtrlash uchun
+  moveToActive:        (d) => api.post('/api/students/activate', d),
+  editNofaol:          (d) => api.put('/api/students/inactive', d),
+  deleteNofaol:        (d) => api.del('/api/students/inactive', d),
 
   // ─── Adminlar ───
   getAdmins:       (d) => api.get('/api/admins', d),

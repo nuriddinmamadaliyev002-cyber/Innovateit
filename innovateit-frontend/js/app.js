@@ -456,11 +456,15 @@ function closeNofaolModal() {
 
 async function confirmNofaol() {
   const s = S[nofaolIdx]; if (!s) return;
-  const chiqgan = g('nofaol-chiqgan').value;
+  const chiqganRaw = g('nofaol-chiqgan').value;
   const izoh    = (g('nofaol-izoh').value || '').trim();
 
-  if (!chiqgan) { toast("⚠️ Safdan chiqgan sanani kiriting", 'error'); return; }
-  if (chiqgan > todayStr()) { toast("⚠️ Sana bugundan kech bo'lmasligi kerak", 'error'); return; }
+  if (!chiqganRaw) { toast("⚠️ Safdan chiqgan sanani kiriting", 'error'); return; }
+  if (chiqganRaw > todayStr()) { toast("⚠️ Sana bugundan kech bo'lmasligi kerak", 'error'); return; }
+  // YYYY-MM-DD → DD.MM.YYYY formatiga o'tkazish (DB da bir xil format bo'lishi uchun)
+  const chiqgan = chiqganRaw.includes('-')
+    ? chiqganRaw.split('-').reverse().join('.')
+    : chiqganRaw;
   if (!izoh) {
     g('nofaol-izoh').focus();
     g('nofaol-izoh').classList.add('field-error');

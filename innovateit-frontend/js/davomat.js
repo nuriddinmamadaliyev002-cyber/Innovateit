@@ -18,9 +18,78 @@ let U  = null; // { username, parol, ism, isSuper, viewingUsername, viewingIsm }
 let WU = null; // Haqiqiy ishlayotgan username (agar super admin boshqani ko'rsa)
 
 // O'quvchilar va davomat holati
-let STUDENTS   = []; // Barcha o'quvchilar
+let STUDENTS          = []; // Faol o'quvchilar
+let INACTIVE_STUDENTS = []; // Nofaol o'quvchilar
 let attendance = {}; // { "Ism Familiya": "keldi"|"kelmadi"|"sababli"|"kech" }
 let izohlar    = {}; // { "Ism Familiya": "izoh matni" }
+
+// ─── Sana yordamchi funksiyalari ───
+// "DD.MM.YYYY" → Date
+function parseDDMMYYYY(str) {
+  if (!str || typeof str !== 'string' || !str.includes('.')) return null;
+  const parts = str.split('.');
+  if (parts.length !== 3) return null;
+  const [d, m, y] = parts;
+  const date = new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T00:00:00`);
+  return isNaN(date) ? null : date;
+}
+// "YYYY-MM-DD" → Date
+function parseYYYYMMDD(str) {
+  if (!str || typeof str !== 'string' || !str.includes('-')) return null;
+  const date = new Date(str + 'T00:00:00');
+  return isNaN(date) ? null : date;
+}
+// O'quvchining boshlash sanasini olish (boshlagan yoki qoshilgan)
+function getStudentStartDate(s) {
+  const b = s.boshlagan ? String(s.boshlagan).trim() : '';
+  const q = s.date      ? String(s.date).trim()      : '';
+  // boshlagan: YYYY-MM-DD yoki DD.MM.YYYY
+  if (b) {
+    if (b.includes('-')) return parseYYYYMMDD(b);
+    if (b.includes('.')) return parseDDMMYYYY(b);
+  }
+  // qoshilgan (date): DD.MM.YYYY
+  if (q) {
+    if (q.includes('.')) return parseDDMMYYYY(q);
+    if (q.includes('-')) return parseYYYYMMDD(q);
+  }
+  return null;
+}
+// Nofaol o'quvchining tugash sanasini olish — har ikkala formatni qabul qiladi
+function getStudentEndDate(s) {
+  if (!s.chiqgan) return null;
+  const str = String(s.chiqgan).trim();
+  if (!str) return null;
+  // DD.MM.YYYY
+  if (str.includes('.')) return parseDDMMYYYY(str);
+  // YYYY-MM-DD (input[type=date] dan kelganda)
+  if (str.includes('-')) return parseYYYYMMDD(str);
+  return null;
+}
+
+/**
+ * Berilgan sanada ko'rinishi kerak bo'lgan o'quvchilar ro'yxatini qaytaradi.
+ * Faol o'quvchilar: boshlagan <= date
+ * Nofaol o'quvchilar: boshlagan <= date <= chiqgan
+ */
+function getStudentsForDate(date) {
+  const d = new Date(date); d.setHours(0,0,0,0);
+  const list = [];
+  // Faol o'quvchilar — boshlagan sanasi o'tgan bo'lishi kerak
+  STUDENTS.forEach(s => {
+    const start = getStudentStartDate(s);
+    if (!start || start <= d) list.push(s);
+  });
+  // Nofaol o'quvchilar — shu sana ularning faol davriga tushsa
+  INACTIVE_STUDENTS.forEach(s => {
+    const start = getStudentStartDate(s);
+    const end   = getStudentEndDate(s);
+    if (end && d <= end && (!start || start <= d)) {
+      list.push({ ...s, _nofaol: true });
+    }
+  });
+  return list;
+}
 
 // Joriy ko'rilayotgan sana
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
@@ -162,14 +231,20 @@ function updateNextBtn() {
 async function loadStudents() {
   g('loading-ov').style.display = 'flex';
   try {
-    const d = await api.getStudents({ username: U.username, parol: U.parol });
-    if (d.ok) {
-      // Yangi tizimda U.username = maktab admin username, shuning uchun d.students faqat shu admining o'quvchilari
-      STUDENTS = d.students;
-      render();
+    // Faol va nofaol o'quvchilarni parallel yuklash
+    const [active, inactive] = await Promise.all([
+      api.getStudents({ username: U.username, parol: U.parol }),
+      api.getInactiveStudents({ username: U.username, parol: U.parol })
+    ]);
+    if (active.ok) {
+      STUDENTS = active.students;
     } else {
-      toast('❌ ' + d.error, 'error');
+      toast('❌ ' + active.error, 'error');
     }
+    if (inactive.ok) {
+      INACTIVE_STUDENTS = inactive.students;
+    }
+    render();
   } catch (e) { toast("❌ Yuklashda xatolik", 'error'); }
   g('loading-ov').style.display = 'none';
 }
@@ -200,7 +275,10 @@ function render() {
   const grid   = g('sinf-grid');
   const groups = {};
 
-  STUDENTS.forEach(s => {
+  // Shu sanada ko'rinishi kerak bo'lgan o'quvchilar
+  const visibleStudents = getStudentsForDate(currentDate);
+
+  visibleStudents.forEach(s => {
     if (!groups[s.sinf]) groups[s.sinf] = [];
     groups[s.sinf].push(s);
   });
@@ -210,7 +288,7 @@ function render() {
       <div class="empty-state-icon">👨‍🎓</div>
       <p>O'quvchilar topilmadi</p>
     </div>`;
-    updateStats();
+    updateStats(visibleStudents);
     return;
   }
 
@@ -254,7 +332,7 @@ function render() {
     </div>`;
   }).join('');
 
-  updateStats();
+  updateStats(visibleStudents);
 }
 
 function countStatuses(list) {
@@ -335,14 +413,15 @@ function updateCardStats(el) {
   card.querySelector('.mini-s.l').textContent = '⏰ ' + c.kech;
 }
 
-function updateStats() {
+function updateStats(visibleList) {
+  const list = visibleList || getStudentsForDate(currentDate);
   const c = { keldi: 0, kelmadi: 0, sababli: 0, kech: 0 };
   Object.values(attendance).forEach(s => { if (s && c[s] !== undefined) c[s]++; });
   g('st-keldi').textContent   = c.keldi;
   g('st-kelmadi').textContent = c.kelmadi;
   g('st-sababli').textContent = c.sababli;
   g('st-kech').textContent    = c.kech;
-  g('st-total').textContent   = STUDENTS.length;
+  g('st-total').textContent   = list.length;
 }
 
 // ─────────────────────────────────────────────
@@ -360,7 +439,7 @@ function showStatusDetail(status) {
   if (!meta) return;
 
   // O'sha statusdagi o'quvchilarni yig'ish
-  const list = STUDENTS
+  const list = getStudentsForDate(currentDate)
     .filter(s => attendance[s.ism + ' ' + s.familiya] === status)
     .map(s => ({ name: s.ism + ' ' + s.familiya, sinf: s.sinf, izoh: izohlar[s.ism + ' ' + s.familiya] || '' }));
 
@@ -400,8 +479,11 @@ function closeStatusDetail() {
 //  SAQLASH
 // ─────────────────────────────────────────────
 function confirmSave() {
-  const total  = STUDENTS.length;
-  const marked = Object.keys(attendance).filter(k => attendance[k]).length;
+  const visibleStudents = getStudentsForDate(currentDate);
+  const total  = visibleStudents.length;
+  const marked = Object.keys(attendance).filter(k => {
+    return attendance[k] && visibleStudents.some(s => s.ism + ' ' + s.familiya === k);
+  }).length;
 
   if (!marked) { toast('⚠️ Hech narsa belgilanmadi', 'error'); return; }
   if (marked < total) {
@@ -410,7 +492,10 @@ function confirmSave() {
   }
 
   const c = { keldi: 0, kelmadi: 0, sababli: 0, kech: 0 };
-  Object.values(attendance).forEach(s => { if (s && c[s] !== undefined) c[s]++; });
+  visibleStudents.forEach(s => {
+    const st = attendance[s.ism + ' ' + s.familiya];
+    if (st && c[st] !== undefined) c[st]++;
+  });
 
   g('modal-desc').innerHTML = `
     <span style="font-weight:600">${formatDateDisplay(currentDate)}</span> — ${KUNLAR[currentDate.getDay()]}<br>
@@ -428,8 +513,9 @@ function confirmSave() {
 function closeModal() { g('confirm-modal').style.display = 'none'; }
 
 async function doSave() {
-  // Records yig'ish
-  const records = STUDENTS.map(s => {
+  // Shu sanada ko'rinishi kerak bo'lgan o'quvchilar
+  const visibleStudents = getStudentsForDate(currentDate);
+  const records = visibleStudents.map(s => {
     const key    = s.ism + ' ' + s.familiya;
     const status = attendance[key] || '';
     return { sinf: s.sinf, ism: key, status, izoh: izohlar[key] || '' };
@@ -457,23 +543,69 @@ async function doSave() {
 let exportType = 'bugun';
 
 function openExportModal() {
-  // Default: bugungi sana
   exportType = 'bugun';
-  // Oylik picker: joriy oy
   const now = new Date();
+  // Oylik picker
   g('exp-month-pick').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   g('exp-month-pick').max   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  // Davr picker: joriy oy birinchi kuni - bugun
-  const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
-  g('exp-from').value = `${y}-${m}-01`;
-  g('exp-to').value   = dateStr(now);
-  g('exp-from').max   = dateStr(now);
-  g('exp-to').max     = dateStr(now);
-
-  // Bugungi preview
+  // Davr: joriy oy 1-kuni — bugun (DD.MM.YYYY formatida)
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+  g('exp-from').value = `01.${m}.${y}`;
+  g('exp-to').value   = `${d}.${m}.${y}`;
+  updateDavrPreview();
   updateBugunPreview();
-
   g('export-modal').style.display = 'flex';
+}
+
+// DD.MM.YYYY text inputni avtomatik formatlash (raqam kiritganda nuqta qo'shish)
+function onDavrInput(el) {
+  let v = el.value.replace(/[^\d.]/g, '');
+  // Nuqtalarni avtomatik qo'shish: 2 ta raqamdan keyin
+  const digits = v.replace(/\./g, '');
+  if (digits.length >= 3 && !v.includes('.')) {
+    v = digits.slice(0,2) + '.' + digits.slice(2);
+  }
+  if (digits.length >= 5) {
+    const parts = v.split('.');
+    if (parts.length === 2) v = parts[0] + '.' + parts[1].slice(0,2) + '.' + digits.slice(4);
+    if (parts.length >= 3) v = parts[0].slice(0,2) + '.' + parts[1].slice(0,2) + '.' + digits.slice(4,8);
+  }
+  el.value = v;
+  updateDavrPreview();
+}
+
+// Davr inputlar validatsiyasi va preview
+function updateDavrPreview() {
+  const fromVal = (g('exp-from').value || '').trim();
+  const toVal   = (g('exp-to').value   || '').trim();
+  const prevEl  = g('exp-davr-preview');
+  if (!prevEl) return;
+
+  const ddmmyyyy = /^\d{2}\.\d{2}\.\d{4}$/;
+  const fromOk = ddmmyyyy.test(fromVal);
+  const toOk   = ddmmyyyy.test(toVal);
+
+  if (!fromOk && !toOk) { prevEl.innerHTML = ''; return; }
+  if (!fromOk || !toOk) {
+    prevEl.innerHTML = `<span style="color:#9ca3af;">DD.MM.YYYY formatida kiriting</span>`;
+    return;
+  }
+  // YYYY-MM-DD ga o'girib taqqoslash
+  const fromISO = fromVal.split('.').reverse().join('-');
+  const toISO   = toVal.split('.').reverse().join('-');
+  if (fromISO > toISO) {
+    prevEl.innerHTML = `<span style="color:#dc2626;">⚠️ Boshlanish sanasi tugash sanasidan katta</span>`;
+  } else {
+    prevEl.innerHTML = `<span style="color:#16a34a;font-size:13px;font-weight:500;">✅ ${fromVal} — ${toVal}</span>`;
+  }
+}
+
+// DD.MM.YYYY → YYYY-MM-DD (API uchun)
+function ddmmToISO(v) {
+  if (!v || !v.includes('.')) return v;
+  return v.split('.').reverse().join('-');
 }
 
 function closeExportModal() {
@@ -521,17 +653,24 @@ async function doExport() {
     to   = `${y}-${m}-${String(lastDay).padStart(2,'0')}`;
     filename = `Davomat_${OYLAR[+m-1]}_${y}`;
   } else {
-    from = g('exp-from').value;
-    to   = g('exp-to').value;
-    if (!from || !to) { toast('⚠️ Sanalarni kiriting', 'error'); return; }
-    if (from > to)    { toast('⚠️ Boshlanish sanasi katta bo\'lishi mumkin emas', 'error'); return; }
+    from = g('exp-from').value.trim();
+    to   = g('exp-to').value.trim();
+    const ddmmyyyy = /^\d{2}\.\d{2}\.\d{4}$/;
+    if (!from || !to)           { toast('⚠️ Sanalarni kiriting', 'error'); return; }
+    if (!ddmmyyyy.test(from))   { toast('⚠️ Boshlanish: DD.MM.YYYY formatida kiriting', 'error'); return; }
+    if (!ddmmyyyy.test(to))     { toast('⚠️ Tugash: DD.MM.YYYY formatida kiriting', 'error'); return; }
+    const fromISO = ddmmToISO(from);
+    const toISO   = ddmmToISO(to);
+    if (fromISO > toISO)        { toast('⚠️ Boshlanish sanasi katta bo\'lishi mumkin emas', 'error'); return; }
     filename = `Davomat_${from}_${to}`;
+    from = fromISO;
+    to   = toISO;
   }
 
   // Agar bugungi — API chaqirmaylik, memory dan olamiz
   let records;
   if (exportType === 'bugun' && Object.keys(attendance).length) {
-    records = STUDENTS
+    records = getStudentsForDate(currentDate)
       .filter(s => attendance[s.ism + ' ' + s.familiya])
       .map(s => {
         const key = s.ism + ' ' + s.familiya;

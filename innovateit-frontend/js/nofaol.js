@@ -231,8 +231,13 @@ function fDate(v) {
   if (!v) return '—';
   const s = String(v).trim();
   if (!s || s === 'undefined' || s === 'null') return '—';
-  const d = new Date(s);
-  if (!isNaN(d)) return d.toLocaleDateString('uz-UZ');
+  // Allaqachon DD.MM.YYYY formatida
+  if (s.match(/^\d{2}\.\d{2}\.\d{4}$/)) return s;
+  // YYYY-MM-DD formatidan DD.MM.YYYY ga o'tkazish
+  if (s.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, d] = s.substring(0, 10).split('-');
+    return `${d}.${m}.${y}`;
+  }
   return s;
 }
 
@@ -240,18 +245,17 @@ function fChiqgan(v) {
   if (!v) return '—';
   const s = String(v).trim();
   if (!s || s === 'undefined' || s === 'null') return '—';
-  const months = ['','Yan','Feb','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
-  // DD.MM.YYYY
+  let formatted = s;
+  // DD.MM.YYYY — allaqachon to'g'ri format
   if (s.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
-    const [d, m, y] = s.split('.');
-    return `<span class="badge-chiqgan">${parseInt(d)} ${months[parseInt(m)]} ${y}</span>`;
+    formatted = s;
   }
-  // YYYY-MM-DD
-  const dt = new Date(s);
-  if (!isNaN(dt)) {
-    return `<span class="badge-chiqgan">${dt.getDate()} ${months[dt.getMonth()+1]} ${dt.getFullYear()}</span>`;
+  // YYYY-MM-DD → DD.MM.YYYY
+  else if (s.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [y, m, d] = s.substring(0, 10).split('-');
+    formatted = `${d}.${m}.${y}`;
   }
-  return `<span class="badge-chiqgan">${s}</span>`;
+  return `<span class="badge-chiqgan">${formatted}</span>`;
 }
 
 function fTug(v) {
