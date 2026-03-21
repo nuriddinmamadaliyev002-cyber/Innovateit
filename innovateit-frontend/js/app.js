@@ -10,6 +10,10 @@ let S      = [];
 let ADMINS = [];
 let viewingAdmin = null;
 
+// ─── Sort holati ───
+let sortField = null;   // 'ism' | 'maktab' | 'sinf' | null
+let sortDir   = 'asc';  // 'asc' | 'desc'
+
 // ─────────────────────────────────────────────
 //  YUKLANGANDA
 // ─────────────────────────────────────────────
@@ -245,13 +249,67 @@ function applyFilters() {
   const q  = (g('f-search').value || '').toLowerCase();
   const fm = g('f-maktab-f').value;
   const fs = g('f-sinf-f').value;
-  const d  = S.filter(s =>
+  let d = S.filter(s =>
     (!q  || (s.ism + ' ' + s.familiya + ' ' + s.telefon).toLowerCase().includes(q)) &&
     (!fm || String(s.maktab) === String(fm)) &&
     (!fs || s.sinf === fs)
   );
+
+  // ── Saralash (sort) ──
+  if (sortField) {
+    d = [...d].sort((a, b) => {
+      let va, vb;
+      if (sortField === 'ism') {
+        va = (a.familiya + ' ' + a.ism).toLowerCase();
+        vb = (b.familiya + ' ' + b.ism).toLowerCase();
+        return sortDir === 'asc' ? va.localeCompare(vb, 'uz') : vb.localeCompare(va, 'uz');
+      }
+      if (sortField === 'maktab') {
+        va = Number(a.maktab) || 0;
+        vb = Number(b.maktab) || 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      if (sortField === 'sinf') {
+        // "5-sinf" → 5 soniga aylantirish
+        va = parseInt(a.sinf) || 0;
+        vb = parseInt(b.sinf) || 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      return 0;
+    });
+  }
+
   renderTbl(d);
   renderMob(d);
+}
+
+// ─── Sort toggle ───────────────────────────────────
+function toggleSort(field) {
+  if (sortField === field) {
+    // Bir xil ustun: yo'nalishni o'zgartir yoki bekor qil
+    if (sortDir === 'asc')  { sortDir = 'desc'; }
+    else                    { sortField = null; sortDir = 'asc'; }
+  } else {
+    sortField = field;
+    sortDir   = 'asc';
+  }
+  updateSortHeaders();
+  applyFilters();
+}
+
+function updateSortHeaders() {
+  ['ism', 'maktab', 'sinf'].forEach(f => {
+    const th = g('sort-' + f);
+    if (!th) return;
+    th.classList.remove('sort-asc', 'sort-desc');
+    const icon = th.querySelector('.sort-icon');
+    if (sortField === f) {
+      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      if (icon) icon.textContent = sortDir === 'asc' ? '↑' : '↓';
+    } else {
+      if (icon) icon.textContent = '⇅';
+    }
+  });
 }
 
 function renderTbl(d) {

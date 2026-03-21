@@ -173,7 +173,16 @@
         <div class="tbl-wrap">
           <table>
             <thead><tr>
-              <th>#</th><th>Familiya Ismi</th><th>Maktab</th><th>Sinf</th>
+              <th>#</th>
+              <th class="th-sort" id="sort-ism" onclick="toggleSort('ism')">
+                Familiya Ismi <span class="sort-icon">⇅</span>
+              </th>
+              <th class="th-sort" id="sort-maktab" onclick="toggleSort('maktab')">
+                Maktab <span class="sort-icon">⇅</span>
+              </th>
+              <th class="th-sort" id="sort-sinf" onclick="toggleSort('sinf')">
+                Sinf <span class="sort-icon">⇅</span>
+              </th>
               <th>Telefon</th><th>Qo'sh. tel</th><th>Tug'ilgan</th><th>Manzil</th>
               <th id="admin-col" style="display:none;">Admin</th>
               <th>boshlagan</th>

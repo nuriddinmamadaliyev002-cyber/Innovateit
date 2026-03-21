@@ -342,6 +342,41 @@ thead th {
   text-transform: uppercase; color: var(--muted);
   background: var(--bg); border-bottom: 1px solid var(--border); white-space: nowrap;
 }
+
+/* ── Sortable headers ── */
+thead th.th-sort {
+  cursor: pointer;
+  user-select: none;
+  transition: color .15s, background .15s;
+}
+thead th.th-sort:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+thead th.th-sort.sort-asc,
+thead th.th-sort.sort-desc {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.sort-icon {
+  display: inline-block;
+  font-size: 11px;
+  opacity: 0.45;
+  margin-left: 3px;
+  transition: opacity .15s, transform .15s;
+}
+thead th.th-sort:hover .sort-icon { opacity: 0.8; }
+thead th.th-sort.sort-asc  .sort-icon { opacity: 1; content: '↑'; }
+thead th.th-sort.sort-desc .sort-icon { opacity: 1; }
+thead th.th-sort.sort-asc  .sort-icon::after { content: '↑'; }
+thead th.th-sort.sort-desc .sort-icon::after { content: '↓'; }
+thead th.th-sort.sort-asc  .sort-icon,
+thead th.th-sort.sort-desc .sort-icon { font-size: 0; }
+thead th.th-sort.sort-asc  .sort-icon::after,
+thead th.th-sort.sort-desc .sort-icon::after {
+  font-size: 13px;
+  font-weight: 900;
+}
 tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--bg); }
