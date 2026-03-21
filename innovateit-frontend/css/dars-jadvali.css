@@ -225,3 +225,27 @@
   font-size: 13px; color: var(--muted);
   text-align: center; padding: 10px 0; margin: 0;
 }
+
+/* ══ FORMAT SWITCHER (Excel / Rasm) ══ */
+.exp-format-row {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.exp-fmt-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 14px 10px; border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--surface); cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  transition: all .18s;
+}
+.exp-fmt-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-soft);
+}
+.exp-fmt-btn.active {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+.exp-fmt-ico { font-size: 22px; line-height: 1; }

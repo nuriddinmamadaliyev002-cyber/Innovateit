@@ -14,6 +14,7 @@ let JADVALLAR = [];     // [{ id, teacher_ism, teacher_familiya, fan, sinflar:[]
 let currentTab   = 'jadval';
 let jadvalView   = 'sinf';   // 'sinf' | 'teacher'
 let expJadType   = 'sinf';
+let expFormat    = 'excel';  // 'excel' | 'image'
 
 // ─────────────────────────────────────────────
 //  YUKLANGANDA
@@ -410,14 +411,229 @@ async function deleteJadval(id, name) {
 }
 
 // ─────────────────────────────────────────────
-//  EXCEL EXPORT
+//  EXPORT (Excel + Rasm)
 // ─────────────────────────────────────────────
 function openExportModal() {
-  // Selectlarni to'ldirish
   populateFilters();
+  // Rasm filter select ni to'ldirish
+  populateImgFilter(g('exp-img-view') ? g('exp-img-view').value : 'sinf');
   g('export-jad-modal').style.display = 'flex';
 }
 function closeExportModal() { g('export-jad-modal').style.display = 'none'; }
+
+function selectExpFormat(fmt, btn) {
+  expFormat = fmt;
+  document.querySelectorAll('.exp-fmt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  g('exp-excel-opts').style.display = fmt === 'excel' ? '' : 'none';
+  g('exp-image-opts').style.display = fmt === 'image' ? '' : 'none';
+  g('exp-jad-btn').textContent = fmt === 'excel' ? '⬇ Excel yuklab olish' : '🖼️ Rasm yuklab olish';
+}
+
+function populateImgFilter(view) {
+  const sel = g('exp-img-filter'); if (!sel) return;
+  sel.innerHTML = '<option value="">— Barchasi —</option>';
+  if (view === 'sinf') {
+    const sinflar = [...new Set(JADVALLAR.flatMap(j => j.sinflar))].sort((a,b)=>parseInt(a)-parseInt(b));
+    sinflar.forEach(s => sel.innerHTML += `<option value="${esc(s)}">${s}</option>`);
+  } else {
+    const teachers = [...new Set(JADVALLAR.map(j => j.teacher_ism+' '+j.teacher_familiya))];
+    teachers.forEach(t => sel.innerHTML += `<option value="${esc(t)}">${t}</option>`);
+  }
+}
+
+// Rasm view o'zgarganda filter ni yangilash
+function onImgViewChange() {
+  populateImgFilter(g('exp-img-view').value);
+}
+
+// Umumiy yuklab olish tugmasi
+function doExport() {
+  if (expFormat === 'excel') doExportJadval();
+  else doExportImage();
+}
+
+// ── Rasm eksport ──────────────────────────────
+async function doExportImage() {
+  const view   = g('exp-img-view').value;    // 'sinf' | 'teacher'
+  const filter = g('exp-img-filter').value;  // '' | aniq qiymat
+
+  const stage = g('img-export-stage');
+  stage.innerHTML = '';
+
+  stage.innerHTML = `<div id="img-tbl-wrap"></div>`;
+
+  const tblWrap = stage.querySelector('#img-tbl-wrap');
+
+  if (view === 'sinf') {
+    buildImgBySinf(tblWrap, filter);
+  } else {
+    buildImgByTeacher(tblWrap, filter);
+  }
+
+  // Yuklanayotgan holatini ko'rsatish
+  const btn = g('exp-jad-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Rasm tayyorlanmoqda…';
+
+  try {
+    stage.style.left = '-9999px';
+    document.body.appendChild(stage); // DOM da bo'lishi shart
+
+    const canvas = await html2canvas(stage, {
+      scale: 2.5,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: stage.scrollWidth,
+      height: stage.scrollHeight,
+      windowWidth: stage.scrollWidth + 64,
+    });
+
+    const link = document.createElement('a');
+    const fname = filter
+      ? `Jadval_${filter.replace(/\s+/g,'_')}.png`
+      : (view === 'sinf' ? 'Jadval_Sinflar.png' : 'Jadval_Oqituvchilar.png');
+    link.download = fname;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+
+    closeExportModal();
+    toast('✅ Rasm yuklab olindi!', 'success');
+  } catch (err) {
+    toast('❌ Rasm yaratishda xatolik', 'error');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🖼️ Rasm yuklab olish';
+  stage.innerHTML = '';
+}
+
+function buildImgBySinf(wrap, filterS) {
+  let sinflar = [...new Set(JADVALLAR.flatMap(j => j.sinflar))]
+    .sort((a,b) => parseInt(a)-parseInt(b));
+  if (filterS) sinflar = sinflar.filter(s => s === filterS);
+
+  const COLORS = [
+    ['#eff6ff','#bfdbfe','#1d4ed8'],
+    ['#f0fdf4','#bbf7d0','#15803d'],
+    ['#fdf4ff','#e9d5ff','#7e22ce'],
+    ['#fff7ed','#fed7aa','#c2410c'],
+    ['#f0fdfa','#99f6e4','#0f766e'],
+    ['#fefce8','#fde68a','#b45309'],
+  ];
+
+  const TH = `background:#1e1b4b;color:#ffffff;font-size:11px;font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;
+    padding:13px 16px;text-align:left;`;
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr>
+      <th style="${TH}min-width:110px;">Sinf</th>
+      ${KUNLAR_IDX.map(k=>`<th style="${TH}">${KUN_NAMES[k]}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  sinflar.forEach((sinf, si) => {
+    const bg = si % 2 === 0 ? '#fafafa' : '#ffffff';
+    html += `<tr style="background:${bg};border-bottom:1px solid #e5e7eb;">
+      <td style="padding:10px 14px;vertical-align:middle;">
+        <span style="background:#ede9fe;color:#5b21b6;padding:3px 10px;border-radius:20px;
+            font-size:11px;font-weight:700;white-space:nowrap;">${sinf}</span>
+      </td>`;
+
+    KUNLAR_IDX.forEach((kun, ci) => {
+      const lessons = JADVALLAR.filter(j => j.sinflar.includes(sinf) && j.kunlar.includes(kun));
+      const [cbg, cbdr, ctxt] = COLORS[ci % COLORS.length];
+      if (lessons.length) {
+        html += `<td style="padding:8px 10px;vertical-align:top;">`;
+        lessons.forEach(j => {
+          html += `<div style="background:${cbg};border:1px solid ${cbdr};border-radius:8px;
+              padding:6px 9px;margin-bottom:4px;">
+            <div style="font-weight:700;color:${ctxt};font-size:12px;">${j.fan||'—'}</div>
+            <div style="color:#6b7280;font-size:10px;margin-top:2px;">${j.teacher_ism} ${j.teacher_familiya}</div>
+            ${j.boshlanish ? `<div style="color:#6b7280;font-size:10px;">⏰ ${j.boshlanish}–${j.tugash}</div>` : ''}
+          </div>`;
+        });
+        html += `</td>`;
+      } else {
+        html += `<td style="padding:8px 10px;color:#d1d5db;text-align:center;font-size:18px;">·</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function buildImgByTeacher(wrap, filterT) {
+  let jadvallar = JADVALLAR;
+  if (filterT) jadvallar = jadvallar.filter(j => (j.teacher_ism+' '+j.teacher_familiya) === filterT);
+
+  const teachers = [...new Map(jadvallar.map(j => [j.teacher_ism+' '+j.teacher_familiya, j])).values()];
+
+  const COLORS = [
+    ['#f0f9ff','#bae6fd','#0369a1'],
+    ['#f0fdf4','#bbf7d0','#15803d'],
+    ['#fdf4ff','#e9d5ff','#7e22ce'],
+    ['#fff7ed','#fed7aa','#c2410c'],
+    ['#fefce8','#fde68a','#b45309'],
+    ['#f0fdfa','#99f6e4','#0f766e'],
+  ];
+
+  const TH = `background:#1e1b4b;color:#ffffff;font-size:11px;font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;
+    padding:13px 16px;text-align:left;`;
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr>
+      <th style="${TH}min-width:170px;">O'qituvchi</th>
+      ${KUNLAR_IDX.map(k=>`<th style="${TH}">${KUN_NAMES[k]}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  teachers.forEach((tRef, ti) => {
+    const tName = tRef.teacher_ism + ' ' + tRef.teacher_familiya;
+    const tJad  = jadvallar.filter(j => j.teacher_ism+' '+j.teacher_familiya === tName);
+    const bg    = ti % 2 === 0 ? '#fafafa' : '#ffffff';
+
+    html += `<tr style="background:${bg};border-bottom:1px solid #e5e7eb;">
+      <td style="padding:10px 14px;vertical-align:middle;">
+        <div style="font-weight:700;color:#1e1b4b;font-size:13px;">${tName}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px;">${tRef.fan||'—'}</div>
+      </td>`;
+
+    KUNLAR_IDX.forEach((kun, ci) => {
+      const lessons = tJad.filter(j => j.kunlar.includes(kun));
+      const [cbg, cbdr, ctxt] = COLORS[ci % COLORS.length];
+      if (lessons.length) {
+        // Bir xil vaqtdagi sinflarni birlashtirish
+        const grouped = [];
+        lessons.forEach(j => {
+          const key = (j.boshlanish||'')+'|'+(j.tugash||'');
+          const found = grouped.find(g => g.key === key);
+          if (found) found.sinflar = [...new Set([...found.sinflar, ...j.sinflar])];
+          else grouped.push({ key, sinflar:[...j.sinflar], boshlanish:j.boshlanish, tugash:j.tugash });
+        });
+        html += `<td style="padding:8px 10px;vertical-align:top;">`;
+        grouped.forEach(g => {
+          html += `<div style="background:${cbg};border:1px solid ${cbdr};border-radius:8px;
+              padding:6px 9px;margin-bottom:4px;">
+            <div style="font-weight:700;color:${ctxt};font-size:12px;">${g.sinflar.join(', ')}</div>
+            ${g.boshlanish ? `<div style="color:#6b7280;font-size:10px;">⏰ ${g.boshlanish}–${g.tugash}</div>` : ''}
+          </div>`;
+        });
+        html += `</td>`;
+      } else {
+        html += `<td style="padding:8px 10px;color:#d1d5db;text-align:center;font-size:18px;">·</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
 
 function selectExpJad(type, btn) {
   expJadType = type;

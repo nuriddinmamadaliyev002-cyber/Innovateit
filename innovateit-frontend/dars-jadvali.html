@@ -17,7 +17,7 @@
   <div class="topbar-brand">InnovateIT School · Dars jadvali</div>
   <div class="topbar-right">
     <span class="admin-badge" id="jad-badge"></span>
-    <button class="btn-export-jadval" onclick="openExportModal()">📊 Excel</button>
+    <button class="btn-export-jadval" onclick="openExportModal()">⬇ Yuklab olish</button>
     <button class="btn-logout" onclick="goBack()">← Orqaga</button>
   </div>
 </div>
@@ -148,44 +148,82 @@
   </div>
 </div><!-- /jad-main -->
 
-<!-- MODAL: Excel export -->
+<!-- MODAL: Export -->
 <div class="modal-overlay" id="export-jad-modal" onclick="if(event.target===this)closeExportModal()">
-  <div class="modal" style="max-width:380px;">
+  <div class="modal" style="max-width:400px;">
     <div class="modal-drag"></div>
-    <div class="modal-title" style="text-align:center;">📊 Excel yuklab olish</div>
+    <div class="modal-title" style="text-align:center;">⬇ Yuklab olish</div>
 
-    <div class="export-tabs" id="exp-jad-tabs">
-      <button class="export-tab active" onclick="selectExpJad('sinf',this)">Sinf uchun</button>
-      <button class="export-tab"        onclick="selectExpJad('teacher',this)">O'qituvchi uchun</button>
-      <button class="export-tab"        onclick="selectExpJad('all',this)">Umumiy</button>
+    <!-- Format tanlash -->
+    <div class="exp-format-row">
+      <button class="exp-fmt-btn active" id="fmt-excel" onclick="selectExpFormat('excel',this)">
+        <span class="exp-fmt-ico">📊</span>
+        <span>Excel (.xlsx)</span>
+      </button>
+      <button class="exp-fmt-btn" id="fmt-image" onclick="selectExpFormat('image',this)">
+        <span class="exp-fmt-ico">🖼️</span>
+        <span>Rasm (.png)</span>
+      </button>
     </div>
 
-    <div id="exp-jad-sinf">
-      <label class="field-label">Sinf tanlang</label>
-      <select class="field-input" id="exp-sinf-sel" style="margin-bottom:8px;">
+    <!-- Excel opsiyalar -->
+    <div id="exp-excel-opts">
+      <div class="export-tabs" id="exp-jad-tabs">
+        <button class="export-tab active" onclick="selectExpJad('sinf',this)">Sinf uchun</button>
+        <button class="export-tab"        onclick="selectExpJad('teacher',this)">O'qituvchi uchun</button>
+        <button class="export-tab"        onclick="selectExpJad('all',this)">Umumiy</button>
+      </div>
+
+      <div id="exp-jad-sinf">
+        <label class="field-label">Sinf tanlang</label>
+        <select class="field-input" id="exp-sinf-sel" style="margin-bottom:8px;">
+          <option value="">— Barchasi —</option>
+        </select>
+      </div>
+      <div id="exp-jad-teacher" style="display:none;">
+        <label class="field-label">O'qituvchi tanlang</label>
+        <select class="field-input" id="exp-teacher-sel" style="margin-bottom:8px;">
+          <option value="">— Barchasi —</option>
+        </select>
+      </div>
+      <div id="exp-jad-all" style="display:none;">
+        <p class="export-hint">Barcha sinflar uchun umumiy haftalik jadval yuklanadi.</p>
+      </div>
+    </div>
+
+    <!-- Rasm opsiyalar -->
+    <div id="exp-image-opts" style="display:none;">
+      <label class="field-label">Ko'rinish</label>
+      <select class="field-input" id="exp-img-view" onchange="onImgViewChange()" style="margin-bottom:8px;">
+        <option value="sinf">Sinf bo'yicha</option>
+        <option value="teacher">O'qituvchi bo'yicha</option>
+      </select>
+      <label class="field-label">Sinf / O'qituvchi</label>
+      <select class="field-input" id="exp-img-filter" style="margin-bottom:4px;">
         <option value="">— Barchasi —</option>
       </select>
-    </div>
-    <div id="exp-jad-teacher" style="display:none;">
-      <label class="field-label">O'qituvchi tanlang</label>
-      <select class="field-input" id="exp-teacher-sel" style="margin-bottom:8px;">
-        <option value="">— Barchasi —</option>
-      </select>
-    </div>
-    <div id="exp-jad-all" style="display:none;">
-      <p class="export-hint">Barcha o'qituvchilar uchun umumiy haftalik jadval yuklanadi.</p>
+      <p class="export-hint" style="margin-top:6px;">Sifatli PNG rasm (.png) sifatida yuklanadi</p>
     </div>
 
     <div class="modal-footer" style="margin-top:12px;">
       <button class="btn-cancel" onclick="closeExportModal()">Bekor</button>
-      <button class="btn-submit" id="exp-jad-btn" onclick="doExportJadval()">⬇ Yuklab olish</button>
+      <button class="btn-submit" id="exp-jad-btn" onclick="doExport()">⬇ Yuklab olish</button>
     </div>
   </div>
 </div>
 
+<!-- Rasm eksport uchun yashirin stage -->
+<div id="img-export-stage" style="
+  position:fixed; left:-9999px; top:0;
+  background:#fff; padding:28px 32px;
+  font-family:'DM Sans',sans-serif;
+  min-width:900px;
+"></div>
+
 <div class="loading-overlay" id="loading-ov"><div class="loading-spinner"></div></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/api.js"></script>
   <script src="js/dars-jadvali.js"></script>
