@@ -130,16 +130,16 @@
           <tr>
             <th class="col-num"    data-col="num">№</th>
             <th class="col-name"   data-col="name">Familiya Ismi</th>
-            <th class="col-maktab" data-col="maktab" onclick="toggleCol('maktab')">Maktabi</th>
-            <th class="col-sinf"   data-col="sinf"   onclick="toggleCol('sinf')">Sinfi</th>
-            <th class="col-tel"    data-col="tel"     onclick="toggleCol('tel')">Telefon raqami</th>
-            <th class="col-qayd"   data-col="qayd"    onclick="toggleCol('qayd')">Qaydnoma</th>
-            <th class="col-gap"    data-col="gap"     onclick="toggleCol('gap')">Gaplashilgan vaqt</th>
-            <th class="col-kerak"  data-col="kerak"   onclick="toggleCol('kerak')">To'lov qilish kerak</th>
-            <th class="col-qildi"  data-col="qildi"   onclick="toggleCol('qildi')">To'lov qildi</th>
-            <th class="col-sana"   data-col="sana"    onclick="toggleCol('sana')">To'lov sanasi</th>
-            <th class="col-holat"  data-col="holat"   onclick="toggleCol('holat')">To'lov holati</th>
-            <th class="col-kvit"   data-col="kvit"    onclick="toggleCol('kvit')">Kvitansiya fayli</th>
+            <th class="col-maktab" data-col="maktab">Maktabi</th>
+            <th class="col-sinf"   data-col="sinf">Sinfi</th>
+            <th class="col-tel"    data-col="tel">Telefon raqami</th>
+            <th class="col-qayd"   data-col="qayd">Qaydnoma</th>
+            <th class="col-gap"    data-col="gap">Gaplashilgan vaqt</th>
+            <th class="col-kerak"  data-col="kerak">To'lov qilish kerak</th>
+            <th class="col-qildi"  data-col="qildi">To'lov qildi</th>
+            <th class="col-sana"   data-col="sana">To'lov sanasi</th>
+            <th class="col-holat"  data-col="holat">To'lov holati</th>
+            <th class="col-kvit"   data-col="kvit">Kvitansiya fayli</th>
           </tr>
         </thead>
         <tbody id="bux-tbody">
@@ -163,7 +163,8 @@
 </div>
 
 <script src="js/api.js"></script>
-  <script src="js/buxgalter.js"></script>
+<script src="js/col-context-menu.js"></script>
+<script src="js/buxgalter.js"></script>
 <script>
 function togglePw() {
   const inp = document.getElementById('inp-parol');

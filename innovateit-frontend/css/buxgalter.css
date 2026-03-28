@@ -127,15 +127,18 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow-x: auto;
+
+
+  overflow: hidden;
   box-shadow: var(--shadow);
 }
 
 .bux-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: max-content; /* ustunlar ko'pligiga qarab kengayadi */
+  table-layout: auto;
 }
 
 .bux-table thead th {
@@ -149,7 +152,6 @@
   white-space: nowrap;
   border-right: 1px solid rgba(255,255,255,.12);
   user-select: none;
-  cursor: pointer;
 }
 .bux-table thead th:last-child { border-right: none; }
 .bux-table thead th:hover { background: #155f52; }
@@ -174,22 +176,26 @@
 .bux-table tbody tr:last-child { border-bottom: none; }
 
 .bux-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 10px 10px;
   color: var(--text);
   vertical-align: middle;
   border-right: 1px solid #f0ede4;
-  white-space: nowrap;
+  white-space: normal;      /* matn wrap bo'ladi */
+  word-break: break-word;   /* uzun so'z ham sinadi */
+  line-height: 1.4;
 }
 .bux-table td:last-child { border-right: none; }
 
 /* Num col */
-.col-num  { width: 42px; text-align: center; color: #9ca3af; font-size: 12px; font-weight: 500; }
+.col-num  { text-align: center; color: #9ca3af; font-size: 12px; font-weight: 500; }
 /* Name col */
-.col-name { min-width: 160px; font-weight: 600; color: #111827; }
-.col-maktab { width: 60px; text-align: center; color: #6b7280; font-size: 12px; }
-.col-sinf   { width: 60px; text-align: center; color: #6b7280; font-size: 12px; font-weight: 600; }
-.col-tel    { min-width: 130px; font-family: 'DM Mono', monospace; font-size: 12px; color: #374151; }
-.col-tarif  { width: 70px; text-align: right; }
+.col-name { font-weight: 600; color: #111827; }
+.col-maktab { text-align: center; color: #6b7280; font-size: 12px; }
+.col-sinf   { text-align: center; color: #6b7280; font-size: 12px; font-weight: 600; }
+.col-tel    { font-family: 'DM Mono', monospace; font-size: 12px; color: #374151; }
+.col-tarif  { text-align: right; }
 
 /* Editable cells */
 .bux-table td.editable {
@@ -220,14 +226,22 @@
 }
 .cell-input:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
 
-/* Amount cells */
-.col-kerak  { width: 150px; text-align: right; }
-.col-qildi  { width: 150px; text-align: right; }
-.col-holat  { width: 190px; }
-.col-sana   { width: 115px; }
-.col-kvit   { width: 130px; text-align: center; }
-.col-qayd   { min-width: 120px; }
-.col-gap    { min-width: 110px; }
+/* Barcha amount/sana/holat/kvit ustun kengliklarini JS boshqaradi */
+.col-kerak  { text-align: right; }
+.col-qildi  { text-align: right; }
+.col-holat  { }
+.col-sana   { }
+.col-kvit   { text-align: center; }
+
+/* ── Kvitansiya ustuni — o'ng tomondan ajralib ko'rinadigan chegara ── */
+.bux-table thead th.col-kvit {
+  box-shadow: -3px 0 6px rgba(0,0,0,.12);
+}
+.bux-table tbody td.col-kvit {
+  box-shadow: -3px 0 6px rgba(0,0,0,.05);
+}
+.col-qayd   { }
+.col-gap    { }
 
 /* Amount display spans */
 .amount-kerak {
@@ -378,6 +392,17 @@
 }
 .row-nofaol:hover { background: #fee2e2 !important; }
 
+/* To'lov holati bo'yicha qator rangi */
+.row-toliq {
+  background: #f0fdf4 !important;
+}
+.row-toliq:hover { background: #dcfce7 !important; }
+
+.row-qarzdor {
+  background: #fefce8 !important;
+}
+.row-qarzdor:hover { background: #fef9c3 !important; }
+
 .badge-nofaol-row {
   display: inline-block;
   font-size: 10px;
@@ -495,54 +520,9 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Ustun berkitish ── */
-.bux-table thead th[onclick]:hover {
-  background: #155f52;
-  cursor: pointer;
-}
-.bux-table thead th[onclick]::after {
-  content: ' ✕';
-  font-size: 9px;
-  opacity: 0;
-  transition: opacity .15s;
-}
-.bux-table thead th[onclick]:hover::after {
-  opacity: .6;
-}
+/* ── Ustun berkitish — o'chirildi (right-click menu ishlatiladi) ── */
 
-/* Berkitilgan ustunlar bar */
-.hidden-cols-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
-}
 
-.hidden-col-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  background: #fff3cd;
-  border: 1.5px solid #ffc107;
-  color: #856404;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .15s;
-}
-.hidden-col-chip:hover {
-  background: #ffe083;
-}
-.chip-plus {
-  font-size: 13px;
-  font-weight: 700;
-  color: #b45309;
-  line-height: 1;
-}
 .date-input {
   min-width: 130px;
   font-family: 'DM Sans', sans-serif;
@@ -625,9 +605,9 @@
     padding: 8px;
   }
 
-  /* Table — horizontal scroll */
-  .bux-table-wrap { overflow-x: auto; }
-  .bux-table { font-size: 11px; min-width: max-content; }
+  /* Table — JS kenglikni boshqaradi, overflow hidden qoladi */
+  .bux-table-wrap { overflow: hidden; }
+  .bux-table { font-size: 11px; }
   /* mobile: topbar(48) + ctrl-bar(80) + stats-bar(48) = 176px */
   .bux-table thead th { padding: 7px 6px; font-size: 9px; top: 176px; }
   .bux-table td { padding: 6px 6px; }
@@ -655,4 +635,126 @@
 @keyframes paste-pulse {
   from { border-color: #f59e0b; background: #fffbeb; }
   to   { border-color: #d97706; background: #fef3c7; }
+}
+
+/* ── Berkitilgan ustunlar bar ── */
+.hidden-cols-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.hidden-col-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: #fff3cd;
+  border: 1.5px solid #ffc107;
+  color: #856404;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.hidden-col-chip:hover { background: #ffe083; }
+.chip-plus {
+  font-size: 13px;
+  font-weight: 700;
+  color: #b45309;
+  line-height: 1;
+}
+
+/* ══════════════════════════════════════════════════
+   RIGHT-CLICK CONTEXT MENU — ustun kontekst menyu
+══════════════════════════════════════════════════ */
+#col-context-menu {
+  position: fixed;
+  z-index: 99999;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.08);
+  padding: 6px 0;
+  min-width: 200px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  display: none;
+  animation: menuFadeIn .12s ease;
+}
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: scale(.95) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)  translateY(0); }
+}
+#col-context-menu .ctx-header {
+  padding: 8px 14px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #9ca3af;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#col-context-menu .ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: #374151;
+  transition: background .1s;
+  user-select: none;
+  white-space: nowrap;
+}
+#col-context-menu .ctx-item:hover {
+  background: #f0fdfb;
+  color: #1a7a6a;
+}
+#col-context-menu .ctx-item.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+#col-context-menu .ctx-item .ctx-icon {
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#col-context-menu .ctx-item .ctx-icon svg { display: block; }
+#col-context-menu .ctx-sep {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 4px 0;
+}
+
+/* Sort indicator */
+.bux-table thead th.sorted-asc::before,
+.bux-table thead th.sorted-desc::before {
+  content: '';
+  display: inline-block;
+  width: 0; height: 0;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.bux-table thead th.sorted-asc::before {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 6px solid #fff;
+  margin-bottom: 2px;
+}
+.bux-table thead th.sorted-desc::before {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid #fff;
+  margin-bottom: -1px;
 }

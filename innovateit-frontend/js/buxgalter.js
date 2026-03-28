@@ -124,7 +124,12 @@ function showApp() {
   g('app').style.display = 'block';
   g('bux-badge').textContent = U.ism;
   initFixedHeader();
-  applyColVisibility(); // saqlangan berkitilgan ustunlarni qo'llash
+  applyColVisibility();
+  ColContextMenu.init('bux-table-main', COL_LABELS, {
+    onHide:   (col) => toggleCol(col),
+    getRows:  ()    => FILTERED,
+    setRows:  (sorted) => { FILTERED = sorted; renderTable(); },
+  });
   window.addEventListener('resize', fixMainMargin, { passive: true });
   setTimeout(fixMainMargin, 200);
   loadData();
@@ -201,6 +206,12 @@ function syncFixedHeader() {
         cloneCells[i].style.width    = w + 'px';
         cloneCells[i].style.minWidth = w + 'px';
         cloneCells[i].style.maxWidth = w + 'px';
+        // Sticky ustunning pozitsiyasini ham ko'chirish
+        if (th.style.position === 'sticky' || getComputedStyle(th).position === 'sticky') {
+          cloneCells[i].style.position = 'sticky';
+          cloneCells[i].style.right    = th.style.right || getComputedStyle(th).right;
+          cloneCells[i].style.zIndex   = '4';
+        }
       }
     });
 
@@ -223,6 +234,12 @@ function syncFixedHeader() {
   } else {
     fixedWrap.classList.remove('visible');
   }
+}
+
+// Wrapper scroll qilganda (gorizontal) ham sinxronlashsin
+function initScrollSync() {
+  const wrap = g('bux-table-wrap');
+  if (wrap) wrap.addEventListener('scroll', syncFixedHeader, { passive: true });
 }
 
 // ─── Ustun berkitish tizimi ──────────────────────
@@ -262,7 +279,6 @@ function applyColVisibility() {
     });
   });
   renderHiddenChips();
-  // Fixed header clone ni qayta qurish
   const clone = g('fixed-thead-clone');
   if (clone) clone.innerHTML = '';
   const cloneTbl = document.querySelector('#fixed-thead-wrap table');
@@ -282,12 +298,6 @@ function renderHiddenChips() {
       ${COL_LABELS[col]} <span class="chip-plus">+</span>
     </button>
   `).join('');
-}
-
-// Wrapper scroll qilganda (gorizontal) ham sinxronlashsin
-function initScrollSync() {
-  const wrap = g('bux-table-wrap');
-  if (wrap) wrap.addEventListener('scroll', syncFixedHeader, { passive: true });
 }
 
 // ─── Oy navigatsiyasi ────────────────────────────
@@ -390,6 +400,16 @@ function renderTable() {
     const qildi  = t?.tolov_qildi || 0;
     const isNofaol = s.nofaol === true;
 
+    // Qator fon classi — to'lov holatiga qarab
+    let rowClass = '';
+    if (isNofaol) {
+      rowClass = 'row-nofaol';
+    } else if (kerak > 0 && qildi >= kerak) {
+      rowClass = 'row-toliq';       // to'liq — och yashil
+    } else if (kerak > 0 && qildi < kerak) {
+      rowClass = 'row-qarzdor';     // qarzdor — och sariq
+    }
+
     // Nofaol belgisi
     const nofaolBadge = isNofaol
       ? `<span class="badge-nofaol-row" title="Chiqgan sana: ${s.chiqgan || '—'}">🚫 ${s.chiqgan || 'Nofaol'}</span> `
@@ -401,25 +421,25 @@ function renderTable() {
       ? buildKvitPreview(kvFayl, i)
       : buildDropZone(i);
 
-    return `<tr id="row-${i}" data-idx="${i}" ${isNofaol ? 'class="row-nofaol"' : ''}>
+    return `<tr id="row-${i}" data-idx="${i}" ${rowClass ? `class="${rowClass}"` : ""}>
       <td class="col-num">${i+1}</td>
       <td class="col-name">${nofaolBadge}${s.familiya} ${s.ism}</td>
       <td class="col-maktab">${s.maktab || '—'}</td>
       <td class="col-sinf">${s.sinf || '—'}</td>
       <td class="col-tel">${s.telefon || '—'}</td>
-      <td class="col-qayd editable" onclick="editCell(${i},'qaydnoma')">
+      <td class="col-qayd editable" onclick="editCell(${i},'qaydnoma',event)">
         <span id="disp-qaydnoma-${i}">${t?.qaydnoma || '<span class="amount-0">—</span>'}</span>
       </td>
-      <td class="col-gap editable" onclick="editCell(${i},'gaplashilgan_vaqt')">
+      <td class="col-gap editable" onclick="editCell(${i},'gaplashilgan_vaqt',event)">
         <span id="disp-gaplashilgan_vaqt-${i}">${t?.gaplashilgan_vaqt || '<span class="amount-0">—</span>'}</span>
       </td>
-      <td class="col-kerak editable" onclick="editCell(${i},'tolov_kerak')">
+      <td class="col-kerak editable" onclick="editCell(${i},'tolov_kerak',event)">
         <span id="disp-tolov_kerak-${i}">${formatSum(kerak,'kerak')}</span>
       </td>
-      <td class="col-qildi editable" onclick="editCell(${i},'tolov_qildi')">
+      <td class="col-qildi editable" onclick="editCell(${i},'tolov_qildi',event)">
         <span id="disp-tolov_qildi-${i}">${formatSum(qildi,'qildi')}</span>
       </td>
-      <td class="col-sana" onclick="editCell(${i},'tolov_sanasi')" style="cursor:pointer;">
+      <td class="col-sana" onclick="editCell(${i},'tolov_sanasi',event)" style="cursor:pointer;">
         <span id="disp-tolov_sanasi-${i}">${t?.tolov_sanasi ? tolovSanasi(t.tolov_sanasi) : '<span class="amount-0">—</span>'}</span>
       </td>
       <td class="col-holat" id="holat-${i}">${tolovHolati(kerak, qildi)}</td>
@@ -438,6 +458,9 @@ function renderTable() {
   initScrollSync();
   setTimeout(syncFixedHeader, 50);
   setTimeout(fixMainMargin,   50);
+  setTimeout(() => {
+    if (typeof ColContextMenu !== 'undefined') ColContextMenu.refresh();
+  }, 80);
 }
 
 function encodeKey(s) {
@@ -447,7 +470,7 @@ function encodeKey(s) {
 // ─── Inline tahrirlash ───────────────────────────
 let activeEdit = null;
 
-function editCell(idx, field) {
+function editCell(idx, field, ev) {
   if (activeEdit) commitEdit(activeEdit.idx, activeEdit.field);
 
   const item    = FILTERED[idx];
@@ -455,6 +478,10 @@ function editCell(idx, field) {
   const dispEl  = g(`disp-${field}-${idx}`);
   const td      = dispEl?.parentElement;
   if (!td) return;
+
+  // Click koordinatalarini saqlаb olamiz (input yaratilgandan keyin ishlatamiz)
+  const clickX = ev ? ev.clientX : null;
+  const clickY = ev ? ev.clientY : null;
 
   const curVal = tolov[field] !== undefined ? String(tolov[field] || '') : '';
   const isNum  = ['tarif','tolov_kerak','tolov_qildi'].includes(field);
@@ -467,23 +494,53 @@ function editCell(idx, field) {
       value="${isoVal}" max="${todayISO()}"
       style="width:100%;cursor:pointer;">`;
   } else {
-    inputHtml = `<input type="${isNum?'number':'text'}" class="cell-input"
+    inputHtml = `<input type="text" inputmode="numeric" class="cell-input"
       id="cedit-${field}-${idx}"
       value="${isNum ? (parseInt(curVal)||0) : curVal}"
-      ${isNum ? 'min="0" step="1000"' : ''}>`;
+      ${isNum ? 'autocomplete="off"' : ""}>`;
   }
 
   td.innerHTML = inputHtml;
   const inp = g(`cedit-${field}-${idx}`);
-  inp.focus();
 
   if (isDate) {
+    inp.focus();
     // Kalendar avtomatik ochilsin
     try { inp.showPicker(); } catch(e) {}
     inp.addEventListener('change', () => commitEdit(idx, field));
     inp.addEventListener('blur',   () => setTimeout(() => commitEdit(idx, field), 200));
   } else {
-    inp.select();
+    inp.focus();
+    // Click koordinatasiga kursor qo'yamiz
+    if (clickX !== null && clickY !== null) {
+      // Brauzerga bir tick vaqt beramiz — input render bo'lsin
+      setTimeout(() => {
+        // caretPositionFromPoint (Firefox) yoki caretRangeFromPoint (Chrome/Safari)
+        let pos = null;
+        if (document.caretPositionFromPoint) {
+          const cp = document.caretPositionFromPoint(clickX, clickY);
+          if (cp) pos = cp.offset;
+        } else if (document.caretRangeFromPoint) {
+          const cr = document.caretRangeFromPoint(clickX, clickY);
+          if (cr) pos = cr.startOffset;
+        }
+        if (pos !== null) {
+          inp.setSelectionRange(pos, pos);
+        }
+      }, 0);
+    }
+
+    // Raqam maydonida faqat raqam va navigatsiya tugmalari ishlashi
+    if (isNum) {
+      inp.addEventListener('keydown', e => {
+        const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown',
+                         'Home','End','Tab','Enter','Escape'];
+        if (allowed.includes(e.key)) return;
+        if (e.ctrlKey || e.metaKey) return; // Ctrl+A, Ctrl+C, Ctrl+V va h.k.
+        if (!/^\d$/.test(e.key)) e.preventDefault(); // faqat raqamlar
+      });
+    }
+
     inp.addEventListener('blur',    () => commitEdit(idx, field));
     inp.addEventListener('keydown', e => {
       if (e.key === 'Enter')  commitEdit(idx, field);
@@ -529,6 +586,13 @@ async function commitEdit(idx, field) {
     const qildi = item.tolov.tolov_qildi || 0;
     const holatEl = g(`holat-${idx}`);
     if (holatEl) holatEl.innerHTML = tolovHolati(kerak, qildi);
+    // Qator fon rangini yangilash
+    const row = document.getElementById(`row-${idx}`);
+    if (row && !row.classList.contains('row-nofaol')) {
+      row.classList.remove('row-toliq', 'row-qarzdor');
+      if (kerak > 0 && qildi >= kerak)      row.classList.add('row-toliq');
+      else if (kerak > 0 && qildi < kerak)  row.classList.add('row-qarzdor');
+    }
   }
 
   document.getElementById(`row-${idx}`)?.classList.remove('editing');
