@@ -39,40 +39,54 @@ body {
   justify-content: center;
   min-height: 100vh;
   padding: 16px;
+  background: linear-gradient(135deg, #5b6cf6 0%, #6c63ff 35%, #48caa4 100%);
 }
 .login-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 28px 18px;
+  background: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 36px 28px 32px;
   width: 100%;
-  max-width: 420px;
-  box-shadow: var(--shadow);
+  max-width: 440px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.18);
   animation: fadeUp .4s ease;
 }
-@media (min-width: 480px) { .login-card { padding: 44px 36px; } }
+@media (min-width: 480px) { .login-card { padding: 44px 40px 38px; } }
 
 .login-logo {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 24px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  text-align: center;
+  margin-bottom: 28px;
 }
-.login-logo::before {
-  content: '';
-  width: 8px; height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
+.login-logo-img {
+  width: 90px; height: 90px;
+  border-radius: 22px;
+  overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(91,108,246,.3);
+  margin-bottom: 14px;
+}
+.login-logo-img img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.login-brand {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
 }
 .login-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
 @media (min-width: 480px) { .login-title { font-size: 26px; } }
-.login-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
 
 /* ══ FORM FIELDS ══ */
 .field-label {
@@ -122,15 +136,18 @@ body {
 
 /* ── Tugmalar ── */
 .btn-primary {
-  width: 100%; padding: 13px;
-  background: var(--text); color: #fff;
-  border: none; border-radius: var(--radius);
-  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
-  cursor: pointer; transition: opacity .15s; margin-top: 6px;
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #6c63ff, #5b6cf6);
+  color: #fff;
+  border: none; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s, transform .1s; margin-top: 8px;
   -webkit-tap-highlight-color: transparent;
+  letter-spacing: .01em;
 }
-.btn-primary:active  { opacity: .8; }
-.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.btn-primary:hover   { opacity: .93; transform: translateY(-1px); }
+.btn-primary:active  { opacity: .85; transform: translateY(0); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 .err-msg { color: var(--danger); font-size: 13px; margin-top: 10px; text-align: center; display: none; }
 
 /* ══ APP SHELL ══ */

@@ -17,6 +17,7 @@ const davomatRouter   = require('./routes/davomat');
 const jadvalRouter    = require('./routes/jadval');
 const teachersRouter  = require('./routes/teachers');
 const buxgalterRouter = require('./routes/buxgalter');
+const portfolioRouter = require('./routes/portfolio');   // ← YANGI
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -61,7 +62,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(UPLOAD_DIR));
 
-// ─── Fayl yuklash ───
+// ─── Fayl yuklash (kvitansiyalar uchun) ───
 app.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.json({ ok: false, error: 'Fayl yuklanmadi' });
   res.json({ ok: true, filename: req.file.filename });
@@ -83,6 +84,7 @@ app.use('/api/davomat',   davomatRouter);
 app.use('/api/jadval',    jadvalRouter);
 app.use('/api/teachers',  teachersRouter);
 app.use('/api/buxgalter', buxgalterRouter);
+app.use('/api/portfolio', portfolioRouter);   // ← YANGI
 
 // ─── Xatolik handlerlari ───
 app.use((req, res) => res.status(404).json({ ok: false, error: `Topilmadi: ${req.method} ${req.path}` }));

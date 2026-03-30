@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  InnovateIT School — Markazlashgan API Client (v4.0 REST)
+//  InnovateIT School — Markazlashgan API Client (v5.0 REST)
 // ═══════════════════════════════════════════════════
 
 const BASE = (window.location.hostname === 'localhost' ||
@@ -13,16 +13,13 @@ async function apiReq(method, path, data = {}) {
   const opts = { method, headers: {} };
 
   if (method === 'GET' || method === 'DELETE') {
-    // GET va DELETE: params query string sifatida (DELETE body bilan ham ishlaydi, lekin qo'shimcha xavfsizlik uchun body ishlatamiz)
     if (method === 'GET') {
       const qs = new URLSearchParams(data).toString();
       return (await fetch(`${BASE}${path}?${qs}`)).json();
     }
-    // DELETE — body orqali
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(data);
   } else {
-    // POST, PUT
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(data);
   }
@@ -38,8 +35,9 @@ const api = {
   del:    (path, body   = {}) => apiReq('DELETE',  path, body),
 
   // ─── Auth ───
-  login:           (d) => api.post('/api/auth/login', d),
-  loginBuxgalter:  (d) => api.post('/api/auth/login-buxgalter', d),
+  login:              (d) => api.post('/api/auth/login', d),
+  loginBuxgalter:     (d) => api.post('/api/auth/login-buxgalter', d),
+  loginViewer:        (d) => api.post('/api/auth/login-viewer', d),
 
   // ─── O'quvchilar ───
   getStudents:         (d) => api.get('/api/students', d),
@@ -48,7 +46,7 @@ const api = {
   deleteStudent:       (d) => api.del('/api/students', d),
   moveToInactive:      (d) => api.post('/api/students/inactive', d),
   getNofaol:           (d) => api.get('/api/students/inactive', d),
-  getInactiveStudents: (d) => api.get('/api/students/inactive', d), // davomat filtrlash uchun
+  getInactiveStudents: (d) => api.get('/api/students/inactive', d),
   moveToActive:        (d) => api.post('/api/students/activate', d),
   editNofaol:          (d) => api.put('/api/students/inactive', d),
   deleteNofaol:        (d) => api.del('/api/students/inactive', d),
@@ -60,10 +58,10 @@ const api = {
   deleteAdmin:     (d) => api.del('/api/admins', d),
 
   // ─── Davomat ───
-  saveDavomat:     (d) => api.post('/api/davomat', d),
-  getDavomat:      (d) => api.get('/api/davomat', d),
-  getDavomatTarix: (d) => api.get('/api/davomat/tarix', d),
-  getDavomatRange: (d) => api.get('/api/davomat/range', d),
+  saveDavomat:        (d) => api.post('/api/davomat', d),
+  getDavomat:         (d) => api.get('/api/davomat', d),
+  getDavomatTarix:    (d) => api.get('/api/davomat/tarix', d),
+  getDavomatRange:    (d) => api.get('/api/davomat/range', d),
   saveTeacherDavomat: (d) => api.post('/api/davomat/teacher', d),
   getTeacherDavomat:  (d) => api.get('/api/davomat/teacher', d),
 
@@ -73,23 +71,48 @@ const api = {
   deleteJadval:    (d, id) => api.del(`/api/jadval/${id}`, d),
 
   // ─── O'qituvchilar ───
-  getTeachers:     (d) => api.get('/api/teachers', d),
-  addTeacher:      (d) => api.post('/api/teachers', d),
-  editTeacher:     (d) => api.put('/api/teachers', d),
-  deleteTeacher:   (d) => api.del('/api/teachers', d),
-  assignTeacher:   (d) => api.put('/api/teachers/assign', d),
+  getTeachers:         (d) => api.get('/api/teachers', d),
+  addTeacher:          (d) => api.post('/api/teachers', d),
+  editTeacher:         (d) => api.put('/api/teachers', d),
+  deleteTeacher:       (d) => api.del('/api/teachers', d),
+  assignTeacher:       (d) => api.put('/api/teachers/assign', d),
   addTeacherMaktab:    (d) => api.post('/api/teachers/maktab', d),
   removeTeacherMaktab: (d) => api.del('/api/teachers/maktab', d),
 
   // ─── Buxgalter ───
-  getBiriktirmalar:(d) => api.get('/api/buxgalter', d),
-  createBuxgalter: (d) => api.post('/api/buxgalter', d),
-  editBuxgalter:   (d) => api.put('/api/buxgalter', d),
-  deleteBuxgalter: (d) => api.del('/api/buxgalter', d),
-  biriktirAdmin:   (d) => api.post('/api/buxgalter/biriktiruv', d),
-  ajratAdmin:      (d) => api.del('/api/buxgalter/biriktiruv', d),
-  buxGetStudents:  (d) => api.get('/api/buxgalter/students', d),
-  getTolovlar:     (d) => api.get('/api/buxgalter/tolovlar', d),
-  saveTolov:       (d) => api.post('/api/buxgalter/tolovlar', d),
-  initOy:          (d) => api.post('/api/buxgalter/init-oy', d),
+  getBiriktirmalar: (d) => api.get('/api/buxgalter', d),
+  createBuxgalter:  (d) => api.post('/api/buxgalter', d),
+  editBuxgalter:    (d) => api.put('/api/buxgalter', d),
+  deleteBuxgalter:  (d) => api.del('/api/buxgalter', d),
+  biriktirAdmin:    (d) => api.post('/api/buxgalter/biriktiruv', d),
+  ajratAdmin:       (d) => api.del('/api/buxgalter/biriktiruv', d),
+  buxGetStudents:   (d) => api.get('/api/buxgalter/students', d),
+  getTolovlar:      (d) => api.get('/api/buxgalter/tolovlar', d),
+  saveTolov:        (d) => api.post('/api/buxgalter/tolovlar', d),
+  initOy:           (d) => api.post('/api/buxgalter/init-oy', d),
+
+  // ─── Portfolio Viewers ───
+  getPortfolioViewers:    (d) => api.get('/api/portfolio/viewers', d),
+  createPortfolioViewer:  (d) => api.post('/api/portfolio/viewers', d),
+  editPortfolioViewer:    (d) => api.put('/api/portfolio/viewers', d),
+  deletePortfolioViewer:  (d) => api.del('/api/portfolio/viewers', d),
+
+  // ─── Portfolio O'qituvchilar ───
+  getPortfolioTeachers:  (d) => api.get('/api/portfolio/teachers', d),
+  getPortfolioTeacher:   (d, id) => api.get(`/api/portfolio/teacher/${id}`, d),
+  savePortfolioTeacher:  (d, id) => api.post(`/api/portfolio/teacher/${id}`, d),
+  deleteSertifikat:      (d, id, filename) => api.del(`/api/portfolio/teacher/${id}/sertifikat/${filename}`, d),
+
+  // ─── Viewer ↔ O'qituvchi biriktirish ───
+  getViewerTeachers:    (d, vu) => api.get(`/api/portfolio/viewer-teachers/${encodeURIComponent(vu)}`, d),
+  assignViewerTeacher:  (d) => api.post('/api/portfolio/viewer-teachers', d),
+  unassignViewerTeacher:(d) => api.del('/api/portfolio/viewer-teachers', d),
+  // sertifikat upload — FormData bilan alohida fetch
+  uploadSertifikat: async (id, formData) => {
+    const r = await fetch(`${BASE}/api/portfolio/teacher/${id}/sertifikat`, {
+      method: 'POST',
+      body: formData
+    });
+    return r.json();
+  }
 };

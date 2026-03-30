@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/oqituvchilar.css">
   <link rel="stylesheet" href="css/responsive.css">
-  <link rel="stylesheet" href="css/hover.css"> 
+  <link rel="stylesheet" href="css/hover.css">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
 
 <div class="main">
 
-  <!-- QOSHISH FORMASI -->
+  <!-- ODDIY ADMIN: Qo'shish formasi -->
   <div class="form-card" id="add-form">
     <div class="card-title">➕ Yangi o'qituvchi qo'shish</div>
     <div class="form-grid">
@@ -68,6 +68,13 @@
     </button>
   </div>
 
+  <!-- SUPERADMIN: Yangi o'qituvchi tugmasi -->
+  <div id="super-add-bar" style="display:none;margin-bottom:16px;">
+    <button class="btn-submit" style="max-width:300px;" onclick="openSuperAdd()">
+      ➕ Yangi o'qituvchi qo'shish
+    </button>
+  </div>
+
   <!-- JADVAL -->
   <div class="table-card">
     <div class="table-header">
@@ -93,7 +100,7 @@
 
 </div><!-- /main -->
 
-<!-- MODAL: Tahrirlash -->
+<!-- MODAL: Oddiy admin tahrirlash -->
 <div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEdit()">
   <div class="modal">
     <div class="modal-drag"></div>
@@ -141,12 +148,11 @@
   </div>
 </div>
 
-<!-- MODAL: Maktabga biriktirish (superadmin) -->
+<!-- MODAL: Maktabga biriktirish -->
 <div class="modal-overlay" id="assign-modal" onclick="if(event.target===this)closeAssign()">
   <div class="modal">
     <div class="modal-drag"></div>
     <div class="modal-title">🏫 Maktabga biriktirish</div>
-
     <div style="margin-bottom:16px;">
       <div style="font-size:14px;font-weight:600;margin-bottom:4px;" id="assign-teacher-name"></div>
       <div style="font-size:12px;color:var(--muted);">
@@ -154,16 +160,13 @@
         <span style="font-weight:600;color:var(--text);" id="assign-current-maktab"></span>
       </div>
     </div>
-
     <div class="field-group">
       <label class="field-label">Yangi maktab</label>
       <select class="field-input" id="assign-maktab-sel">
         <option value="">— Tanlang —</option>
       </select>
     </div>
-
     <div id="assign-err" style="display:none;color:#dc2626;font-size:13px;margin-top:8px;padding:8px 12px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;"></div>
-
     <div class="modal-footer" style="margin-top:16px;">
       <button class="btn-cancel" onclick="closeAssign()">Bekor</button>
       <button class="btn-submit" id="assign-save-btn" onclick="saveAssign()">
@@ -178,7 +181,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/api.js"></script>
-  <script src="js/oqituvchilar.js"></script>
+<script src="js/oqituvchilar.js"></script>
 <script src="js/mobile-nav.js"></script>
 </body>
 </html>

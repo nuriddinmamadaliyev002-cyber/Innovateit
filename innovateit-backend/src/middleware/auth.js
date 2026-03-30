@@ -52,4 +52,31 @@ async function verifyBuxgalter(username, parol) {
   return null;
 }
 
-module.exports = { verifyAdmin, verifyBuxgalter, SUPER_ADMIN_USERNAME, SUPER_ADMIN_PAROL, SUPER_ADMIN_ISM };
+/**
+ * Portfolio Viewer tekshirish
+ * @returns { ism, username } yoki null
+ */
+async function verifyViewer(username, parol) {
+  if (!username || !parol) return null;
+  try {
+    const result = await pool.query(
+      'SELECT ism FROM portfolio_viewers WHERE username = $1 AND parol = $2',
+      [username.trim(), parol.trim()]
+    );
+    if (result.rows.length > 0) {
+      return { ism: result.rows[0].ism, username: username.trim() };
+    }
+  } catch (err) {
+    console.error('verifyViewer xatolik:', err.message);
+  }
+  return null;
+}
+
+module.exports = {
+  verifyAdmin,
+  verifyBuxgalter,
+  verifyViewer,
+  SUPER_ADMIN_USERNAME,
+  SUPER_ADMIN_PAROL,
+  SUPER_ADMIN_ISM
+};

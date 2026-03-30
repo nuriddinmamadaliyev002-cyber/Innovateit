@@ -174,3 +174,62 @@ CREATE TABLE IF NOT EXISTS buxgalter_adminlar (
 GRANT ALL PRIVILEGES ON TABLE buxgalter_adminlar TO innovateit_user;
 GRANT ALL PRIVILEGES ON SEQUENCE buxgalter_adminlar_id_seq TO innovateit_user;
 CREATE INDEX IF NOT EXISTS idx_bux_admin ON buxgalter_adminlar(buxgalter_username);
+
+
+
+
+
+-- ─── Portfolio ko'ruvchilar ───
+CREATE TABLE IF NOT EXISTS portfolio_viewers (
+    id          SERIAL PRIMARY KEY,
+    ism         TEXT NOT NULL,
+    username    TEXT NOT NULL UNIQUE,
+    parol       TEXT NOT NULL,
+    yaratilgan  TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY')
+);
+-- ─── O'qituvchi portfolio (1:1 oqituvchilar bilan) ───
+CREATE TABLE IF NOT EXISTS oqituvchi_portfolio (
+    id              SERIAL PRIMARY KEY,
+    oqituvchi_id    INTEGER NOT NULL REFERENCES oqituvchilar(id) ON DELETE CASCADE,
+    fish            TEXT DEFAULT '',
+    universitet     TEXT DEFAULT '',
+    sertifikatlar   TEXT DEFAULT '',
+    ish_tajribasi   TEXT DEFAULT '',
+    yangilangan     TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY'),
+    UNIQUE(oqituvchi_id)
+);
+-- ─── O'qituvchi sertifikat fayllari (max 10) ───
+CREATE TABLE IF NOT EXISTS oqituvchi_sertifikat_fayllar (
+    id              SERIAL PRIMARY KEY,
+    oqituvchi_id    INTEGER NOT NULL REFERENCES oqituvchilar(id) ON DELETE CASCADE,
+    fayl_nomi       TEXT NOT NULL,
+    asl_nomi        TEXT DEFAULT '',
+    yuklangan       TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY')
+);
+-- ─── Ruxsatlar ───
+GRANT ALL PRIVILEGES ON TABLE portfolio_viewers                TO innovateit_user;
+GRANT ALL PRIVILEGES ON TABLE oqituvchi_portfolio              TO innovateit_user;
+GRANT ALL PRIVILEGES ON TABLE oqituvchi_sertifikat_fayllar     TO innovateit_user;
+GRANT ALL PRIVILEGES ON SEQUENCE portfolio_viewers_id_seq               TO innovateit_user;
+GRANT ALL PRIVILEGES ON SEQUENCE oqituvchi_portfolio_id_seq             TO innovateit_user;
+GRANT ALL PRIVILEGES ON SEQUENCE oqituvchi_sertifikat_fayllar_id_seq   TO innovateit_user;
+-- ─── Indekslar ───
+CREATE INDEX IF NOT EXISTS idx_portfolio_teacher ON oqituvchi_portfolio(oqituvchi_id);
+CREATE INDEX IF NOT EXISTS idx_sert_teacher      ON oqituvchi_sertifikat_fayllar(oqituvchi_id);
+CREATE INDEX IF NOT EXISTS idx_pviewer_username  ON portfolio_viewers(username);
+
+
+
+-- ─── Viewer — O'qituvchi biriktirish ───
+-- Har bir viewer faqat o'ziga biriktirilgan o'qituvchilarni ko'radi
+CREATE TABLE IF NOT EXISTS viewer_teachers (
+    id               SERIAL PRIMARY KEY,
+    viewer_username  TEXT NOT NULL,
+    teacher_id       INTEGER NOT NULL REFERENCES oqituvchilar(id) ON DELETE CASCADE,
+    biriktirilgan    TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY'),
+    UNIQUE(viewer_username, teacher_id)
+);
+GRANT ALL PRIVILEGES ON TABLE viewer_teachers TO innovateit_user;
+GRANT ALL PRIVILEGES ON SEQUENCE viewer_teachers_id_seq TO innovateit_user;
+CREATE INDEX IF NOT EXISTS idx_vt_viewer  ON viewer_teachers(viewer_username);
+CREATE INDEX IF NOT EXISTS idx_vt_teacher ON viewer_teachers(teacher_id);
