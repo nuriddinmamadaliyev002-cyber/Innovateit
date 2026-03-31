@@ -1098,14 +1098,15 @@ let OQ_CURRENT_TAB  = 'teachers';
 
 // ─── Tab sozlamalari (init da chaqiriladi) ───
 function initPortfolioTab() {
-  if (!U.isSuper) return;
+  // Faqat fromPortfolio: true bo'lgandagina tab ko'rinadi
+  if (!U.isSuper || !U.fromPortfolio) return;
 
   // Tab row ko'rsatish
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
 
-  // fromPortfolio bo'lsa — viewer banner ko'rsatish
-  if (U.fromPortfolio && U.viewerUsername) {
+  // Viewer banner ko'rsatish
+  if (U.viewerUsername) {
     const banner = g('oq-viewer-banner');
     if (banner) {
       banner.style.display = 'flex';
@@ -1114,9 +1115,9 @@ function initPortfolioTab() {
       if (nameEl) nameEl.textContent = U.viewerIsm || U.viewerUsername;
       if (subEl)  subEl.textContent  = '@' + U.viewerUsername + ' · Portfolio ko\'ruvchi';
     }
-    // Portfolio tabiga o'tish
-    switchOqTab('portfolio');
   }
+  // Portfolio tabiga o'tish
+  switchOqTab('portfolio');
 }
 
 // ─── Tab almashtirish ───
