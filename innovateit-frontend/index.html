@@ -78,7 +78,6 @@
     <button class="tab-btn active" onclick="switchTab('s')">📋 O'quvchilar</button>
     <button class="tab-btn"        onclick="switchTab('a')">👥 Adminlar</button>
     <button class="tab-btn"        onclick="switchTab('b')">💼 Buxgalterlar</button>
-    <button class="tab-btn" onclick="switchTab('p')">📂 Portfolio</button>
 
   </div>
 
@@ -293,64 +292,6 @@
     </div><!-- /tab-b -->
 
 
-
-    <div id="tab-p" style="display:none;">
- 
-  <!-- ── Portfolio Viewer Yaratish ── -->
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-title" style="display:flex;align-items:center;gap:10px;">
-      <span>👁️ Portfolio Ko'ruvchilar</span>
-      <a href="portfolio-viewer.html" target="_blank"
-         style="margin-left:auto;font-size:13px;background:#6c63ff;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-weight:600;">
-        🔗 Viewer sahifasini ochish
-      </a>
-    </div>
- 
-    <!-- Yangi viewer yaratish -->
-    <div style="background:#f8f9fc;border-radius:12px;padding:20px;margin-bottom:20px;">
-      <div style="font-weight:600;font-size:14px;color:#374151;margin-bottom:14px;">➕ Yangi viewer yaratish</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;">
-        <div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">ISM (TO'LIQ)</div>
-          <input class="field-input" id="pv-ism" type="text" placeholder="Abdullayev Jasur" style="width:100%;box-sizing:border-box;">
-        </div>
-        <div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">USERNAME</div>
-          <input class="field-input" id="pv-username" type="text" placeholder="jasur_viewer" style="width:100%;box-sizing:border-box;">
-        </div>
-        <div>
-          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">PAROL</div>
-          <div style="position:relative;">
-            <input class="field-input" id="pv-parol" type="password" placeholder="Parol123!" style="width:100%;box-sizing:border-box;padding-right:40px;">
-            <button class="eye-btn" onclick="togglePw('pv-parol')" tabindex="-1" type="button"
-                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:18px;">👁</button>
-          </div>
-        </div>
-        <button class="btn-submit" onclick="createPortfolioViewer()" style="margin:0;white-space:nowrap;">
-          Yaratish
-        </button>
-      </div>
-    </div>
- 
-    <!-- Viewer ro'yxati -->
-    <div id="pv-list">
-      <div class="empty-state"><div class="empty-state-icon">👁️</div><p>Viewer yo'q</p></div>
-    </div>
-  </div>
- 
-  <!-- ── O'qituvchilar Portfolio ── -->
-  <div class="card">
-    <div class="card-title">👨‍🏫 O'qituvchilar Portfolio</div>
-    <p style="font-size:13px;color:#6b7280;margin:0 0 16px;">
-      Har bir o'qituvchiga portfolio ma'lumotlari va sertifikatlar yuklang.
-      Viewer foydalanuvchilari bu ma'lumotlarni ko'rishi mumkin.
-    </p>
-    <div id="pt-list">
-      <div class="empty-state"><div class="empty-state-icon">📋</div><p>O'qituvchilar yuklanmoqda...</p></div>
-    </div>
-  </div>
- 
-</div><!-- /tab-p -->
 
 
 

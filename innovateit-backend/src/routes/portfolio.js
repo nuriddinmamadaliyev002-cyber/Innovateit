@@ -132,10 +132,11 @@ router.delete('/viewers', requireAuth(['admin']), async (req, res) => {
 // Superadmin: barchasi + har bir o'qituvchi uchun biriktirilgan viewer_username lari
 // Viewer:     faqat o'ziga biriktirilgan o'qituvchilar
 router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
-  if (!req.user?.isSuper && !viewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+  const isViewer = req.user?.role === 'viewer';
+  if (!req.user?.isSuper && !isViewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
 
   let r;
-  if (viewer && !req.user?.isSuper) {
+  if (isViewer) {
     // Viewer — faqat o'ziga biriktirilgan o'qituvchilar
     r = await pool.query(`
       SELECT
@@ -148,7 +149,7 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
       LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
       GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi
       ORDER BY o.id
-    `, [username]);
+    `, [req.user.username]);
   } else {
     // Superadmin — hammasi + har biri uchun biriktirilgan viewer usernamelari
     r = await pool.query(`
@@ -172,8 +173,9 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
 });
 
 // GET /api/portfolio/teacher/:id — bitta o'qituvchi to'liq profili
-router.get('/teacher/:id', async (req, res) => {
-  if (!req.user?.isSuper && !viewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.get('/teacher/:id', requireAuth(['admin', 'viewer']), async (req, res) => {
+  const isViewer = req.user?.role === 'viewer';
+  if (!req.user?.isSuper && !isViewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
 
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
@@ -198,8 +200,8 @@ router.get('/teacher/:id', async (req, res) => {
 });
 
 // POST /api/portfolio/teacher/:id — profil saqlash/yangilash (superadmin)
-router.post('/teacher/:id', async (req, res) => {
-  const { username, parol, fish, universitet, sertifikatlar, ish_tajribasi } = req.body;
+router.post('/teacher/:id', requireAuth(['admin']), async (req, res) => {
+  const { fish, universitet, sertifikatlar, ish_tajribasi } = req.body;
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const id = parseInt(req.params.id);
@@ -220,7 +222,7 @@ router.post('/teacher/:id', async (req, res) => {
 });
 
 // POST /api/portfolio/teacher/:id/sertifikat — fayl yuklash
-router.post('/teacher/:id/sertifikat', upload.single('file'), async (req, res) => {
+router.post('/teacher/:id/sertifikat', requireAuth(['admin']), upload.single('file'), async (req, res) => {
   if (!req.user?.isSuper) {
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     return res.status(403).json({ ok: false, error: "Faqat superadmin" });
@@ -251,7 +253,7 @@ router.post('/teacher/:id/sertifikat', upload.single('file'), async (req, res) =
 });
 
 // DELETE /api/portfolio/teacher/:id/sertifikat/:filename — fayl o'chirish
-router.delete('/teacher/:id/sertifikat/:filename', async (req, res) => {
+router.delete('/teacher/:id/sertifikat/:filename', requireAuth(['admin']), async (req, res) => {
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const id       = parseInt(req.params.id);
@@ -270,7 +272,7 @@ router.delete('/teacher/:id/sertifikat/:filename', async (req, res) => {
 });
 
 // GET /api/portfolio/viewer-teachers/:viewerUsername — viewer uchun biriktirilgan teacher ID lari
-router.get('/viewer-teachers/:viewerUsername', async (req, res) => {
+router.get('/viewer-teachers/:viewerUsername', requireAuth(['admin']), async (req, res) => {
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const r = await pool.query(

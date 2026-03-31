@@ -135,24 +135,22 @@ async function showApp() {
   }
 
   await loadStudents();
+
+  // (portfolio tab olib tashlandi — index.html dan)
 }
 
 function switchTab(t) {
   g('tab-s').style.display = t === 's' ? 'block' : 'none';
   g('tab-a').style.display = t === 'a' ? 'block' : 'none';
   g('tab-b').style.display = t === 'b' ? 'block' : 'none';
-  const tabP = g('tab-p');
-  if (tabP) tabP.style.display = t === 'p' ? 'block' : 'none';
   document.querySelectorAll('.tab-btn').forEach((b, i) =>
     b.classList.toggle('active',
       (i === 0 && t === 's') ||
       (i === 1 && t === 'a') ||
-      (i === 2 && t === 'b') ||
-      (i === 3 && t === 'p')
+      (i === 2 && t === 'b')
     )
   );
   if (t === 'b') loadBuxgalterlar();
-  if (t === 'p') loadPortfolio();
 }
 
 // ─────────────────────────────────────────────
@@ -698,6 +696,23 @@ function openTeachers() {
   window.location.href = 'oqituvchilar.html';
 }
 
+
+// Portfolio tabidan viewer uchun oqituvchilar sahifasiga o'tish
+function openTeachersFromViewer(viewerUsername, viewerIsm) {
+  const teacherUser = {
+    username:      U.username,
+    parol:         U.parol,
+    ism:           U.ism,
+    isSuper:       true,
+    fromPortfolio: true,
+    viewerUsername,
+    viewerIsm,
+    adminsMap: JSON.stringify(ADMINS.map(a => ({ username: a.username, ism: a.ism })))
+  };
+  sessionStorage.setItem('iit_teacher_user', JSON.stringify(teacherUser));
+  window.location.href = 'oqituvchilar.html';
+}
+window.openTeachersFromViewer = openTeachersFromViewer;
 function openDavomat() {
   if (U.isSuper && !viewingAdmin) { toast('⚠️ Avval maktab tanlang!', 'error'); return; }
   const isProxy = U.isSuper && viewingAdmin;
@@ -1145,7 +1160,7 @@ function renderPortfolioViewers() {
         <div style="font-size:12px;color:#9ca3af;">🔑 ${esc(v.parol)}</div>
       </div>
       <div style="font-size:12px;color:#9ca3af;flex-shrink:0;">${esc(v.yaratilgan||'')}</div>
-      <button onclick="openViewerTeachersModal('${esc(v.username)}','${esc(v.ism)}')"
+      <button onclick="openTeachersFromViewer('${esc(v.username)}','${esc(v.ism)}')"
               style="padding:7px 14px;background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:8px;font-size:13px;cursor:pointer;color:#5b21b6;font-weight:600;white-space:nowrap;">
         👨‍🏫 O'qituvchilar
       </button>
