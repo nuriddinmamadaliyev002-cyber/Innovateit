@@ -278,7 +278,13 @@
   <div class="table-card" id="oq-teachers-table">
     <div class="table-header">
       <div class="table-title">O'qituvchilar ro'yxati</div>
-      <input class="search-input" id="f-search" placeholder="🔍 Ism, fan…" oninput="applyFilter()">
+      <div class="search-wrap" id="search-wrap">
+        <input class="search-input" id="f-search" placeholder="🔍 Ism, fan…"
+          oninput="applyFilter(); toggleClearBtn()">
+        <button id="f-search-clear" onclick="clearSearch()" title="Tozalash"
+          style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:2px 4px;border-radius:50%;transition:color .15s;"
+          onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#9ca3af'">✕</button>
+      </div>
     </div>
     <div class="tbl-wrap">
       <table>

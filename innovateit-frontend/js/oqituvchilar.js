@@ -72,6 +72,21 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ─────────────────────────────────────────────
+// ─── Qidiruv tozalash ───
+function clearSearch() {
+  const inp = g('f-search');
+  if (inp) { inp.value = ''; inp.focus(); }
+  toggleClearBtn();
+  applyFilter();
+}
+
+function toggleClearBtn() {
+  const inp = g('f-search');
+  const btn = g('f-search-clear');
+  if (!inp || !btn) return;
+  btn.style.display = inp.value.length > 0 ? 'block' : 'none';
+}
+
 function goBack() { window.location.href = 'index.html'; }
 function openDavomat() { sessionStorage.setItem('iit_teacher_dav_user', JSON.stringify(U)); window.location.href = 'oqituvchilar-davomat.html'; }
 function openJadval()  { sessionStorage.setItem('iit_jadval_user', JSON.stringify(U)); window.location.href = 'dars-jadvali.html'; }
@@ -1400,6 +1415,8 @@ function oqCloseVTModal(e) {
 
 
 // Global expose
+window.clearSearch         = clearSearch;
+window.toggleClearBtn      = toggleClearBtn;
 window.switchOqTab         = switchOqTab;
 window.oqOpenPortfolioModal = oqOpenPortfolioModal;
 window.oqClosePModal       = oqClosePModal;

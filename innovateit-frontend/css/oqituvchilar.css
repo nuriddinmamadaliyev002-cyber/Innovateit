@@ -99,12 +99,17 @@
 .table-header {
   padding: 14px 18px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface);
 }
 .table-title { font-size: 13px; font-weight: 700; }
+.search-wrap {
+  position: relative; display: inline-flex; align-items: center;
+}
 .search-input {
-  padding: 8px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 8px 36px 8px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
   font-family: 'DM Sans', sans-serif; font-size: 13px;
-  background: var(--bg); color: var(--text); outline: none; width: 220px;
+  background: var(--bg); color: var(--text); outline: none; width: 260px;
   transition: border-color .15s;
 }
 .search-input:focus { border-color: var(--accent); }
