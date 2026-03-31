@@ -1101,16 +1101,14 @@ let OQ_CURRENT_TAB  = 'teachers';
 
 // ─── Tab sozlamalari (init da chaqiriladi) ───
 function initPortfolioTab() {
-  // Faqat superadmin uchun tab ko'rinadi
-  if (!U.isSuper) return;
+  // Faqat superadmin va fromPortfolio bo'lganda tab ko'rinadi
+  if (!U.isSuper || !U.fromPortfolio) return;
 
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
 
-  // Viewer kartasidan kelgan bo'lsa — Portfolio tabiga o'tish
-  if (U.fromPortfolio) {
-    switchOqTab('portfolio');
-  }
+  // Portfolio tabiga o'tish
+  switchOqTab('portfolio');
 }
 
 // ─── Tab almashtirish ───
@@ -1532,28 +1530,41 @@ async function oqSaveViewerEdit() {
 
 // ─── VT2 Modal: viewer uchun o'qituvchi biriktirish ───
 async function oqOpenVT2Modal(viewerUsername, viewerIsm) {
-  OQ_VT2_VIEWER  = { username: viewerUsername, ism: viewerIsm };
+  OQ_VT2_VIEWER   = { username: viewerUsername, ism: viewerIsm };
   OQ_VT2_ASSIGNED = [];
 
   const modal = g('oq-vt2-modal2');
   if (!modal) return;
 
-  g('oq-vt2-title').textContent = `👨‍🏫 "${viewerIsm}" uchun o'qituvchilar`;
-  if (g('oq-vt2-search')) g('oq-vt2-search').value = '';
-  g('oq-vt2-list').innerHTML = '<div style="text-align:center;padding:24px;color:#9ca3af;">⏳ Yuklanmoqda…</div>';
+  const titleEl  = g('oq-vt2-title');
+  const searchEl = g('oq-vt2-search');
+  const listEl   = g('oq-vt2-list');
+
+  if (titleEl)  titleEl.textContent = `👨‍🏫 "${viewerIsm}" uchun o'qituvchilar`;
+  if (searchEl) searchEl.value = '';
+  if (listEl)   listEl.innerHTML = '<div style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">⏳ Yuklanmoqda…</div>';
+
   modal.style.display = 'flex';
 
   try {
+    // Har doim yangi yuklaymiz
     const [tr, vtr] = await Promise.all([
-      api.getPortfolioTeachers({ username: U.username, parol: U.parol }),
-      api.getViewerTeachers({ username: U.username, parol: U.parol }, viewerUsername)
+      api.getPortfolioTeachers({}),
+      api.getViewerTeachers({}, viewerUsername)
     ]);
-    // Barchasini OQ_PT_DATA ga yozamiz (agar bo'sh bo'lsa)
-    if (tr.ok && tr.teachers.length) OQ_PT_DATA = tr.teachers;
-    OQ_VT2_ASSIGNED = vtr.ok ? vtr.teacher_ids : [];
+
+    if (!tr.ok) {
+      if (listEl) listEl.innerHTML = `<div style="text-align:center;color:#ef4444;padding:24px;font-size:13px;">❌ ${tr.error || 'O\'qituvchilar yuklanmadi'}</div>`;
+      return;
+    }
+
+    // OQ_PT_DATA ni yangilaymiz (render uchun)
+    OQ_PT_DATA      = tr.teachers || [];
+    OQ_VT2_ASSIGNED = (vtr.ok && vtr.teacher_ids) ? vtr.teacher_ids.map(Number) : [];
     oqRenderVT2List();
-  } catch {
-    g('oq-vt2-list').innerHTML = '<div style="text-align:center;color:#ef4444;padding:24px;">❌ Yuklanmadi</div>';
+
+  } catch (err) {
+    if (listEl) listEl.innerHTML = '<div style="text-align:center;color:#ef4444;padding:24px;font-size:13px;">❌ Server bilan aloqa yo\'q</div>';
   }
 }
 
@@ -1574,7 +1585,7 @@ function oqRenderVT2List() {
 
   const colors = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
   el.innerHTML = filtered.map(t => {
-    const assigned  = OQ_VT2_ASSIGNED.includes(t.id);
+    const assigned  = OQ_VT2_ASSIGNED.includes(Number(t.id));
     const clr       = colors[t.id % colors.length];
     const initials  = ((t.ism||'')[0]||'T').toUpperCase();
     const hasProfil = !!(t.fish || t.universitet || t.sertifikatlar || t.ish_tajribasi);
@@ -1611,14 +1622,17 @@ function oqRenderVT2List() {
 
 async function oqVt2Toggle(teacherId, assign) {
   if (!OQ_VT2_VIEWER) return;
+  const id = Number(teacherId);
   const r = assign
-    ? await api.assignViewerTeacher({ username: U.username, parol: U.parol, viewerUsername: OQ_VT2_VIEWER.username, teacherId })
-    : await api.unassignViewerTeacher({ username: U.username, parol: U.parol, viewerUsername: OQ_VT2_VIEWER.username, teacherId });
+    ? await api.assignViewerTeacher({ viewerUsername: OQ_VT2_VIEWER.username, teacherId: id })
+    : await api.unassignViewerTeacher({ viewerUsername: OQ_VT2_VIEWER.username, teacherId: id });
 
   if (!r.ok) return toast('❌ ' + r.error, 'error');
-  if (assign) OQ_VT2_ASSIGNED = [...OQ_VT2_ASSIGNED, teacherId];
-  else        OQ_VT2_ASSIGNED = OQ_VT2_ASSIGNED.filter(id => id !== teacherId);
+  if (assign) OQ_VT2_ASSIGNED = [...OQ_VT2_ASSIGNED, id];
+  else        OQ_VT2_ASSIGNED = OQ_VT2_ASSIGNED.filter(x => x !== id);
   oqRenderVT2List();
+  // Portfolio kartalarini yangilash
+  loadOqPortfolio();
 }
 
 function oqCloseVTModal2(e) {
