@@ -420,6 +420,23 @@ const BASE = (location.hostname === 'localhost' || location.hostname === '127.0.
 
 // ─── STATE ───
 let SESSION   = null;  // { username, parol, ism }
+
+// index.html dan redirect bo'lsa iit_viewer_u dan avtomatik kirish
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('iit_viewer_u');
+  if (saved) {
+    try {
+      const u = JSON.parse(saved);
+      SESSION = u;
+      document.getElementById('t-user').textContent = `Salom, ${u.ism}`;
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('main-page').style.display  = 'block';
+      loadTeachers();
+    } catch(e) {
+      localStorage.removeItem('iit_viewer_u');
+    }
+  }
+});
 let TEACHERS  = [];    // all teachers from API
 let CUR_TEACHER = null;
 
@@ -479,6 +496,7 @@ async function doLogin() {
 function doLogout() {
   SESSION = null;
   TEACHERS = [];
+  localStorage.removeItem('iit_viewer_u');
   document.getElementById('login-page').style.display = 'flex';
   document.getElementById('main-page').style.display  = 'none';
   document.getElementById('l-parol').value = '';

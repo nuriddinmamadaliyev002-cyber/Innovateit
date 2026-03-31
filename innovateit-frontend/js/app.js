@@ -69,11 +69,17 @@ async function doLogin() {
       // Admin bo'lmasa, buxgalter sifatida tekshiramiz
       const rb = await api.loginBuxgalter({ username, parol });
       if (rb.ok) {
-        // Buxgalterni saqlab buxgalter.html ga yo'naltiramiz
         localStorage.setItem('iit_bux_u', JSON.stringify({ username, parol, ism: rb.ism }));
         window.location.href = 'buxgalter.html';
       } else {
-        showErr(g('login-err'), "Username yoki parol noto'g'ri");
+        // Buxgalter ham bo'lmasa, viewer sifatida tekshiramiz
+        const rv = await api.loginViewer({ username, parol });
+        if (rv.ok) {
+          localStorage.setItem('iit_viewer_u', JSON.stringify({ username, parol, ism: rv.ism }));
+          window.location.href = 'portfolio-viewer.html';
+        } else {
+          showErr(g('login-err'), "Username yoki parol noto'g'ri");
+        }
       }
     }
   } catch (e) {

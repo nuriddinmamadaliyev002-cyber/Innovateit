@@ -1094,28 +1094,19 @@ function toast(msg,type='') {
 let OQ_PT_DATA      = [];   // o'qituvchilar portfolio
 let OQ_PM_SERTS     = [];   // hozirgi modal sertifikatlari
 let OQ_VT_DATA      = [];   // viewer <-> teacher biriktirish
+let OQ_VIEWERS_DATA = [];   // viewer ro'yxati
+let OQ_VT2_VIEWER   = null; // hozirgi VT2 modal uchun viewer
+let OQ_VT2_ASSIGNED = [];   // biriktirilgan teacher IDlar
 let OQ_CURRENT_TAB  = 'teachers';
 
 // ─── Tab sozlamalari (init da chaqiriladi) ───
 function initPortfolioTab() {
-  // Faqat fromPortfolio: true bo'lgandagina tab ko'rinadi
+  // Faqat superadmin va fromPortfolio bo'lganda tab ko'rinadi
   if (!U.isSuper || !U.fromPortfolio) return;
 
-  // Tab row ko'rsatish
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
 
-  // Viewer banner ko'rsatish
-  if (U.viewerUsername) {
-    const banner = g('oq-viewer-banner');
-    if (banner) {
-      banner.style.display = 'flex';
-      const nameEl = g('oq-viewer-name');
-      const subEl  = g('oq-viewer-sub');
-      if (nameEl) nameEl.textContent = U.viewerIsm || U.viewerUsername;
-      if (subEl)  subEl.textContent  = '@' + U.viewerUsername + ' · Portfolio ko\'ruvchi';
-    }
-  }
   // Portfolio tabiga o'tish
   switchOqTab('portfolio');
 }
@@ -1160,8 +1151,13 @@ async function loadOqPortfolio() {
   listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;">⏳ Yuklanmoqda…</div>';
 
   try {
-    const r = await api.getPortfolioTeachers({ username: U.username, parol: U.parol });
-    OQ_PT_DATA = r.ok ? r.teachers : [];
+    const [tr, vr] = await Promise.all([
+      api.getPortfolioTeachers({ username: U.username, parol: U.parol }),
+      api.getPortfolioViewers({ username: U.username, parol: U.parol })
+    ]);
+    OQ_PT_DATA = tr.ok ? tr.teachers : [];
+    OQ_VIEWERS_DATA = vr.ok ? vr.viewers : [];
+    renderOqViewers();
     renderOqPortfolio();
   } catch {
     listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">❌ Yuklanmadi</div>';
@@ -1411,3 +1407,232 @@ window.oqDeleteSert        = oqDeleteSert;
 window.openVTModalFromOq   = openVTModalFromOq;
 window.oqVtToggle          = oqVtToggle;
 window.oqCloseVTModal      = oqCloseVTModal;
+// ═══════════════════════════════════════════════════
+//  VIEWER BOSHQARUV (Portfolio tabida)
+// ═══════════════════════════════════════════════════
+
+function oqToggleViewerForm() {
+  const el = g('oq-viewer-form');
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') g('oq-pv-ism')?.focus();
+}
+
+function oqTogglePw(id) {
+  const inp = g(id);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ─── Viewer yaratish ───
+async function oqCreateViewer() {
+  const ism      = g('oq-pv-ism')?.value?.trim();
+  const username = g('oq-pv-username')?.value?.trim();
+  const parol    = g('oq-pv-parol')?.value?.trim();
+  const errEl    = g('oq-pv-err');
+
+  if (!ism || !username || !parol) {
+    if (errEl) { errEl.textContent = '❌ Barcha maydonlar majburiy'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+
+  const r = await api.createPortfolioViewer({ username: U.username, parol: U.parol, newIsm: ism, newUsername: username, newParol: parol });
+  if (!r.ok) {
+    if (errEl) { errEl.textContent = '❌ ' + r.error; errEl.style.display = 'block'; }
+    return;
+  }
+  toast('✅ Viewer yaratildi', 'success');
+  g('oq-pv-ism').value = '';
+  g('oq-pv-username').value = '';
+  g('oq-pv-parol').value = '';
+  g('oq-viewer-form').style.display = 'none';
+  await loadOqPortfolio();
+}
+
+// ─── Viewer ro'yxatini render qilish ───
+function renderOqViewers() {
+  const el = g('oq-viewers-list');
+  if (!el) return;
+
+  if (OQ_VIEWERS_DATA.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">👁️ Viewer yo\'q. Yuqoridagi "Yangi viewer" tugmasini bosing.</div>';
+    return;
+  }
+
+  const colors = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
+  el.innerHTML = OQ_VIEWERS_DATA.map((v, i) => {
+    const initials = (v.ism||'V')[0].toUpperCase();
+    const clr = colors[i % colors.length];
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;margin-bottom:10px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:14px;color:#111827;">${esc2(v.ism)}</div>
+        <div style="font-size:12px;color:#9ca3af;">@${esc2(v.username)} · ${esc2(v.yaratilgan||'')}</div>
+      </div>
+      <button onclick="oqOpenVT2Modal('${esc(v.username)}','${esc(v.ism)}')"
+        style="padding:7px 14px;background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:8px;font-size:12px;cursor:pointer;color:#5b21b6;font-weight:600;white-space:nowrap;">
+        👨‍🏫 O\'qituvchilar
+      </button>
+      <button onclick="oqOpenPVEdit('${esc(v.username)}','${esc(v.ism)}')"
+        style="padding:7px 14px;background:#f3f4f6;border:none;border-radius:8px;font-size:12px;cursor:pointer;color:#374151;font-weight:500;">
+        ✏️ Tahrirlash
+      </button>
+      <button onclick="oqDeleteViewer('${esc(v.username)}','${esc(v.ism)}')"
+        style="padding:7px 14px;background:#fff0f0;border:1.5px solid #fca5a5;border-radius:8px;font-size:12px;cursor:pointer;color:#ef4444;font-weight:500;">
+        O\'chirish
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ─── Viewer o'chirish ───
+async function oqDeleteViewer(username, ism) {
+  if (!confirm(`"${ism}" viewerni o'chirmoqchimisiz?`)) return;
+  const r = await api.deletePortfolioViewer({ username: U.username, parol: U.parol, deleteUsername: username });
+  if (!r.ok) return toast('❌ ' + r.error, 'error');
+  toast('✅ Viewer o\'chirildi');
+  await loadOqPortfolio();
+}
+
+// ─── Viewer tahrirlash ───
+function oqOpenPVEdit(username, ism) {
+  g('oq-pve-old-username').value = username;
+  g('oq-pve-ism').value          = ism;
+  g('oq-pve-username').value     = username;
+  g('oq-pve-parol').value        = '';
+  g('oq-pv-edit-modal').style.display = 'flex';
+}
+
+function oqClosePVEditModal(e) {
+  if (!e || e.target === g('oq-pv-edit-modal'))
+    g('oq-pv-edit-modal').style.display = 'none';
+}
+
+async function oqSaveViewerEdit() {
+  const oldUsername = g('oq-pve-old-username').value;
+  const newIsm      = g('oq-pve-ism').value.trim();
+  const newUsername = g('oq-pve-username').value.trim();
+  const newParol    = g('oq-pve-parol').value.trim();
+
+  if (!newIsm || !newUsername) return toast('❌ Ism va username majburiy', 'error');
+
+  const r = await api.editPortfolioViewer({
+    username: U.username, parol: U.parol,
+    oldUsername, newIsm, newUsername, newParol: newParol || undefined
+  });
+  if (!r.ok) return toast('❌ ' + r.error, 'error');
+  toast('✅ Saqlandi', 'success');
+  g('oq-pv-edit-modal').style.display = 'none';
+  await loadOqPortfolio();
+}
+
+// ─── VT2 Modal: viewer uchun o'qituvchi biriktirish ───
+async function oqOpenVT2Modal(viewerUsername, viewerIsm) {
+  OQ_VT2_VIEWER  = { username: viewerUsername, ism: viewerIsm };
+  OQ_VT2_ASSIGNED = [];
+
+  const modal = g('oq-vt2-modal2');
+  if (!modal) return;
+
+  g('oq-vt2-title').textContent = `👨‍🏫 "${viewerIsm}" uchun o'qituvchilar`;
+  if (g('oq-vt2-search')) g('oq-vt2-search').value = '';
+  g('oq-vt2-list').innerHTML = '<div style="text-align:center;padding:24px;color:#9ca3af;">⏳ Yuklanmoqda…</div>';
+  modal.style.display = 'flex';
+
+  try {
+    const [tr, vtr] = await Promise.all([
+      api.getPortfolioTeachers({ username: U.username, parol: U.parol }),
+      api.getViewerTeachers({ username: U.username, parol: U.parol }, viewerUsername)
+    ]);
+    // Barchasini OQ_PT_DATA ga yozamiz (agar bo'sh bo'lsa)
+    if (tr.ok && tr.teachers.length) OQ_PT_DATA = tr.teachers;
+    OQ_VT2_ASSIGNED = vtr.ok ? vtr.teacher_ids : [];
+    oqRenderVT2List();
+  } catch {
+    g('oq-vt2-list').innerHTML = '<div style="text-align:center;color:#ef4444;padding:24px;">❌ Yuklanmadi</div>';
+  }
+}
+
+function oqRenderVT2List() {
+  const el = g('oq-vt2-list');
+  if (!el) return;
+  const q = (g('oq-vt2-search')?.value || '').toLowerCase();
+  const all = OQ_PT_DATA;
+
+  const filtered = q
+    ? all.filter(t => (t.ism+' '+t.familiya+' '+(t.fan||'')).toLowerCase().includes(q))
+    : all;
+
+  if (filtered.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:#9ca3af;">O\'qituvchi topilmadi</div>';
+    return;
+  }
+
+  const colors = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
+  el.innerHTML = filtered.map(t => {
+    const assigned  = OQ_VT2_ASSIGNED.includes(t.id);
+    const clr       = colors[t.id % colors.length];
+    const initials  = ((t.ism||'')[0]||'T').toUpperCase();
+    const hasProfil = !!(t.fish || t.universitet || t.sertifikatlar || t.ish_tajribasi);
+    const sertSoni  = parseInt(t.sert_soni) || 0;
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid ${assigned?'#a5b4fc':'#e5e7eb'};border-radius:10px;background:${assigned?'#f5f3ff':'#fff'};margin-bottom:8px;transition:all .2s;">
+      <div style="width:38px;height:38px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:13px;color:#111827;">${esc2(t.ism)} ${esc2(t.familiya)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:3px;">${esc2(t.fan||'Fan ko\'rsatilmagan')}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${hasProfil?'#d1fae5':'#f3f4f6'};color:${hasProfil?'#065f46':'#9ca3af'};">
+            ${hasProfil ? '✅ Profil bor' : '❌ Profil yo\'q'}
+          </span>
+          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${sertSoni>0?'#ede9fe':'#f3f4f6'};color:${sertSoni>0?'#5b21b6':'#9ca3af'};">
+            📎 ${sertSoni}/10 sertifikat
+          </span>
+        </div>
+      </div>
+      ${assigned
+        ? `<span style="font-size:11px;color:#5b21b6;background:#ede9fe;padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap;">✅ Biriktirilgan</span>
+           <button onclick="oqVt2Toggle(${t.id},false)"
+             style="padding:7px 13px;background:#fff0f0;border:1.5px solid #fca5a5;border-radius:8px;font-size:12px;cursor:pointer;color:#ef4444;font-weight:600;white-space:nowrap;">
+             Ajratish
+           </button>`
+        : `<button onclick="oqVt2Toggle(${t.id},true)"
+             style="padding:7px 13px;background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:8px;font-size:12px;cursor:pointer;color:#5b21b6;font-weight:600;white-space:nowrap;">
+             + Biriktirish
+           </button>`
+      }
+    </div>`;
+  }).join('');
+}
+
+async function oqVt2Toggle(teacherId, assign) {
+  if (!OQ_VT2_VIEWER) return;
+  const r = assign
+    ? await api.assignViewerTeacher({ username: U.username, parol: U.parol, viewerUsername: OQ_VT2_VIEWER.username, teacherId })
+    : await api.unassignViewerTeacher({ username: U.username, parol: U.parol, viewerUsername: OQ_VT2_VIEWER.username, teacherId });
+
+  if (!r.ok) return toast('❌ ' + r.error, 'error');
+  if (assign) OQ_VT2_ASSIGNED = [...OQ_VT2_ASSIGNED, teacherId];
+  else        OQ_VT2_ASSIGNED = OQ_VT2_ASSIGNED.filter(id => id !== teacherId);
+  oqRenderVT2List();
+}
+
+function oqCloseVTModal2(e) {
+  if (!e || e.target === g('oq-vt2-modal2'))
+    g('oq-vt2-modal2').style.display = 'none';
+}
+
+// Global expose — yangi funksiyalar
+window.oqToggleViewerForm  = oqToggleViewerForm;
+window.oqTogglePw          = oqTogglePw;
+window.oqCreateViewer      = oqCreateViewer;
+window.oqDeleteViewer      = oqDeleteViewer;
+window.oqOpenPVEdit        = oqOpenPVEdit;
+window.oqClosePVEditModal  = oqClosePVEditModal;
+window.oqSaveViewerEdit    = oqSaveViewerEdit;
+window.oqOpenVT2Modal      = oqOpenVT2Modal;
+window.oqRenderVT2List     = oqRenderVT2List;
+window.oqVt2Toggle         = oqVt2Toggle;
+window.oqCloseVTModal2     = oqCloseVTModal2;

@@ -93,27 +93,118 @@
   <!-- PORTFOLIO TAB CONTENT (faqat superadmin) -->
   <div id="oq-tab-portfolio-content" style="display:none;">
 
-    <!-- Viewer banner (Portfolio tabidan kelgan bo'lsa) -->
-    <div id="oq-viewer-banner" style="display:none;background:linear-gradient(135deg,#ede9fe,#ddd6fe);border:1.5px solid #c4b5fd;border-radius:14px;padding:16px 20px;margin-bottom:20px;display:none;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-size:28px;">👁️</span>
+    <!-- ── VIEWERS SECTION ── -->
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;padding:24px;margin-bottom:24px;">
+
+      <!-- Sarlavha -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
         <div>
-          <div style="font-weight:700;font-size:15px;color:#5b21b6;" id="oq-viewer-name">Viewer</div>
-          <div style="font-size:13px;color:#7c3aed;" id="oq-viewer-sub">Portfolio ko'ruvchi</div>
+          <div style="font-size:16px;font-weight:700;color:#111827;">👁️ Portfolio Ko'ruvchilar</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">Viewer portfolio-viewer.html sahifasiga kiradi va faqat biriktirilgan o'qituvchilarni ko'radi</div>
         </div>
-        <button onclick="openVTModalFromOq()"
-          style="margin-left:auto;padding:9px 18px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">
-          ✅ O'qituvchilarni biriktirish
+        <button onclick="oqToggleViewerForm()"
+          style="padding:9px 18px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          ➕ Yangi viewer
         </button>
+      </div>
+
+      <!-- Viewer yaratish formasi (yashirin) -->
+      <div id="oq-viewer-form" style="display:none;background:#f8f9fc;border-radius:12px;padding:18px;margin-bottom:18px;">
+        <div style="font-weight:600;font-size:14px;color:#374151;margin-bottom:14px;">➕ Yangi viewer yaratish</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;">
+          <div>
+            <div style="font-size:11px;color:#6b7280;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">ISM (TO'LIQ)</div>
+            <input id="oq-pv-ism" type="text" placeholder="Abdullayev Jasur"
+              style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;outline:none;font-family:inherit;"
+              onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+          </div>
+          <div>
+            <div style="font-size:11px;color:#6b7280;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">USERNAME</div>
+            <input id="oq-pv-username" type="text" placeholder="jasur_viewer"
+              style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;outline:none;font-family:inherit;"
+              onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+          </div>
+          <div>
+            <div style="font-size:11px;color:#6b7280;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">PAROL</div>
+            <div style="position:relative;">
+              <input id="oq-pv-parol" type="password" placeholder="Parol123!"
+                style="width:100%;box-sizing:border-box;padding:10px 36px 10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;outline:none;font-family:inherit;"
+                onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+              <button onclick="oqTogglePw('oq-pv-parol')" type="button"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;padding:0;">👁</button>
+            </div>
+          </div>
+          <button onclick="oqCreateViewer()"
+            style="padding:10px 18px;background:#6c63ff;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;height:42px;">
+            Yaratish
+          </button>
+        </div>
+        <div id="oq-pv-err" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;"></div>
+      </div>
+
+      <!-- Viewer ro'yxati -->
+      <div id="oq-viewers-list">
+        <div style="text-align:center;padding:24px;color:#9ca3af;font-size:14px;">⏳ Yuklanmoqda…</div>
       </div>
     </div>
 
-    <!-- O'qituvchilar portfolio kartalari -->
+    <!-- ── O'QITUVCHILAR PORTFOLIO ── -->
     <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:16px;">
       🎓 O'qituvchilar Portfolio
       <span style="font-size:13px;font-weight:400;color:#6b7280;margin-left:8px;">Har bir o'qituvchiga portfolio ma'lumotlari va sertifikatlar yuklang</span>
     </div>
     <div id="oq-pt-list"></div>
+
+  </div>
+
+  <!-- Viewer tahrirlash modal -->
+  <div id="oq-pv-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;align-items:center;justify-content:center;" onclick="oqClosePVEditModal(event)">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;padding:28px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.2);" onclick="event.stopPropagation()">
+      <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:20px;">✏️ Viewerni tahrirlash</div>
+      <input type="hidden" id="oq-pve-old-username">
+      <div style="display:grid;gap:14px;">
+        <div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;font-weight:600;">ISM</div>
+          <input id="oq-pve-ism" type="text" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;font-weight:600;">USERNAME</div>
+          <input id="oq-pve-username" type="text" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;font-weight:600;">YANGI PAROL <span style="font-weight:400;">(bo'sh qoldirsangiz o'zgarmaydi)</span></div>
+          <div style="position:relative;">
+            <input id="oq-pve-parol" type="password" placeholder="(o'zgartirilmaydi)"
+              style="width:100%;box-sizing:border-box;padding:10px 36px 10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;outline:none;font-family:inherit;"
+              onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+            <button onclick="oqTogglePw('oq-pve-parol')" type="button"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;padding:0;">👁</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="oqSaveViewerEdit()" style="flex:1;padding:11px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">Saqlash</button>
+        <button onclick="oqClosePVEditModal()" style="padding:11px 18px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;font-size:14px;cursor:pointer;">Bekor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VT Modal — Viewer uchun o'qituvchi biriktirish -->
+  <div id="oq-vt-modal2" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="oqCloseVTModal2(event)">
+    <div style="background:#fff;border-radius:18px;width:100%;max-width:580px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);" onclick="event.stopPropagation()">
+      <div style="padding:22px 26px 16px;border-bottom:1px solid #f3f4f6;">
+        <div id="oq-vt2-title" style="font-weight:700;font-size:15px;color:#111827;margin-bottom:4px;">👨‍🏫 O'qituvchilarni biriktirish</div>
+        <div style="font-size:12px;color:#6b7280;">Belgilangan o'qituvchilarni viewer ko'radi, belgilanmaganlarni ko'rmaydi</div>
+        <input id="oq-vt2-search" type="text" placeholder="🔍 Ism, familiya yoki fan bo'yicha…"
+          oninput="oqRenderVT2List()"
+          style="width:100%;box-sizing:border-box;margin-top:12px;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13px;outline:none;font-family:inherit;"
+          onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+      </div>
+      <div id="oq-vt2-list" style="flex:1;overflow-y:auto;padding:14px 26px;"></div>
+      <div style="padding:14px 26px;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;">
+        <button onclick="oqCloseVTModal2()" style="padding:10px 28px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">✅ Tayyor</button>
+      </div>
+    </div>
   </div>
 
   <!-- PORTFOLIO MODAL -->
@@ -164,16 +255,22 @@
     </div>
   </div>
 
-  <!-- VT MODAL (Viewer uchun o'qituvchilar biriktirish) -->
-  <div id="oq-vt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="oqCloseVTModal(event)">
-    <div style="background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);" onclick="event.stopPropagation()">
-      <div style="padding:24px 28px;border-bottom:1px solid #f3f4f6;">
-        <div id="oq-vt-title" style="font-weight:700;font-size:16px;color:#111827;">👨‍🏫 O'qituvchilar</div>
-        <div style="font-size:13px;color:#6b7280;margin-top:4px;">Belgilangan o'qituvchilarni ko'radi</div>
+
+
+  <!-- VT2 Modal — Viewer uchun o'qituvchi biriktirish -->
+  <div id="oq-vt2-modal2" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="oqCloseVTModal2(event)">
+    <div style="background:#fff;border-radius:18px;width:100%;max-width:580px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);" onclick="event.stopPropagation()">
+      <div style="padding:22px 26px 16px;border-bottom:1px solid #f3f4f6;">
+        <div id="oq-vt2-title" style="font-weight:700;font-size:15px;color:#111827;margin-bottom:4px;">👨‍🏫 O'qituvchilarni biriktirish</div>
+        <div style="font-size:12px;color:#6b7280;">Belgilangan o'qituvchilarni viewer ko'radi, belgilanmaganlarni ko'rmaydi</div>
+        <input id="oq-vt2-search" type="text" placeholder="🔍 Ism, familiya yoki fan bo'yicha…"
+          oninput="oqRenderVT2List()"
+          style="width:100%;box-sizing:border-box;margin-top:12px;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13px;outline:none;font-family:inherit;"
+          onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
       </div>
-      <div id="oq-vt-list" style="flex:1;overflow-y:auto;padding:16px 28px;display:grid;gap:10px;"></div>
-      <div style="padding:16px 28px;border-top:1px solid #f3f4f6;text-align:right;">
-        <button onclick="oqCloseVTModal()" style="padding:10px 24px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">✅ Tayyor</button>
+      <div id="oq-vt2-list" style="flex:1;overflow-y:auto;padding:14px 26px;"></div>
+      <div style="padding:14px 26px;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;">
+        <button onclick="oqCloseVTModal2()" style="padding:10px 28px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">✅ Tayyor</button>
       </div>
     </div>
   </div>
