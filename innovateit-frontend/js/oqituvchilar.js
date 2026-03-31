@@ -1101,14 +1101,16 @@ let OQ_CURRENT_TAB  = 'teachers';
 
 // ─── Tab sozlamalari (init da chaqiriladi) ───
 function initPortfolioTab() {
-  // Faqat superadmin va fromPortfolio bo'lganda tab ko'rinadi
-  if (!U.isSuper || !U.fromPortfolio) return;
+  // Superadmin bo'lsa doim tab ko'rinadi
+  if (!U.isSuper) return;
 
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
 
-  // Portfolio tabiga o'tish
-  switchOqTab('portfolio');
+  // Viewer kartasidan kelgan bo'lsa — Portfolio tabiga o'tish
+  if (U.fromPortfolio) {
+    switchOqTab('portfolio');
+  }
 }
 
 // ─── Tab almashtirish ───
@@ -1152,7 +1154,7 @@ async function loadOqPortfolio() {
 
   try {
     const [tr, vr] = await Promise.all([
-      api.getPortfolioTeachers({ username: U.username, parol: U.parol }),
+      api.getPortfolioTeachers({}),
       api.getPortfolioViewers({ username: U.username, parol: U.parol })
     ]);
     OQ_PT_DATA = tr.ok ? tr.teachers : [];
