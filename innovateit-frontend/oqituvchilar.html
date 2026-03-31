@@ -209,6 +209,71 @@
     </div>
   </div>
 
+  <!-- PORTFOLIO MODAL (o'qituvchi portfolio tahrirlash) -->
+  <div id="oq-portfolio-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="oqClosePModal(event)">
+    <div style="background:#fff;border-radius:18px;width:100%;max-width:780px;max-height:90vh;overflow-y:auto;padding:32px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25);" onclick="event.stopPropagation()">
+
+      <!-- Sarlavha -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+        <div id="oq-pm-avatar" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#4ecdc4);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700;flex-shrink:0;">T</div>
+        <div>
+          <div id="oq-pm-name" style="font-size:18px;font-weight:700;color:#111827;">O'qituvchi</div>
+          <div id="oq-pm-fan" style="font-size:13px;color:#6b7280;margin-top:2px;">Fan</div>
+        </div>
+        <button onclick="oqClosePModal()" style="margin-left:auto;background:none;border:none;font-size:24px;cursor:pointer;color:#9ca3af;padding:4px;">✕</button>
+      </div>
+
+      <input type="hidden" id="oq-pm-teacher-id">
+
+      <div style="display:grid;gap:16px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">F.I.SH. (To'liq ism)</label>
+          <input id="oq-pm-fish" type="text" placeholder="Toshmatov Jasur Aliyevich"
+            style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;"
+            onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">O'qigan yoki bitirgan universiteti</label>
+          <input id="oq-pm-univ" type="text" placeholder="Toshkent Davlat Pedagogika Universiteti"
+            style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;"
+            onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Olgan sertifikatlari (matn)</label>
+          <textarea id="oq-pm-sert" rows="3" placeholder="IELTS 7.0, Cambridge B2..."
+            style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;resize:vertical;font-family:inherit;"
+            onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Ish joylari va Ish tajribasi</label>
+          <textarea id="oq-pm-tajriba" rows="3" placeholder="2018-2020: 45-maktab&#10;2020-hozir: InnovateIT School"
+            style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;resize:vertical;font-family:inherit;"
+            onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+        </div>
+
+        <!-- Sertifikat rasmlari -->
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;">
+            Sertifikat rasmlari
+            <span id="oq-pm-sert-count" style="font-weight:400;color:#6b7280;margin-left:6px;">(0/10)</span>
+          </div>
+          <div id="oq-pm-sert-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:12px;"></div>
+          <label id="oq-pm-upload-label" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:#f3f4f6;border:2px dashed #d1d5db;border-radius:10px;cursor:pointer;font-size:13px;color:#374151;font-weight:500;">
+            📎 Fayl qo'shish (PDF, JPG, PNG)
+            <input type="file" id="oq-pm-sert-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" style="display:none;" onchange="oqUploadSert()">
+          </label>
+          <div style="font-size:11px;color:#9ca3af;margin-top:6px;">Maksimal 10 ta fayl</div>
+        </div>
+      </div>
+
+      <!-- Saqlash -->
+      <div style="display:flex;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid #f3f4f6;">
+        <button onclick="oqSavePortfolio()" style="flex:1;padding:12px;background:linear-gradient(135deg,#6c63ff,#574fd6);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;">💾 Saqlash</button>
+        <button onclick="oqClosePModal()" style="padding:12px 20px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;font-size:15px;cursor:pointer;">Bekor</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JADVAL -->
   <div class="table-card" id="oq-teachers-table">
     <div class="table-header">
