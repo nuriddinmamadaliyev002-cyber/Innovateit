@@ -1500,11 +1500,21 @@ async function oqDeleteViewer(username, ism) {
 
 // ─── Viewer tahrirlash ───
 function oqOpenPVEdit(username, ism) {
-  g('oq-pve-old-username').value = username;
-  g('oq-pve-ism').value          = ism;
-  g('oq-pve-username').value     = username;
-  g('oq-pve-parol').value        = '';
-  g('oq-pv-edit-modal').style.display = 'flex';
+  const modal = g('oq-pv-edit-modal');
+  if (!modal) {
+    toast('❌ Edit modal topilmadi. oqituvchilar.html ni yangilang!', 'error');
+    return;
+  }
+  const oldU = g('oq-pve-old-username');
+  const ismEl = g('oq-pve-ism');
+  const unEl  = g('oq-pve-username');
+  const parEl = g('oq-pve-parol');
+  if (oldU)  oldU.value  = username;
+  if (ismEl) ismEl.value = ism;
+  if (unEl)  unEl.value  = username;
+  if (parEl) parEl.value = '';
+  modal.style.display = 'flex';
+  if (ismEl) setTimeout(() => ismEl.focus(), 100);
 }
 
 function oqClosePVEditModal(e) {
