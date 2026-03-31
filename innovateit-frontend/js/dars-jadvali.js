@@ -11,6 +11,8 @@ let U         = null;   // { username, parol, ism }
 let TEACHERS  = [];     // Barcha o'qituvchilar
 let JADVALLAR = [];     // [{ id, teacher_ism, teacher_familiya, fan, sinflar:[], kunlar:[], boshlanish, tugash }]
 
+let editingJadvalId = null;  // Tahrirlash rejimida saqlangan jadval ID si
+
 let currentTab   = 'jadval';
 let jadvalView   = 'sinf';   // 'sinf' | 'teacher'
 let expJadType   = 'sinf';
@@ -321,6 +323,7 @@ function clearBirik() {
   clearBirikChips();
   g('b-bosh-s').value='08'; g('b-bosh-m').value='00';
   g('b-tug-s').value='14';  g('b-tug-m').value='00';
+  editingJadvalId = null;  // Tahrirlash rejimini tugatish
 }
 
 async function saveBiriktir() {
@@ -341,6 +344,7 @@ async function saveBiriktir() {
   try {
     const r = await api.saveJadval({
       username: U.username, parol: U.parol,
+      id: editingJadvalId || undefined,   // Tahrirlash: UPDATE, yo'q bo'lsa: INSERT
       teacher_ism: teacher ? teacher.ism : teacherVal.split(' ')[0],
       teacher_familiya: teacher ? teacher.familiya : teacherVal.split(' ').slice(1).join(' '),
       fan: teacher ? teacher.fan : '',
@@ -391,9 +395,47 @@ function renderSavedJadvallar() {
 
 function editJadval(idx) {
   const j = JADVALLAR[idx]; if (!j) return;
+
+  // Tahrirlash rejimi — bu jadvalning ID sini eslab qolamiz
+  editingJadvalId = j.id;
+
   switchTab('biriktir', g('tab-biriktir'));
+
+  // O'qituvchini tanlash
   g('b-teacher').value = j.teacher_ism + ' ' + j.teacher_familiya;
-  onTeacherSelect();
+
+  // Avval barcha chiplarni tozalaymiz
+  clearBirikChips();
+  g('b-sinf-panel').style.display = '';
+
+  // Mavjud sinflar ko'rsatiladi
+  const allSinflar = j.sinflar;
+  if (allSinflar.length) {
+    g('b-sinflar-current').innerHTML = allSinflar
+      .map(s => '<span class="cs-sinf">' + s + '</span>').join('');
+  } else {
+    g('b-sinflar-current').innerHTML = '<span class="cs-empty">Hali biriktirilmagan</span>';
+  }
+
+  // Sinflar chiplarini belgilash
+  allSinflar.forEach(s => {
+    const chip = g('b-sinf-chips').querySelector('[data-s="' + s + '"]');
+    if (chip) chip.classList.add('sel');
+  });
+
+  // Kunlar chiplarini belgilash
+  j.kunlar.forEach(k => {
+    const chip = g('b-kun-chips').querySelector('[data-k="' + k + '"]');
+    if (chip) chip.classList.add('sel');
+  });
+
+  // Vaqtni to'ldirish
+  if (j.boshlanish) {
+    const [bs, bm] = (j.boshlanish || '08:00').split(':');
+    const [ts, tm] = (j.tugash     || '14:00').split(':');
+    g('b-bosh-s').value = bs || '08'; g('b-bosh-m').value = bm || '00';
+    g('b-tug-s').value  = ts || '14'; g('b-tug-m').value  = tm || '00';
+  }
 }
 
 async function deleteJadval(id, name) {
