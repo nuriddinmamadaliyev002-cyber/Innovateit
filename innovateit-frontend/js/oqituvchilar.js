@@ -1101,14 +1101,16 @@ let OQ_CURRENT_TAB  = 'teachers';
 
 // ─── Tab sozlamalari (init da chaqiriladi) ───
 function initPortfolioTab() {
-  // Faqat superadmin va fromPortfolio bo'lganda tab ko'rinadi
-  if (!U.isSuper || !U.fromPortfolio) return;
+  // Faqat superadmin uchun tab ko'rinadi
+  if (!U.isSuper) return;
 
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
 
-  // Portfolio tabiga o'tish
-  switchOqTab('portfolio');
+  // Viewer kartasidan kelgan bo'lsa — Portfolio tabiga o'tish
+  if (U.fromPortfolio) {
+    switchOqTab('portfolio');
+  }
 }
 
 // ─── Tab almashtirish ───
