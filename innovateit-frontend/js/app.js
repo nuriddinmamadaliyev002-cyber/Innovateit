@@ -1270,16 +1270,26 @@ function renderVTList() {
   }
 
   el.innerHTML = filtered.map(t => {
-    const assigned = VT_ASSIGNED_IDS.includes(t.id);
-    const colors   = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
-    const clr      = colors[t.id % colors.length];
-    const initials = ((t.ism||'')[0]||'T').toUpperCase();
+    const assigned  = VT_ASSIGNED_IDS.includes(t.id);
+    const colors    = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
+    const clr       = colors[t.id % colors.length];
+    const initials  = ((t.ism||'')[0]||'T').toUpperCase();
+    const hasProfil = !!(t.fish || t.universitet || t.sertifikatlar || t.ish_tajribasi);
+    const sertSoni  = parseInt(t.sert_soni) || 0;
     return `
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid ${assigned?'#a5b4fc':'#e5e7eb'};background:${assigned?'#f5f3ff':'#fff'};margin-bottom:8px;transition:all .2s;">
         <div style="width:38px;height:38px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0;">${initials}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:13px;color:#111827;">${esc(t.ism)} ${esc(t.familiya)}</div>
-          <div style="font-size:11px;color:#6b7280;">${esc(t.fan||'Fan ko\'rsatilmagan')}</div>
+          <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">${esc(t.fan||'Fan ko\'rsatilmagan')}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${hasProfil?'#d1fae5':'#f3f4f6'};color:${hasProfil?'#065f46':'#9ca3af'};">
+              ${hasProfil ? '✅ Profil bor' : '❌ Profil yo\'q'}
+            </span>
+            <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${sertSoni>0?'#ede9fe':'#f3f4f6'};color:${sertSoni>0?'#5b21b6':'#9ca3af'};">
+              📎 ${sertSoni}/10 sertifikat
+            </span>
+          </div>
         </div>
         ${assigned
           ? `<span style="font-size:11px;color:#5b21b6;background:#ede9fe;padding:3px 9px;border-radius:20px;font-weight:600;">✅ Biriktirilgan</span>
