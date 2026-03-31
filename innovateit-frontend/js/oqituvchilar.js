@@ -173,6 +173,7 @@ function renderTable(d) {
         + '<td>'
           + '<div style="display:flex;gap:6px;">'
             + '<button class="btn-action" onclick="openSuperEdit(' + t.id + ')" title="Tahrirlash">✏️</button>'
+            + '<button class="btn-action" onclick="openMergeModal(' + t.ri + ')" title="Birlashtirish" style="color:#8b5cf6;">🔀</button>'
             + '<button class="btn-action" onclick="confirmDelSuper(' + t.ri + ')" title="O\'chirish" style="color:#ef4444;">🗑️</button>'
           + '</div>'
         + '</td>'
@@ -344,12 +345,84 @@ function injectSuperModals() {
 
   document.body.insertAdjacentHTML('beforeend', addHtml);
   document.body.insertAdjacentHTML('beforeend', editHtml);
+  const mergeHtml = `
+<div class="modal-overlay" id="merge-modal" style="display:none;" onclick="if(event.target===this)closeMergeModal()">
+  <div class="modal" style="max-width:640px;max-height:92vh;overflow-y:auto;">
+    <div class="modal-drag"></div>
+    <div class="modal-title">🔀 O’qituvchilarni birlashtirish</div>
+
+    <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#6b21a8;line-height:1.6;">
+      ⚠️ Birlashtirilgandan so’ng <strong>o’chirilgan o’qituvchi qayta tiklanmaydi.</strong><br>
+      Uning barcha davomatlari, dars jadvali, maktablari va portfoliosi <strong>saqlanadigan o’qituvchiga</strong> o’tkaziladi.
+    </div>
+
+    <!-- Ikki o'qituvchi -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+        <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
+          ✅ Saqlanadigan
+        </div>
+        <div id="mg-keep-name" style="font-size:15px;font-weight:600;color:#111827;"></div>
+        <div id="mg-keep-fan"  style="font-size:12px;color:#6b7280;margin-top:2px;"></div>
+        <div id="mg-keep-maktab" style="font-size:11px;color:#059669;margin-top:4px;"></div>
+      </div>
+      <div style="padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
+        <div style="font-size:11px;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
+          🗑️ O’chiriladigan
+        </div>
+        <div id="mg-remove-name" style="font-size:15px;font-weight:600;color:#111827;"></div>
+        <div id="mg-remove-fan"  style="font-size:12px;color:#6b7280;margin-top:2px;"></div>
+        <div id="mg-remove-maktab" style="font-size:11px;color:#ea580c;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- Qaysi ma'lumotni saqlash -->
+    <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;">
+      📋 Qaysi ma’lumotni saqlash kerak?
+    </div>
+
+    <div style="display:grid;gap:12px;margin-bottom:20px;">
+      <!-- Ism -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Ism va familiya</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mg-name-options"></div>
+        <input class="field-input" id="mg-ism" placeholder="Ism" style="margin-top:8px;display:none;" autocomplete="off">
+        <input class="field-input" id="mg-familiya" placeholder="Familiya" style="margin-top:6px;display:none;" autocomplete="off">
+      </div>
+      <!-- Telefon -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Telefon raqam</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mg-tel-options"></div>
+        <div class="tel-wrap" style="margin-top:8px;display:none;" id="mg-tel-custom-wrap">
+          <input class="field-input tel-input" id="mg-tel" placeholder="+998 __ ___ __ __" maxlength="17" inputmode="tel">
+          <div class="tel-hint" id="mg-tel-hint"></div>
+        </div>
+        <div class="tel-wrap" style="margin-top:6px;display:none;" id="mg-tel2-custom-wrap">
+          <input class="field-input tel-input" id="mg-tel2" placeholder="Qo‘shimcha telefon (ixtiyoriy)" maxlength="17" inputmode="tel">
+          <div class="tel-hint" id="mg-tel2-hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeMergeModal()">Bekor</button>
+      <button class="btn-submit" id="mg-save-btn" onclick="confirmMerge()" style="background:#8b5cf6;">
+        <span class="spinner" id="mg-spinner"></span>
+        <span id="mg-btn-txt">🔀 Birlashtirish</span>
+      </button>
+    </div>
+  </div>
+</div>`;
+
+  document.body.insertAdjacentHTML('beforeend', mergeHtml);
 
   // Tel inputlarini sozlash
   setupTel('sa-tel', 'sa-tel-hint');
   setupTel('sa-tel2', 'sa-tel2-hint');
   setupTel('se-tel', 'se-tel-hint');
   setupTel('se-tel2', 'se-tel2-hint');
+  setupTel('mg-tel',  'mg-tel-hint');
+  setupTel('mg-tel2', 'mg-tel2-hint');
 }
 
 function openSuperAdd() {
@@ -579,6 +652,253 @@ async function deleteSeSeert(filename) {
 }
 
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  SUPERADMIN: BIRLASHTIRISH
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Merge uchun state
+let MG_KEEP_RI   = null;  // saqlanadigan o'qituvchi index (T massivida)
+let MG_REMOVE_RI = null;  // o'chiriladigan o'qituvchi index
+
+function openMergeModal(ri) {
+  if (!U || !U.isSuper) return;
+  const keep = T[ri];
+  if (!keep) return;
+
+  // Bir xil ism-familiya bo'lgan boshqa o'qituvchilarni topish
+  const sameNameCandidates = T.filter(t =>
+    t.ri !== ri &&
+    t.ism.trim().toLowerCase() === keep.ism.trim().toLowerCase() &&
+    t.familiya.trim().toLowerCase() === keep.familiya.trim().toLowerCase()
+  );
+
+  // Agar bir xil ism-familiya bo'lmasa — barcha boshqa o'qituvchilar
+  const candidates = sameNameCandidates.length > 0 ? sameNameCandidates : T.filter(t => t.ri !== ri);
+
+  if (candidates.length === 0) {
+    toast('⚠️ Birlashtirish uchun boshqa o\'qituvchi yo\'q', 'error');
+    return;
+  }
+
+  // Agar bitta aniq kandidat bo'lsa — uni avtomatik tanlaymiz
+  let removeRi;
+  if (sameNameCandidates.length === 1) {
+    removeRi = sameNameCandidates[0].ri;
+  } else {
+    // Ro'yxatdan tanlash
+    const lines = candidates.map((c, i) =>
+      `${i+1}. ${c.ism} ${c.familiya} — ${c.fan||"Fan yo'q"} — Maktablar: ${(c.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ')||'Biriktirilmagan'}`
+    );
+    const choice = prompt(
+      '🔀 Qaysi o\'qituvchini o\'chirish (birlashtirish) kerak?\n\nSaqlanadigan: ' + keep.ism + ' ' + keep.familiya +
+      '\n\nO\'chirish uchun raqam kiriting:\n' + lines.join('\n')
+    );
+    if (!choice) return;
+    const pickIdx = parseInt(choice.trim()) - 1;
+    if (isNaN(pickIdx) || pickIdx < 0 || pickIdx >= candidates.length) {
+      toast('❌ Noto\'g\'ri raqam', 'error'); return;
+    }
+    removeRi = candidates[pickIdx].ri;
+  }
+
+  MG_KEEP_RI   = ri;
+  MG_REMOVE_RI = removeRi;
+  renderMergeModal();
+}
+
+function renderMergeModal() {
+  const keep   = T[MG_KEEP_RI];
+  const remove = T[MG_REMOVE_RI];
+  if (!keep || !remove) return;
+
+  // Info panellarini to'ldirish
+  g('mg-keep-name').textContent   = keep.ism + ' ' + keep.familiya;
+  g('mg-keep-fan').textContent    = keep.fan || "Fan ko'rsatilmagan";
+  g('mg-keep-maktab').textContent = (keep.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ') || 'Maktab biriktirilmagan';
+
+  g('mg-remove-name').textContent   = remove.ism + ' ' + remove.familiya;
+  g('mg-remove-fan').textContent    = remove.fan || "Fan ko'rsatilmagan";
+  g('mg-remove-maktab').textContent = (remove.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ') || 'Maktab biriktirilmagan';
+
+  // Ism/familiya tanlov tugmalari
+  const keepName   = keep.ism   + ' ' + keep.familiya;
+  const removeName = remove.ism + ' ' + remove.familiya;
+  const sameNames  = keepName.toLowerCase() === removeName.toLowerCase();
+
+  const nameOpts = g('mg-name-options');
+  nameOpts.innerHTML = '';
+  if (!sameNames) {
+    nameOpts.innerHTML =
+      mkChoiceBtn('mg-name', 'keep',   keep.ism   + ' ' + keep.familiya,   true)  +
+      mkChoiceBtn('mg-name', 'remove', remove.ism + ' ' + remove.familiya, false) +
+      mkChoiceBtn('mg-name', 'custom', '✳ Boshqa kiriting…',               false);
+  } else {
+    nameOpts.innerHTML = '<span style="font-size:13px;color:#374151;padding:6px 0;">' + esc2(keepName) + ' <span style="color:#6b7280;">(ikkalasida bir xil)</span></span>';
+  }
+  g('mg-ism').value      = keep.ism;
+  g('mg-familiya').value = keep.familiya;
+  toggleMgNameInputs();
+
+  // Telefon tanlov tugmalari
+  const telOpts   = g('mg-tel-options');
+  telOpts.innerHTML = '';
+  const keepTel   = (keep.telefon  ||'').trim();
+  const removeTel = (remove.telefon||'').trim();
+  const sameTels  = keepTel.toLowerCase() === removeTel.toLowerCase();
+
+  if (!sameTels && (keepTel || removeTel)) {
+    if (keepTel)   telOpts.innerHTML += mkChoiceBtn('mg-tel', 'keep',   keepTel,               true);
+    if (removeTel) telOpts.innerHTML += mkChoiceBtn('mg-tel', 'remove', removeTel,             false);
+                   telOpts.innerHTML += mkChoiceBtn('mg-tel', 'custom', '✳ Boshqa kiriting…',  false);
+  } else {
+    const showTel = keepTel || removeTel || '—';
+    telOpts.innerHTML = '<span style="font-size:13px;color:#374151;padding:6px 0;">' + esc2(showTel) + ' <span style="color:#6b7280;">(bir xil)</span></span>';
+  }
+  g('mg-tel').value  = keepTel;
+  g('mg-tel2').value = (keep.telefon2||'').trim() || (remove.telefon2||'').trim();
+  toggleMgTelInputs();
+
+  // Tugmalarga onclick qo'shamiz
+  document.querySelectorAll('[data-mg-group]').forEach(btn => {
+    btn.onclick = function() { mgChoicePick(this); };
+  });
+
+  const modal = g('merge-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function mkChoiceBtn(group, value, label, active) {
+  const border = active ? '#8b5cf6' : '#e5e7eb';
+  const bg     = active ? '#ede9fe' : '#f9fafb';
+  const color  = active ? '#5b21b6' : '#374151';
+  return `<button type="button" data-mg-group="${group}" data-mg-val="${value}" `
+    + `style="padding:7px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;`
+    + `border:2px solid ${border};background:${bg};color:${color};">`
+    + esc2(label)
+    + `</button>`;
+}
+
+function mgChoicePick(btn) {
+  const group = btn.dataset.mgGroup;
+  document.querySelectorAll(`[data-mg-group="${group}"]`).forEach(b => {
+    b.style.borderColor = '#e5e7eb';
+    b.style.background  = '#f9fafb';
+    b.style.color       = '#374151';
+  });
+  btn.style.borderColor = '#8b5cf6';
+  btn.style.background  = '#ede9fe';
+  btn.style.color       = '#5b21b6';
+
+  if (group === 'mg-name') toggleMgNameInputs();
+  if (group === 'mg-tel')  toggleMgTelInputs();
+}
+
+function getMgChoice(group) {
+  const active = [...document.querySelectorAll(`[data-mg-group="${group}"]`)]
+    .find(b => b.style.borderColor === 'rgb(139, 92, 246)' || b.style.borderColor === '#8b5cf6');
+  return active ? active.dataset.mgVal : null;
+}
+
+function toggleMgNameInputs() {
+  const choice = getMgChoice('mg-name');
+  const show = choice === 'custom';
+  g('mg-ism').style.display      = show ? '' : 'none';
+  g('mg-familiya').style.display = show ? '' : 'none';
+  if (choice === 'keep') {
+    const k = T[MG_KEEP_RI]; if(k){ g('mg-ism').value=k.ism; g('mg-familiya').value=k.familiya; }
+  } else if (choice === 'remove') {
+    const r = T[MG_REMOVE_RI]; if(r){ g('mg-ism').value=r.ism; g('mg-familiya').value=r.familiya; }
+  }
+}
+
+function toggleMgTelInputs() {
+  const choice = getMgChoice('mg-tel');
+  const show = choice === 'custom';
+  const w1 = g('mg-tel-custom-wrap'),  w2 = g('mg-tel2-custom-wrap');
+  if(w1) w1.style.display = show ? '' : 'none';
+  if(w2) w2.style.display = show ? '' : 'none';
+  if (choice === 'keep') {
+    const k = T[MG_KEEP_RI]; if(k){ g('mg-tel').value=k.telefon||''; g('mg-tel2').value=k.telefon2||''; }
+  } else if (choice === 'remove') {
+    const r = T[MG_REMOVE_RI]; if(r){ g('mg-tel').value=r.telefon||''; g('mg-tel2').value=r.telefon2||''; }
+  }
+}
+
+function closeMergeModal() {
+  const m = g('merge-modal'); if(m) m.style.display='none';
+  MG_KEEP_RI = null; MG_REMOVE_RI = null;
+}
+
+async function confirmMerge() {
+  if (MG_KEEP_RI === null || MG_REMOVE_RI === null) return;
+  const keep   = T[MG_KEEP_RI];
+  const remove = T[MG_REMOVE_RI];
+  if (!keep || !remove) return;
+
+  // Ism/familiya aniqlash
+  let ism, familiya;
+  const nameChoice = getMgChoice('mg-name');
+  if (!nameChoice || nameChoice === 'keep') {
+    ism = keep.ism; familiya = keep.familiya;
+  } else if (nameChoice === 'remove') {
+    ism = remove.ism; familiya = remove.familiya;
+  } else {
+    ism      = (g('mg-ism').value||'').trim();
+    familiya = (g('mg-familiya').value||'').trim();
+    if (!ism || !familiya) { toast('❌ Ism va familiya kiritilmagan', 'error'); return; }
+  }
+
+  // Telefon aniqlash
+  let telefon, telefon2;
+  const telChoice = getMgChoice('mg-tel');
+  if (!telChoice || telChoice === 'keep') {
+    telefon  = keep.telefon  || '';
+    telefon2 = keep.telefon2 || '';
+  } else if (telChoice === 'remove') {
+    telefon  = remove.telefon  || '';
+    telefon2 = remove.telefon2 || '';
+  } else {
+    telefon  = (g('mg-tel').value||'').trim();
+    telefon2 = (g('mg-tel2').value||'').trim();
+  }
+
+  if (!confirm(
+    `🔀 Birlashtirish tasdiqlandi?\n\n` +
+    `✅ Saqlanadigan: ${keep.ism} ${keep.familiya}\n` +
+    `🗑️ O'chiriladigan: ${remove.ism} ${remove.familiya}\n\n` +
+    `Natijadagi ism: ${ism} ${familiya}\n` +
+    `Telefon: ${telefon||'—'}\n\n` +
+    `Barcha maktablar, davomat va portfolio birlashtiriladi.`
+  )) return;
+
+  const btn = g('mg-save-btn');
+  const sp  = g('mg-spinner');
+  const tx  = g('mg-btn-txt');
+  btn.disabled = true; sp.style.display='inline-block'; tx.textContent='Birlashtirilyapti...';
+
+  try {
+    const d = await api.mergeTeachers({
+      username: U.username,
+      parol:    U.parol,
+      keepId:   keep.id,
+      removeId: remove.id,
+      ism, familiya, telefon, telefon2
+    });
+    if (d.ok) {
+      closeMergeModal();
+      toast('🔀 Muvaffaqiyatli birlashtirildi!', 'success');
+      await loadTeachers();
+    } else {
+      toast('❌ ' + (d.error||'Xatolik'), 'error');
+    }
+  } catch(e) {
+    toast('❌ Server xatoligi', 'error');
+  } finally {
+    btn.disabled = false; sp.style.display='none'; tx.textContent='🔀 Birlashtirish';
+  }
+}
+
+
 //  SUPERADMIN: O'CHIRISH
 // ─────────────────────────────────────────────
 function confirmDelSuper(ri) {

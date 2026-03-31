@@ -213,4 +213,107 @@ router.delete('/maktab', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── POST /api/teachers/merge — superadmin: ikki o'qituvchini birlashtirish ───
+// body: {
+//   username, parol,
+//   keepId,   — saqlanadigan o'qituvchi ID
+//   removeId, — o'chiriladigan o'qituvchi ID
+//   ism, familiya, telefon, telefon2  — qaysi ma'lumotlar saqlansin
+// }
+router.post('/merge', async (req, res) => {
+  const { username, parol, keepId, removeId, ism, familiya, telefon, telefon2 } = req.body;
+
+  const admin = await verifyAdmin(username, parol);
+  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: 'Faqat superadmin uchun' });
+  if (!keepId || !removeId) return res.status(400).json({ ok: false, error: 'keepId va removeId kerak' });
+  if (keepId === removeId) return res.status(400).json({ ok: false, error: 'Bir xil o\'qituvchi tanlangan' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Ikkalasi ham mavjudligini tekshirish
+    const both = await client.query(
+      'SELECT id, ism, familiya FROM oqituvchilar WHERE id = ANY($1)',
+      [[keepId, removeId]]
+    );
+    if (both.rows.length < 2) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ ok: false, error: 'O\'qituvchilardan biri topilmadi' });
+    }
+
+    // 1. Saqlanadigan o'qituvchi ma'lumotlarini yangilash
+    await client.query(
+      `UPDATE oqituvchilar SET ism=$1, familiya=$2, telefon=$3, telefon2=$4 WHERE id=$5`,
+      [(ism||'').trim(), (familiya||'').trim(), (telefon||'').trim(), (telefon2||'').trim(), keepId]
+    );
+
+    // 2. oqituvchi_maktablar: removeId maktablarini keepId ga ko'chirish (takrorlanmasin)
+    await client.query(`
+      INSERT INTO oqituvchi_maktablar (oqituvchi_id, admin_username)
+      SELECT $1, admin_username FROM oqituvchi_maktablar WHERE oqituvchi_id = $2
+      ON CONFLICT (oqituvchi_id, admin_username) DO NOTHING
+    `, [keepId, removeId]);
+
+    // 3. oqituvchilar_davomat: removeId → keepId (ism bilan saqlanadi, yangisini yozamiz)
+    //    ism/familiya TEXT sifatida saqlanadi — yangilangan ism bilan almashtiramiz
+    const newFullIsm = (ism||'').trim() + ' ' + (familiya||'').trim();
+    const keepRow = both.rows.find(r => r.id == keepId);
+    const removeRow = both.rows.find(r => r.id == removeId);
+    const removeFullIsm = removeRow.ism + ' ' + removeRow.familiya;
+
+    // oqituvchilar_davomat da ism maydoni "Ism Familiya" yoki faqat "Ism" bo'lishi mumkin
+    await client.query(`
+      UPDATE oqituvchilar_davomat
+      SET oqituvchi_ism = $1
+      WHERE oqituvchi_ism = $2 OR oqituvchi_ism = $3 OR oqituvchi_ism = $4
+    `, [newFullIsm, removeFullIsm, removeRow.ism, removeRow.familiya]);
+
+    // 4. dars_jadvali: teacher_ism + teacher_familiya orqali yangilash
+    await client.query(`
+      UPDATE dars_jadvali
+      SET teacher_ism = $1, teacher_familiya = $2
+      WHERE teacher_ism = $3 AND teacher_familiya = $4
+    `, [(ism||'').trim(), (familiya||'').trim(), removeRow.ism, removeRow.familiya]);
+
+    // 5. oqituvchi_portfolio: removeId → keepId (agar keepId da portfolio yo'q bo'lsa ko'chir)
+    const keepPortfolio = await client.query(
+      'SELECT id FROM oqituvchi_portfolio WHERE oqituvchi_id = $1', [keepId]
+    );
+    if (keepPortfolio.rows.length === 0) {
+      // keepId da portfolio yo'q — removeid nikini ko'chiramiz
+      await client.query(
+        'UPDATE oqituvchi_portfolio SET oqituvchi_id = $1 WHERE oqituvchi_id = $2',
+        [keepId, removeId]
+      );
+    }
+    // Aks holda removeId portfolio o'chib ketadi (CASCADE bilan)
+
+    // 6. oqituvchi_sertifikat_fayllar: removeId fayllarini keepId ga ko'chirish
+    await client.query(
+      'UPDATE oqituvchi_sertifikat_fayllar SET oqituvchi_id = $1 WHERE oqituvchi_id = $2',
+      [keepId, removeId]
+    );
+
+    // 7. viewer_teachers: removeId → keepId
+    await client.query(`
+      INSERT INTO viewer_teachers (viewer_username, teacher_id)
+      SELECT viewer_username, $1 FROM viewer_teachers WHERE teacher_id = $2
+      ON CONFLICT (viewer_username, teacher_id) DO NOTHING
+    `, [keepId, removeId]);
+
+    // 8. removeId o'qituvchini o'chirish (CASCADE: oqituvchi_maktablar, viewer_teachers, oqituvchi_portfolio, sertifikatlar ham o'chadi)
+    await client.query('DELETE FROM oqituvchilar WHERE id = $1', [removeId]);
+
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('merge xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

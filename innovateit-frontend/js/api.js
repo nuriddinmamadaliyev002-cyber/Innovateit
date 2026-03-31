@@ -78,6 +78,7 @@ const api = {
   assignTeacher:       (d) => api.put('/api/teachers/assign', d),
   addTeacherMaktab:    (d) => api.post('/api/teachers/maktab', d),
   removeTeacherMaktab: (d) => api.del('/api/teachers/maktab', d),
+  mergeTeachers:       (d) => api.post('/api/teachers/merge', d),
 
   // ─── Buxgalter ───
   getBiriktirmalar: (d) => api.get('/api/buxgalter', d),
