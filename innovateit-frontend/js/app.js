@@ -75,7 +75,8 @@ async function doLogin() {
         // Buxgalter ham bo'lmasa, viewer sifatida tekshiramiz
         const rv = await api.loginViewer({ username, parol });
         if (rv.ok) {
-          localStorage.setItem('iit_viewer_u', JSON.stringify({ username, parol, ism: rv.ism }));
+          // token alohida innovateit_viewer_token ga saqlanadi (api.loginViewer ichida)
+          localStorage.setItem('iit_viewer_u', JSON.stringify({ username, ism: rv.ism }));
           window.location.href = 'portfolio-viewer.html';
         } else {
           showErr(g('login-err'), "Username yoki parol noto'g'ri");

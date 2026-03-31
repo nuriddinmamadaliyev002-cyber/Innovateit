@@ -419,13 +419,32 @@ const BASE = (location.hostname === 'localhost' || location.hostname === '127.0.
   ? 'http://127.0.0.1:3001' : '';
 
 // ─── STATE ───
-let SESSION   = null;  // { username, parol, ism }
+let SESSION   = null;  // { ism }
+const VIEWER_TOKEN_KEY = 'innovateit_viewer_token';
 
-// index.html dan redirect bo'lsa iit_viewer_u dan avtomatik kirish
+// Bearer token yordamchi
+function pvFetch(url, opts = {}) {
+  const token = localStorage.getItem(VIEWER_TOKEN_KEY);
+  if (token) {
+    opts.headers = opts.headers || {};
+    opts.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return fetch(url, opts).then(r => r.json());
+}
+
+// index.html dan redirect bo'lsa avtomatik kirish
 window.addEventListener('DOMContentLoaded', () => {
+  const token = localStorage.getItem(VIEWER_TOKEN_KEY);
   const saved = localStorage.getItem('iit_viewer_u');
-  if (saved) {
+  if (token && saved) {
     try {
+      // Token muddatini tekshirish
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem(VIEWER_TOKEN_KEY);
+        localStorage.removeItem('iit_viewer_u');
+        return;
+      }
       const u = JSON.parse(saved);
       SESSION = u;
       document.getElementById('t-user').textContent = `Salom, ${u.ism}`;
@@ -433,6 +452,7 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('main-page').style.display  = 'block';
       loadTeachers();
     } catch(e) {
+      localStorage.removeItem(VIEWER_TOKEN_KEY);
       localStorage.removeItem('iit_viewer_u');
     }
   }
@@ -482,7 +502,10 @@ async function doLogin() {
       return;
     }
 
-    SESSION = { username, parol, ism: r.ism };
+    // Tokenni alohida saqlaymiz
+    localStorage.setItem(VIEWER_TOKEN_KEY, r.token);
+    localStorage.setItem('iit_viewer_u', JSON.stringify({ ism: r.ism }));
+    SESSION = { ism: r.ism };
     document.getElementById('t-user').textContent = `Salom, ${r.ism}`;
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('main-page').style.display  = 'block';
@@ -496,6 +519,7 @@ async function doLogin() {
 function doLogout() {
   SESSION = null;
   TEACHERS = [];
+  localStorage.removeItem(VIEWER_TOKEN_KEY);
   localStorage.removeItem('iit_viewer_u');
   document.getElementById('login-page').style.display = 'flex';
   document.getElementById('main-page').style.display  = 'none';
@@ -505,7 +529,7 @@ function doLogout() {
 // ─── LOAD TEACHERS ───
 async function loadTeachers() {
   try {
-    const r = await fetch(`${BASE}/api/portfolio/teachers?username=${encodeURIComponent(SESSION.username)}&parol=${encodeURIComponent(SESSION.parol)}`).then(r => r.json());
+    const r = await pvFetch(`${BASE}/api/portfolio/teachers`);
     if (!r.ok) return toast('❌ ' + r.error, 'error');
     TEACHERS = r.teachers || [];
     renderTeachers(TEACHERS);
@@ -556,7 +580,7 @@ function filterTeachers() {
 // ─── OPEN DETAIL MODAL ───
 async function openDetail(id) {
   try {
-    const r = await fetch(`${BASE}/api/portfolio/teacher/${id}?username=${encodeURIComponent(SESSION.username)}&parol=${encodeURIComponent(SESSION.parol)}`).then(r => r.json());
+    const r = await pvFetch(`${BASE}/api/portfolio/teacher/${id}`);
     if (!r.ok) return toast('❌ ' + r.error, 'error');
 
     CUR_TEACHER = r;

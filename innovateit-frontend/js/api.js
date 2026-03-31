@@ -123,7 +123,8 @@ const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(d)
     }).then(r => r.json());
-    if (res.ok && res.token) tokenStore.set(res.token);
+    // MUHIM: viewer tokeni alohida saqlanadi, admin tokenini o'chirmasligi uchun
+    if (res.ok && res.token) localStorage.setItem('innovateit_viewer_token', res.token);
     return res;
   },
   logout: () => {
