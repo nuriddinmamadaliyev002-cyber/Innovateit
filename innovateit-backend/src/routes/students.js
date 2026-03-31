@@ -8,22 +8,23 @@
 // POST   /api/students/activate  — faolga qaytarish
 // PUT    /api/students/inactive  — nofaolni tahrirlash
 // DELETE /api/students/inactive  — nofaolni o'chirish
-const { Router } = require('express');
-const pool = require('../db');
-const { verifyAdmin } = require('../middleware/auth');
+const { Router }        = require('express');
+const pool              = require('../db');
+const { requireAuth }   = require('../middleware/jwt');
 
 const router = Router();
+
+// Barcha student routerlari faqat adminlar uchun
+router.use(requireAuth(['admin']));
 
 function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 
 // ─── GET /api/students ───
 router.get('/', async (req, res) => {
-  const { username, parol } = req.query;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
-  const query  = admin.isSuper ? 'SELECT * FROM oquvchilar ORDER BY id' : 'SELECT * FROM oquvchilar WHERE admin=$1 ORDER BY id';
-  const params = admin.isSuper ? [] : [username];
+  const query  = isSuper ? 'SELECT * FROM oquvchilar ORDER BY id' : 'SELECT * FROM oquvchilar WHERE admin=$1 ORDER BY id';
+  const params = isSuper ? [] : [username];
   const result = await pool.query(query, params);
   res.json({ ok: true, students: result.rows.map(r => ({
     ism: r.ism, familiya: r.familiya, maktab: r.maktab, sinf: r.sinf,
@@ -35,14 +36,13 @@ router.get('/', async (req, res) => {
 // ─── POST /api/students ───
 router.post('/', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username } = req.user;
 
   await pool.query(
     `INSERT INTO oquvchilar (ism,familiya,maktab,sinf,telefon,telefon2,tug,manzil,admin,qoshilgan,boshlagan)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
     [p.ism, p.familiya, p.maktab, p.sinf, p.telefon, p.telefon2||'',
-     p.tug, p.manzil||'', p.username, p.date||todayUZ(), p.boshlagan||'']
+     p.tug, p.manzil||'', username, p.date||todayUZ(), p.boshlagan||'']
   );
   res.json({ ok: true });
 });
@@ -50,15 +50,14 @@ router.post('/', async (req, res) => {
 // ─── PUT /api/students ───
 router.put('/', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   const result = await pool.query(
     `UPDATE oquvchilar SET ism=$1,familiya=$2,maktab=$3,sinf=$4,telefon=$5,telefon2=$6,tug=$7,manzil=$8,boshlagan=$9
-     WHERE ism=$10 AND familiya=$11 ${!admin.isSuper ? 'AND admin=$12' : ''}`,
-    admin.isSuper
+     WHERE ism=$10 AND familiya=$11 ${!isSuper ? 'AND admin=$12' : ''}`,
+    isSuper
       ? [p.ism, p.familiya, p.maktab, p.sinf, p.telefon, p.telefon2||'', p.tug, p.manzil||'', p.boshlagan||'', p.oldIsm, p.oldFamiliya]
-      : [p.ism, p.familiya, p.maktab, p.sinf, p.telefon, p.telefon2||'', p.tug, p.manzil||'', p.boshlagan||'', p.oldIsm, p.oldFamiliya, p.username]
+      : [p.ism, p.familiya, p.maktab, p.sinf, p.telefon, p.telefon2||'', p.tug, p.manzil||'', p.boshlagan||'', p.oldIsm, p.oldFamiliya, username]
   );
   if (result.rowCount === 0) return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" });
   res.json({ ok: true });
@@ -67,12 +66,11 @@ router.put('/', async (req, res) => {
 // ─── DELETE /api/students ───
 router.delete('/', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   const result = await pool.query(
-    `DELETE FROM oquvchilar WHERE ism=$1 AND familiya=$2 ${!admin.isSuper ? 'AND admin=$3' : ''}`,
-    admin.isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, p.username]
+    `DELETE FROM oquvchilar WHERE ism=$1 AND familiya=$2 ${!isSuper ? 'AND admin=$3' : ''}`,
+    isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, username]
   );
   if (result.rowCount === 0) return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" });
   res.json({ ok: true });
@@ -81,8 +79,7 @@ router.delete('/', async (req, res) => {
 // ─── POST /api/students/inactive — nofaolga o'tkazish ───
 router.post('/inactive', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   const izoh = (p.izoh || '').trim();
   if (!izoh) return res.status(400).json({ ok: false, error: 'Chiqish sababi (izoh) majburiy' });
@@ -92,10 +89,13 @@ router.post('/inactive', async (req, res) => {
   try {
     await client.query('BEGIN');
     const findResult = await client.query(
-      `SELECT * FROM oquvchilar WHERE ism=$1 AND familiya=$2 ${!admin.isSuper ? 'AND admin=$3' : ''} LIMIT 1`,
-      admin.isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, p.username]
+      `SELECT * FROM oquvchilar WHERE ism=$1 AND familiya=$2 ${!isSuper ? 'AND admin=$3' : ''} LIMIT 1`,
+      isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, username]
     );
-    if (findResult.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" }); }
+    if (findResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" });
+    }
     const s = findResult.rows[0];
     await client.query(
       `INSERT INTO nofaol_oquvchilar (ism,familiya,maktab,sinf,telefon,telefon2,tug,manzil,admin,qoshilgan,boshlagan,chiqgan,izoh)
@@ -111,12 +111,10 @@ router.post('/inactive', async (req, res) => {
 
 // ─── GET /api/students/inactive ───
 router.get('/inactive', async (req, res) => {
-  const { username, parol } = req.query;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
-  const query  = admin.isSuper ? 'SELECT * FROM nofaol_oquvchilar ORDER BY id' : 'SELECT * FROM nofaol_oquvchilar WHERE admin=$1 ORDER BY id';
-  const params = admin.isSuper ? [] : [username];
+  const query  = isSuper ? 'SELECT * FROM nofaol_oquvchilar ORDER BY id' : 'SELECT * FROM nofaol_oquvchilar WHERE admin=$1 ORDER BY id';
+  const params = isSuper ? [] : [username];
   const result = await pool.query(query, params);
   res.json({ ok: true, students: result.rows.map(r => ({
     ism: r.ism, familiya: r.familiya, maktab: r.maktab, sinf: r.sinf,
@@ -128,17 +126,19 @@ router.get('/inactive', async (req, res) => {
 // ─── POST /api/students/activate — faolga qaytarish ───
 router.post('/activate', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const findResult = await client.query(
-      `SELECT * FROM nofaol_oquvchilar WHERE ism=$1 AND familiya=$2 ${!admin.isSuper ? 'AND admin=$3' : ''} LIMIT 1`,
-      admin.isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, p.username]
+      `SELECT * FROM nofaol_oquvchilar WHERE ism=$1 AND familiya=$2 ${!isSuper ? 'AND admin=$3' : ''} LIMIT 1`,
+      isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, username]
     );
-    if (findResult.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" }); }
+    if (findResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" });
+    }
     const s = findResult.rows[0];
     await client.query(
       `INSERT INTO oquvchilar (ism,familiya,maktab,sinf,telefon,telefon2,tug,manzil,admin,qoshilgan,boshlagan)
@@ -155,8 +155,7 @@ router.post('/activate', async (req, res) => {
 // ─── PUT /api/students/inactive — nofaolni tahrirlash ───
 router.put('/inactive', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   const chiqgan = (p.chiqgan||'').trim();
   const izoh    = (p.izoh||'').trim();
@@ -164,8 +163,8 @@ router.put('/inactive', async (req, res) => {
   if (!izoh || izoh.length < 10) return res.status(400).json({ ok: false, error: "Chiqish sababi kamida 10 ta belgi bo'lishi kerak" });
 
   const result = await pool.query(
-    `UPDATE nofaol_oquvchilar SET chiqgan=$1, izoh=$2 WHERE ism=$3 AND familiya=$4 ${!admin.isSuper ? 'AND admin=$5' : ''}`,
-    admin.isSuper ? [chiqgan, izoh, p.delIsm, p.delFamiliya] : [chiqgan, izoh, p.delIsm, p.delFamiliya, p.username]
+    `UPDATE nofaol_oquvchilar SET chiqgan=$1, izoh=$2 WHERE ism=$3 AND familiya=$4 ${!isSuper ? 'AND admin=$5' : ''}`,
+    isSuper ? [chiqgan, izoh, p.delIsm, p.delFamiliya] : [chiqgan, izoh, p.delIsm, p.delFamiliya, username]
   );
   if (result.rowCount === 0) return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" });
   res.json({ ok: true });
@@ -174,12 +173,11 @@ router.put('/inactive', async (req, res) => {
 // ─── DELETE /api/students/inactive ───
 router.delete('/inactive', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   const result = await pool.query(
-    `DELETE FROM nofaol_oquvchilar WHERE ism=$1 AND familiya=$2 ${!admin.isSuper ? 'AND admin=$3' : ''}`,
-    admin.isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, p.username]
+    `DELETE FROM nofaol_oquvchilar WHERE ism=$1 AND familiya=$2 ${!isSuper ? 'AND admin=$3' : ''}`,
+    isSuper ? [p.delIsm, p.delFamiliya] : [p.delIsm, p.delFamiliya, username]
   );
   if (result.rowCount === 0) return res.status(404).json({ ok: false, error: "O'quvchi topilmadi" });
   res.json({ ok: true });

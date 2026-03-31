@@ -11,7 +11,8 @@
 
 const { Router } = require('express');
 const pool       = require('../db');
-const { verifyAdmin, verifyViewer } = require('../middleware/auth');
+const { hashPassword }  = require('../middleware/auth');
+const { requireAuth }   = require('../middleware/jwt');
 const multer     = require('multer');
 const path       = require('path');
 const fs         = require('fs');
@@ -58,28 +59,28 @@ function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 // ═══════════════════════════════════
 
 // GET /api/portfolio/viewers
-router.get('/viewers', async (req, res) => {
-  const admin = await verifyAdmin(req.query.username, req.query.parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+router.get('/viewers', requireAuth(['admin']), async (req, res) => {
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const r = await pool.query(
-    'SELECT id,ism,username,parol,yaratilgan FROM portfolio_viewers ORDER BY id'
+    'SELECT id,ism,username,yaratilgan FROM portfolio_viewers ORDER BY id'
+    // Parolni HECH QACHON frontendga yubormang!
   );
   res.json({ ok: true, viewers: r.rows });
 });
 
 // POST /api/portfolio/viewers
-router.post('/viewers', async (req, res) => {
-  const { username, parol, newIsm, newUsername, newParol } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+router.post('/viewers', requireAuth(['admin']), async (req, res) => {
+  const { newIsm, newUsername, newParol } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!newIsm?.trim() || !newUsername?.trim() || !newParol?.trim())
     return res.status(400).json({ ok: false, error: 'Barcha maydonlar majburiy' });
 
   try {
+    const hashed = await hashPassword(newParol.trim());
     await pool.query(
       'INSERT INTO portfolio_viewers (ism,username,parol,yaratilgan) VALUES ($1,$2,$3,$4)',
-      [newIsm.trim(), newUsername.trim(), newParol.trim(), todayUZ()]
+      [newIsm.trim(), newUsername.trim(), hashed, todayUZ()]
     );
     res.json({ ok: true });
   } catch (err) {
@@ -89,19 +90,21 @@ router.post('/viewers', async (req, res) => {
 });
 
 // PUT /api/portfolio/viewers
-router.put('/viewers', async (req, res) => {
-  const { username, parol, oldUsername, newIsm, newUsername: nu, newParol: np } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+router.put('/viewers', requireAuth(['admin']), async (req, res) => {
+  const { oldUsername, newIsm, newUsername: nu, newParol: np } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!oldUsername?.trim() || !nu?.trim() || !newIsm?.trim())
     return res.status(400).json({ ok: false, error: 'Majburiy maydonlar yetishmaydi' });
 
-  const q = np?.trim()
-    ? 'UPDATE portfolio_viewers SET ism=$1,username=$2,parol=$3 WHERE username=$4'
-    : 'UPDATE portfolio_viewers SET ism=$1,username=$2 WHERE username=$3';
-  const params = np?.trim()
-    ? [newIsm.trim(), nu.trim(), np.trim(), oldUsername.trim()]
-    : [newIsm.trim(), nu.trim(), oldUsername.trim()];
+  let q, params;
+  if (np?.trim()) {
+    const hashed = await hashPassword(np.trim());
+    q = 'UPDATE portfolio_viewers SET ism=$1,username=$2,parol=$3 WHERE username=$4';
+    params = [newIsm.trim(), nu.trim(), hashed, oldUsername.trim()];
+  } else {
+    q = 'UPDATE portfolio_viewers SET ism=$1,username=$2 WHERE username=$3';
+    params = [newIsm.trim(), nu.trim(), oldUsername.trim()];
+  }
 
   const r = await pool.query(q, params);
   if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Viewer topilmadi' });
@@ -109,10 +112,9 @@ router.put('/viewers', async (req, res) => {
 });
 
 // DELETE /api/portfolio/viewers
-router.delete('/viewers', async (req, res) => {
-  const { username, parol, deleteUsername } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+router.delete('/viewers', requireAuth(['admin']), async (req, res) => {
+  const { deleteUsername } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const r = await pool.query(
     'DELETE FROM portfolio_viewers WHERE username=$1',
@@ -129,14 +131,11 @@ router.delete('/viewers', async (req, res) => {
 // GET /api/portfolio/teachers — o'qituvchilar ro'yxati
 // Superadmin: barchasi + har bir o'qituvchi uchun biriktirilgan viewer_username lari
 // Viewer:     faqat o'ziga biriktirilgan o'qituvchilar
-router.get('/teachers', async (req, res) => {
-  const { username, parol } = req.query;
-  const admin  = await verifyAdmin(username, parol);
-  const viewer = (!admin?.isSuper) ? await verifyViewer(username, parol) : null;
-  if (!admin?.isSuper && !viewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
+  if (!req.user?.isSuper && !viewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
 
   let r;
-  if (viewer && !admin?.isSuper) {
+  if (viewer && !req.user?.isSuper) {
     // Viewer — faqat o'ziga biriktirilgan o'qituvchilar
     r = await pool.query(`
       SELECT
@@ -174,10 +173,7 @@ router.get('/teachers', async (req, res) => {
 
 // GET /api/portfolio/teacher/:id — bitta o'qituvchi to'liq profili
 router.get('/teacher/:id', async (req, res) => {
-  const { username, parol } = req.query;
-  const admin  = await verifyAdmin(username, parol);
-  const viewer = (!admin?.isSuper) ? await verifyViewer(username, parol) : null;
-  if (!admin?.isSuper && !viewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+  if (!req.user?.isSuper && !viewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
 
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
@@ -204,8 +200,7 @@ router.get('/teacher/:id', async (req, res) => {
 // POST /api/portfolio/teacher/:id — profil saqlash/yangilash (superadmin)
 router.post('/teacher/:id', async (req, res) => {
   const { username, parol, fish, universitet, sertifikatlar, ish_tajribasi } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
@@ -226,9 +221,7 @@ router.post('/teacher/:id', async (req, res) => {
 
 // POST /api/portfolio/teacher/:id/sertifikat — fayl yuklash
 router.post('/teacher/:id/sertifikat', upload.single('file'), async (req, res) => {
-  const { username, parol } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) {
+  if (!req.user?.isSuper) {
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   }
@@ -259,9 +252,7 @@ router.post('/teacher/:id/sertifikat', upload.single('file'), async (req, res) =
 
 // DELETE /api/portfolio/teacher/:id/sertifikat/:filename — fayl o'chirish
 router.delete('/teacher/:id/sertifikat/:filename', async (req, res) => {
-  const { username, parol } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const id       = parseInt(req.params.id);
   const filename = req.params.filename;
@@ -280,9 +271,7 @@ router.delete('/teacher/:id/sertifikat/:filename', async (req, res) => {
 
 // GET /api/portfolio/viewer-teachers/:viewerUsername — viewer uchun biriktirilgan teacher ID lari
 router.get('/viewer-teachers/:viewerUsername', async (req, res) => {
-  const { username, parol } = req.query;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const r = await pool.query(
     'SELECT teacher_id FROM viewer_teachers WHERE viewer_username=$1',
@@ -292,10 +281,9 @@ router.get('/viewer-teachers/:viewerUsername', async (req, res) => {
 });
 
 // POST /api/portfolio/viewer-teachers — o'qituvchini viewerga biriktirish
-router.post('/viewer-teachers', async (req, res) => {
+router.post('/viewer-teachers', requireAuth(['admin']), async (req, res) => {
   const { username, parol, viewerUsername, teacherId } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!viewerUsername || !teacherId) return res.status(400).json({ ok: false, error: "viewerUsername va teacherId majburiy" });
 
   try {
@@ -310,10 +298,9 @@ router.post('/viewer-teachers', async (req, res) => {
 });
 
 // DELETE /api/portfolio/viewer-teachers — o'qituvchini viewerdan ajratish
-router.delete('/viewer-teachers', async (req, res) => {
+router.delete('/viewer-teachers', requireAuth(['admin']), async (req, res) => {
   const { username, parol, viewerUsername, teacherId } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!viewerUsername || !teacherId) return res.status(400).json({ ok: false, error: "viewerUsername va teacherId majburiy" });
 
   await pool.query(

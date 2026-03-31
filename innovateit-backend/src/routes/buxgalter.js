@@ -11,24 +11,21 @@
 // DELETE /api/buxgalter/biriktiruv     — admin ajratish
 const { Router } = require('express');
 const pool = require('../db');
-const { verifyBuxgalter, verifyAdmin } = require('../middleware/auth');
+const { hashPassword }  = require('../middleware/auth');
+const { requireAuth }   = require('../middleware/jwt');
 
 const router = Router();
+
+// Barcha buxgalter routerlari authentifikatsiya talab qiladi
+// Har bir route ichida rol tekshiriladi
 function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 
-async function authBuxOrAdmin(username, parol) {
-  const bux = await verifyBuxgalter(username, parol);
-  if (bux) return { bux, admin: null };
-  const admin = await verifyAdmin(username, parol);
-  if (admin) return { bux: null, admin };
-  return null;
-}
+
 
 // GET /api/buxgalter/students
-router.get('/students', async (req, res) => {
-  const { username, parol, oy } = req.query;
-  const auth = await authBuxOrAdmin(username, parol);
-  if (!auth) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+router.get('/students', requireAuth(['admin','buxgalter']), async (req, res) => {
+  const { oy } = req.query;
+  const auth = req.user;  // requireAuth middleware
   if (!oy) return res.status(400).json({ ok: false, error: 'oy parametri kerak' });
 
   try {
@@ -58,10 +55,9 @@ router.get('/students', async (req, res) => {
 });
 
 // GET /api/buxgalter/tolovlar
-router.get('/tolovlar', async (req, res) => {
-  const { username, parol, oy } = req.query;
-  const auth = await authBuxOrAdmin(username, parol);
-  if (!auth) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+router.get('/tolovlar', requireAuth(['admin','buxgalter']), async (req, res) => {
+  const { oy } = req.query;
+  const auth = req.user;  // requireAuth middleware
   if (!oy) return res.status(400).json({ ok: false, error: 'oy parametri kerak' });
 
   const result = await pool.query('SELECT * FROM tolovlar WHERE oy=$1 ORDER BY maktab,sinf,oquvchi_familiya', [oy]);
@@ -69,10 +65,9 @@ router.get('/tolovlar', async (req, res) => {
 });
 
 // POST /api/buxgalter/tolovlar
-router.post('/tolovlar', async (req, res) => {
+router.post('/tolovlar', requireAuth(['admin','buxgalter']), async (req, res) => {
   const p = req.body;
-  const auth = await authBuxOrAdmin(p.username, p.parol);
-  if (!auth) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const auth = req.user;  // requireAuth middleware
 
   const oy = p.oy, ism = (p.oquvchi_ism||'').trim(), familiya = (p.oquvchi_familiya||'').trim(), adminU = (p.admin_username||'').trim();
   if (!oy || !ism || !familiya) return res.status(400).json({ ok: false, error: 'Majburiy maydonlar yetishmaydi' });
@@ -95,10 +90,9 @@ router.post('/tolovlar', async (req, res) => {
 });
 
 // POST /api/buxgalter/init-oy
-router.post('/init-oy', async (req, res) => {
+router.post('/init-oy', requireAuth(['admin','buxgalter']), async (req, res) => {
   const p = req.body;
-  const auth = await authBuxOrAdmin(p.username, p.parol);
-  if (!auth) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const auth = req.user;  // requireAuth middleware
   if (!p.oy) return res.status(400).json({ ok: false, error: 'oy kerak' });
 
   try {
@@ -121,23 +115,22 @@ router.post('/init-oy', async (req, res) => {
 });
 
 // GET /api/buxgalter — biriktirmalar + ro'yxat
-router.get('/', async (req, res) => {
-  const admin = await verifyAdmin(req.query.username, req.query.parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.get('/', requireAuth(['admin']), async (req, res) => {
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const adminsRes = await pool.query(`SELECT a.ism,a.username,b.buxgalter_username FROM adminlar a LEFT JOIN buxgalter_adminlar b ON a.username=b.admin_username ORDER BY a.ism`);
-  const buxRes    = await pool.query(`SELECT bx.ism,bx.username,bx.parol,ARRAY_AGG(ba.admin_username) FILTER (WHERE ba.admin_username IS NOT NULL) as adminlar FROM buxgalterlar bx LEFT JOIN buxgalter_adminlar ba ON bx.username=ba.buxgalter_username GROUP BY bx.ism,bx.username,bx.parol ORDER BY bx.ism`);
+  const buxRes    = await pool.query(`SELECT bx.ism,bx.username,ARRAY_AGG(ba.admin_username) FILTER (WHERE ba.admin_username IS NOT NULL) as adminlar FROM buxgalterlar bx LEFT JOIN buxgalter_adminlar ba ON bx.username=ba.buxgalter_username GROUP BY bx.ism,bx.username ORDER BY bx.ism`);
   res.json({ ok: true, adminlar: adminsRes.rows, buxgalterlar: buxRes.rows });
 });
 
 // POST /api/buxgalter — yaratish
-router.post('/', async (req, res) => {
-  const { username, parol, newUsername, newParol, newIsm } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.post('/', requireAuth(['admin']), async (req, res) => {
+  const { newUsername, newParol, newIsm } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!newUsername?.trim() || !newParol?.trim() || !newIsm?.trim()) return res.status(400).json({ ok: false, error: 'Barcha maydonlar majburiy' });
   try {
-    await pool.query('INSERT INTO buxgalterlar (ism,username,parol,yaratilgan) VALUES ($1,$2,$3,$4)', [newIsm.trim(), newUsername.trim(), newParol.trim(), todayUZ()]);
+    const hashed = await hashPassword(newParol.trim());
+    await pool.query('INSERT INTO buxgalterlar (ism,username,parol,yaratilgan) VALUES ($1,$2,$3,$4)', [newIsm.trim(), newUsername.trim(), hashed, todayUZ()]);
     res.json({ ok: true });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ ok: false, error: 'Bu username allaqachon mavjud' });
@@ -146,17 +139,17 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/buxgalter — tahrirlash
-router.put('/', async (req, res) => {
-  const { username, parol, oldUsername, newIsm, newUsername: nu, newParol: np } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.put('/', requireAuth(['admin']), async (req, res) => {
+  const { oldUsername, newIsm, newUsername: nu, newParol: np } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!oldUsername || !newIsm || !nu) return res.status(400).json({ ok: false, error: 'Majburiy maydonlar yetishmaydi' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     if (np?.trim()) {
-      await client.query('UPDATE buxgalterlar SET ism=$1,username=$2,parol=$3 WHERE username=$4', [newIsm, nu, np, oldUsername]);
+      const hashed = await hashPassword(np.trim());
+      await client.query('UPDATE buxgalterlar SET ism=$1,username=$2,parol=$3 WHERE username=$4', [newIsm, nu, hashed, oldUsername]);
     } else {
       await client.query('UPDATE buxgalterlar SET ism=$1,username=$2 WHERE username=$3', [newIsm, nu, oldUsername]);
     }
@@ -173,30 +166,27 @@ router.put('/', async (req, res) => {
 });
 
 // DELETE /api/buxgalter
-router.delete('/', async (req, res) => {
-  const { username, parol, deleteUsername } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.delete('/', requireAuth(['admin']), async (req, res) => {
+  const { deleteUsername } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   const result = await pool.query('DELETE FROM buxgalterlar WHERE username=$1', [deleteUsername?.trim()]);
   if (result.rowCount === 0) return res.status(404).json({ ok: false, error: 'Buxgalter topilmadi' });
   res.json({ ok: true });
 });
 
 // POST /api/buxgalter/biriktiruv
-router.post('/biriktiruv', async (req, res) => {
-  const { username, parol, buxUsername, adminUsername } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.post('/biriktiruv', requireAuth(['admin']), async (req, res) => {
+  const { buxUsername, adminUsername } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
   if (!buxUsername || !adminUsername) return res.status(400).json({ ok: false, error: 'buxUsername va adminUsername kerak' });
   await pool.query(`INSERT INTO buxgalter_adminlar (buxgalter_username,admin_username) VALUES ($1,$2) ON CONFLICT (admin_username) DO UPDATE SET buxgalter_username=$1`, [buxUsername, adminUsername]);
   res.json({ ok: true });
 });
 
 // DELETE /api/buxgalter/biriktiruv
-router.delete('/biriktiruv', async (req, res) => {
-  const { username, parol, adminUsername } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
+router.delete('/biriktiruv', requireAuth(['admin']), async (req, res) => {
+  const { adminUsername } = req.body;
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
   if (!adminUsername) return res.status(400).json({ ok: false, error: 'adminUsername kerak' });
   await pool.query('DELETE FROM buxgalter_adminlar WHERE admin_username=$1', [adminUsername]);
   res.json({ ok: true });

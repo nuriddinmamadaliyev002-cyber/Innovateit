@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  InnovateIT School — Markazlashgan API Client (v5.0 REST)
+//  InnovateIT School — Markazlashgan API Client (v6.0 JWT)
 // ═══════════════════════════════════════════════════
 
 const BASE = (window.location.hostname === 'localhost' ||
@@ -8,36 +8,133 @@ const BASE = (window.location.hostname === 'localhost' ||
   ? 'http://127.0.0.1:3001'
   : '';
 
-// Asosiy so'rov funksiyasi
-async function apiReq(method, path, data = {}) {
-  const opts = { method, headers: {} };
+// ─── Token boshqaruvi ────────────────────────────────────────────────────────
+const TOKEN_KEY = 'innovateit_token';
 
-  if (method === 'GET' || method === 'DELETE') {
-    if (method === 'GET') {
-      const qs = new URLSearchParams(data).toString();
-      return (await fetch(`${BASE}${path}?${qs}`)).json();
-    }
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(data);
-  } else {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(data);
+const tokenStore = {
+  get()          { return localStorage.getItem(TOKEN_KEY); },
+  set(t)         { localStorage.setItem(TOKEN_KEY, t); },
+  clear()        { localStorage.removeItem(TOKEN_KEY); },
+  isExpired(t) {
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch { return true; }
+  },
+  getUser() {
+    const t = this.get();
+    if (!t) return null;
+    try { return JSON.parse(atob(t.split('.')[1])); }
+    catch { return null; }
   }
+};
 
-  return (await fetch(`${BASE}${path}`, opts)).json();
+// ─── 401 holatida login sahifasiga qaytish ───────────────────────────────────
+function handleUnauthorized() {
+  tokenStore.clear();
+  // Qaysi sahifada ekanligimizni aniqlaymiz
+  const page = window.location.pathname;
+  if (page.includes('buxgalter')) {
+    window.location.href = '/buxgalter.html';
+  } else if (page.includes('portfolio')) {
+    window.location.href = '/portfolio-viewer.html';
+  } else {
+    window.location.href = '/index.html';
+  }
 }
 
-// Qisqartirilgan yordamchilar
-const api = {
-  get:    (path, params = {}) => apiReq('GET',    path, params),
-  post:   (path, body   = {}) => apiReq('POST',   path, body),
-  put:    (path, body   = {}) => apiReq('PUT',     path, body),
-  del:    (path, body   = {}) => apiReq('DELETE',  path, body),
+// ─── Asosiy so'rov funksiyasi ────────────────────────────────────────────────
+async function apiReq(method, path, data = {}) {
+  const token = tokenStore.get();
 
-  // ─── Auth ───
-  login:              (d) => api.post('/api/auth/login', d),
-  loginBuxgalter:     (d) => api.post('/api/auth/login-buxgalter', d),
-  loginViewer:        (d) => api.post('/api/auth/login-viewer', d),
+  // Token muddati tugagan bo'lsa — chiqib ketish
+  if (token && tokenStore.isExpired(token)) {
+    handleUnauthorized();
+    return { ok: false, error: 'Seans muddati tugadi' };
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let url = `${BASE}${path}`;
+  const opts = { method, headers };
+
+  if (method === 'GET') {
+    // GET da data → query string (lekin username/parol emas, ular tokenda)
+    const filtered = Object.fromEntries(
+      Object.entries(data).filter(([k]) => k !== 'username' && k !== 'parol')
+    );
+    const qs = new URLSearchParams(filtered).toString();
+    if (qs) url += `?${qs}`;
+  } else {
+    // POST/PUT/DELETE da username va parolni body dan olib tashlaymiz
+    const { username, parol, ...rest } = data;
+    opts.body = JSON.stringify(rest);
+  }
+
+  try {
+    const res = await fetch(url, opts);
+
+    // Token muammosi — chiqib ketish
+    if (res.status === 401) {
+      const json = await res.json().catch(() => ({}));
+      if (json.expired || json.error?.includes('Token')) {
+        handleUnauthorized();
+      }
+      return { ok: false, error: json.error || 'Ruxsat yo\'q' };
+    }
+
+    return res.json();
+  } catch (err) {
+    console.error('API xatolik:', err);
+    return { ok: false, error: 'Server bilan aloqa yo\'q' };
+  }
+}
+
+// ─── Qisqartirilgan yordamchilar ─────────────────────────────────────────────
+const api = {
+  get:  (path, params = {}) => apiReq('GET',    path, params),
+  post: (path, body   = {}) => apiReq('POST',   path, body),
+  put:  (path, body   = {}) => apiReq('PUT',    path, body),
+  del:  (path, body   = {}) => apiReq('DELETE', path, body),
+
+  // ─── Auth (token saqlash) ───
+  login: async (d) => {
+    const res = await fetch(`${BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d)
+    }).then(r => r.json());
+    if (res.ok && res.token) tokenStore.set(res.token);
+    return res;
+  },
+  loginBuxgalter: async (d) => {
+    const res = await fetch(`${BASE}/api/auth/login-buxgalter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d)
+    }).then(r => r.json());
+    if (res.ok && res.token) tokenStore.set(res.token);
+    return res;
+  },
+  loginViewer: async (d) => {
+    const res = await fetch(`${BASE}/api/auth/login-viewer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d)
+    }).then(r => r.json());
+    if (res.ok && res.token) tokenStore.set(res.token);
+    return res;
+  },
+  logout: () => {
+    tokenStore.clear();
+  },
+  getUser:    () => tokenStore.getUser(),
+  getToken:   () => tokenStore.get(),
+  isLoggedIn: () => {
+    const t = tokenStore.get();
+    return t ? !tokenStore.isExpired(t) : false;
+  },
 
   // ─── O'quvchilar ───
   getStudents:         (d) => api.get('/api/students', d),
@@ -52,10 +149,10 @@ const api = {
   deleteNofaol:        (d) => api.del('/api/students/inactive', d),
 
   // ─── Adminlar ───
-  getAdmins:       (d) => api.get('/api/admins', d),
-  createAdmin:     (d) => api.post('/api/admins', d),
-  editAdmin:       (d) => api.put('/api/admins', d),
-  deleteAdmin:     (d) => api.del('/api/admins', d),
+  getAdmins:   (d) => api.get('/api/admins', d),
+  createAdmin: (d) => api.post('/api/admins', d),
+  editAdmin:   (d) => api.put('/api/admins', d),
+  deleteAdmin: (d) => api.del('/api/admins', d),
 
   // ─── Davomat ───
   saveDavomat:        (d) => api.post('/api/davomat', d),
@@ -66,16 +163,15 @@ const api = {
   getTeacherDavomat:  (d) => api.get('/api/davomat/teacher', d),
 
   // ─── Dars jadvali ───
-  getJadvallar:    (d) => api.get('/api/jadval', d),
-  saveJadval:      (d) => api.post('/api/jadval', d),
-  deleteJadval:    (d, id) => api.del(`/api/jadval/${id}`, d),
+  getJadvallar: (d)     => api.get('/api/jadval', d),
+  saveJadval:   (d)     => api.post('/api/jadval', d),
+  deleteJadval: (d, id) => api.del(`/api/jadval/${id}`, d),
 
   // ─── O'qituvchilar ───
   getTeachers:         (d) => api.get('/api/teachers', d),
   addTeacher:          (d) => api.post('/api/teachers', d),
   editTeacher:         (d) => api.put('/api/teachers', d),
   deleteTeacher:       (d) => api.del('/api/teachers', d),
-  assignTeacher:       (d) => api.put('/api/teachers/assign', d),
   addTeacherMaktab:    (d) => api.post('/api/teachers/maktab', d),
   removeTeacherMaktab: (d) => api.del('/api/teachers/maktab', d),
   mergeTeachers:       (d) => api.post('/api/teachers/merge', d),
@@ -93,27 +189,46 @@ const api = {
   initOy:           (d) => api.post('/api/buxgalter/init-oy', d),
 
   // ─── Portfolio Viewers ───
-  getPortfolioViewers:    (d) => api.get('/api/portfolio/viewers', d),
-  createPortfolioViewer:  (d) => api.post('/api/portfolio/viewers', d),
-  editPortfolioViewer:    (d) => api.put('/api/portfolio/viewers', d),
-  deletePortfolioViewer:  (d) => api.del('/api/portfolio/viewers', d),
+  getPortfolioViewers:   (d) => api.get('/api/portfolio/viewers', d),
+  createPortfolioViewer: (d) => api.post('/api/portfolio/viewers', d),
+  editPortfolioViewer:   (d) => api.put('/api/portfolio/viewers', d),
+  deletePortfolioViewer: (d) => api.del('/api/portfolio/viewers', d),
 
   // ─── Portfolio O'qituvchilar ───
-  getPortfolioTeachers:  (d) => api.get('/api/portfolio/teachers', d),
-  getPortfolioTeacher:   (d, id) => api.get(`/api/portfolio/teacher/${id}`, d),
-  savePortfolioTeacher:  (d, id) => api.post(`/api/portfolio/teacher/${id}`, d),
-  deleteSertifikat:      (d, id, filename) => api.del(`/api/portfolio/teacher/${id}/sertifikat/${filename}`, d),
+  getPortfolioTeachers: (d)     => api.get('/api/portfolio/teachers', d),
+  getPortfolioTeacher:  (d, id) => api.get(`/api/portfolio/teacher/${id}`, d),
+  savePortfolioTeacher: (d, id) => api.post(`/api/portfolio/teacher/${id}`, d),
+  deleteSertifikat:     (d, id, filename) => api.del(`/api/portfolio/teacher/${id}/sertifikat/${filename}`, d),
 
   // ─── Viewer ↔ O'qituvchi biriktirish ───
-  getViewerTeachers:    (d, vu) => api.get(`/api/portfolio/viewer-teachers/${encodeURIComponent(vu)}`, d),
-  assignViewerTeacher:  (d) => api.post('/api/portfolio/viewer-teachers', d),
-  unassignViewerTeacher:(d) => api.del('/api/portfolio/viewer-teachers', d),
-  // sertifikat upload — FormData bilan alohida fetch
+  getViewerTeachers:     (d, vu) => api.get(`/api/portfolio/viewer-teachers/${encodeURIComponent(vu)}`, d),
+  assignViewerTeacher:   (d)     => api.post('/api/portfolio/viewer-teachers', d),
+  unassignViewerTeacher: (d)     => api.del('/api/portfolio/viewer-teachers', d),
+
+  // ─── Sertifikat upload — token bilan FormData ───
   uploadSertifikat: async (id, formData) => {
+    const token = tokenStore.get();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const r = await fetch(`${BASE}/api/portfolio/teacher/${id}/sertifikat`, {
       method: 'POST',
+      headers,
       body: formData
     });
     return r.json();
-  }
+  },
+
+  // ─── Fayl upload (kvitansiya) — token bilan ───
+  uploadFile: async (formData) => {
+    const token = tokenStore.get();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const r = await fetch(`${BASE}/upload`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    return r.json();
+  },
+  deleteFile: (filename) => api.del(`/upload/${filename}`, {}),
 };

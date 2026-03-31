@@ -7,19 +7,18 @@
 // DELETE /api/teachers/maktab       — superadmin: maktabdan ajratish
 const { Router } = require('express');
 const pool = require('../db');
-const { verifyAdmin } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/jwt');
 
 const router = Router();
+router.use(requireAuth(['admin']));
 function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 
 // ─── GET /api/teachers ───
 router.get('/', async (req, res) => {
-  const { username, parol } = req.query;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   let rows;
-  if (admin.isSuper) {
+  if (isSuper) {
     // Superadmin: barcha o'qituvchilar + ularning biriktirilgan maktablari
     const result = await pool.query(`
       SELECT
@@ -73,8 +72,7 @@ router.get('/', async (req, res) => {
 // ─── POST /api/teachers — qo'shish ───
 router.post('/', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
   if (!(p.ism||'').trim())     return res.status(400).json({ ok: false, error: 'Ism kiritilmagan' });
   if (!(p.familiya||'').trim()) return res.status(400).json({ ok: false, error: 'Familiya kiritilmagan' });
 
@@ -108,8 +106,7 @@ router.post('/', async (req, res) => {
 // ─── PUT /api/teachers — tahrirlash ───
 router.put('/', async (req, res) => {
   const p = req.body;
-  const admin = await verifyAdmin(p.username, p.parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { username, isSuper } = req.user;
 
   // id orqali yoki ism+familiya+admin orqali topish
   let whereClause, params;
@@ -118,10 +115,10 @@ router.put('/', async (req, res) => {
     params = [p.ism, p.familiya, p.fan, p.telefon, p.telefon2||'',
               p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.id];
   } else {
-    whereClause = admin.isSuper
+    whereClause = isSuper
       ? 'WHERE ism=$10 AND familiya=$11'
       : 'WHERE ism=$10 AND familiya=$11 AND admin=$12';
-    params = admin.isSuper
+    params = isSuper
       ? [p.ism, p.familiya, p.fan, p.telefon, p.telefon2||'', p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.oldIsm, p.oldFamiliya]
       : [p.ism, p.familiya, p.fan, p.telefon, p.telefon2||'', p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.oldIsm, p.oldFamiliya, p.username];
   }
@@ -136,9 +133,8 @@ router.put('/', async (req, res) => {
 
 // ─── DELETE /api/teachers — o'chirish (admin o'z o'qituvchisini) ───
 router.delete('/', async (req, res) => {
-  const { username, parol, delIsm, delFamiliya, delId } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin) return res.status(401).json({ ok: false, error: "Ruxsat yo'q" });
+  const { delIsm, delFamiliya, delId } = req.body;
+  const { username, isSuper } = req.user;
 
   const client = await pool.connect();
   try {
@@ -147,14 +143,14 @@ router.delete('/', async (req, res) => {
     // Faqat shu admin bilan bog'lanishni uzish (o'qituvchi boshqa maktabda qolishi mumkin)
     let teacherId = delId;
     if (!teacherId) {
-      const found = admin.isSuper
+      const found = isSuper
         ? await client.query('SELECT id FROM oqituvchilar WHERE ism=$1 AND familiya=$2 LIMIT 1', [delIsm, delFamiliya])
         : await client.query('SELECT o.id FROM oqituvchilar o INNER JOIN oqituvchi_maktablar om ON o.id=om.oqituvchi_id WHERE o.ism=$1 AND o.familiya=$2 AND om.admin_username=$3 LIMIT 1', [delIsm, delFamiliya, username]);
       if (found.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" }); }
       teacherId = found.rows[0].id;
     }
 
-    if (admin.isSuper) {
+    if (isSuper) {
       // Superadmin: to'liq o'chirish (CASCADE bilan oqituvchi_maktablar ham tozalanadi)
       await client.query('DELETE FROM oqituvchilar WHERE id=$1', [teacherId]);
     } else {
@@ -171,11 +167,11 @@ router.delete('/', async (req, res) => {
 });
 
 // ─── POST /api/teachers/maktab — superadmin: maktab biriktirish ───
-// body: { username, parol, teacherId, adminUsername }
+// body: { username, teacherId, adminUsername }
 router.post('/maktab', async (req, res) => {
-  const { username, parol, teacherId, adminUsername } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin uchun" });
+  const { teacherId, adminUsername } = req.body;
+  
+  if (!req.user.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin uchun" });
   if (!teacherId || !adminUsername) return res.status(400).json({ ok: false, error: 'teacherId va adminUsername kerak' });
 
   // O'qituvchi mavjudligini tekshirish
@@ -198,11 +194,11 @@ router.post('/maktab', async (req, res) => {
 });
 
 // ─── DELETE /api/teachers/maktab — superadmin: maktabdan ajratish ───
-// body: { username, parol, teacherId, adminUsername }
+// body: { username, teacherId, adminUsername }
 router.delete('/maktab', async (req, res) => {
-  const { username, parol, teacherId, adminUsername } = req.body;
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin uchun" });
+  const { teacherId, adminUsername } = req.body;
+  
+  if (!req.user.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin uchun" });
   if (!teacherId || !adminUsername) return res.status(400).json({ ok: false, error: 'teacherId va adminUsername kerak' });
 
   const result = await pool.query(
@@ -215,16 +211,16 @@ router.delete('/maktab', async (req, res) => {
 
 // ─── POST /api/teachers/merge — superadmin: ikki o'qituvchini birlashtirish ───
 // body: {
-//   username, parol,
+//   username,
 //   keepId,   — saqlanadigan o'qituvchi ID
 //   removeId, — o'chiriladigan o'qituvchi ID
 //   ism, familiya, telefon, telefon2  — qaysi ma'lumotlar saqlansin
 // }
 router.post('/merge', async (req, res) => {
-  const { username, parol, keepId, removeId, ism, familiya, telefon, telefon2 } = req.body;
+  const { keepId, removeId, ism, familiya, telefon, telefon2 } = req.body;
 
-  const admin = await verifyAdmin(username, parol);
-  if (!admin?.isSuper) return res.status(403).json({ ok: false, error: 'Faqat superadmin uchun' });
+  
+  if (!req.user.isSuper) return res.status(403).json({ ok: false, error: 'Faqat superadmin uchun' });
   if (!keepId || !removeId) return res.status(400).json({ ok: false, error: 'keepId va removeId kerak' });
   if (keepId === removeId) return res.status(400).json({ ok: false, error: 'Bir xil o\'qituvchi tanlangan' });
 
