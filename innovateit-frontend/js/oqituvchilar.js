@@ -1126,11 +1126,18 @@ function initPortfolioTab() {
     // Oddiy admin — tab yo'q, sticky bar topbar ostida
     const stickyBar = g('oq-pt-sticky-bar');
     if (stickyBar) stickyBar.style.top = '52px';
+    // table-header ham faqat topbar balandligida sticky
+    const tableHeader = document.querySelector('.table-header');
+    if (tableHeader) tableHeader.style.top = '52px';
     return;
   }
 
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
+
+  // table-header: topbar(52) + tab-row(~44) = 96px
+  const tableHeader = document.querySelector('.table-header');
+  if (tableHeader) tableHeader.style.top = '96px';
 
   // Sticky bar uchun top qiymat
   const stickyBar = g('oq-pt-sticky-bar');
