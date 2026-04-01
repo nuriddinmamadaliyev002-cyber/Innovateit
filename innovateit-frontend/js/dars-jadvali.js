@@ -79,7 +79,7 @@ async function loadTeachers() {
         TEACHERS.forEach(t => {
           const opt = document.createElement('option');
           opt.value = t.ism + ' ' + t.familiya;
-          opt.textContent = `${t.ism} ${t.familiya} (${t.fan || '—'})`;
+          opt.textContent = `${t.familiya} ${t.ism} (${t.fan || '—'})`;
           sel.appendChild(opt);
         });
         if (cur) sel.value = cur;
@@ -178,7 +178,7 @@ function renderBySinf(wrap, filterS, today) {
         lessons.forEach(j => {
           html += `<div class="jcell teacher">
             <div class="jcell-name">${j.fan || '—'}</div>
-            <div class="jcell-sub">${j.teacher_ism} ${j.teacher_familiya}</div>
+            <div class="jcell-sub">${j.teacher_familiya} ${j.teacher_ism}</div>
             ${j.boshlanish ? `<div class="jcell-sub">⏰ ${j.boshlanish}–${j.tugash}</div>` : ''}
           </div>`;
         });
@@ -212,7 +212,7 @@ function renderByTeacher(wrap, filterT, today) {
   </tr></thead><tbody>`;
 
   teachers.forEach(tRef => {
-    const tName = tRef.teacher_ism + ' ' + tRef.teacher_familiya;
+    const tName = tRef.teacher_familiya + ' ' + tRef.teacher_ism;
     const tJad  = jadvallar.filter(j => j.teacher_ism+' '+j.teacher_familiya === tName);
 
     html += `<tr><td class="td-name">
@@ -263,7 +263,7 @@ function onTeacherSelect() {
   }
 
   // Mavjud biriktiruvlarni ko'rsatish
-  const existing = JADVALLAR.filter(j => j.teacher_ism + ' ' + j.teacher_familiya === val);
+  const existing = JADVALLAR.filter(j => j.teacher_familiya + ' ' + j.teacher_ism === val);
   const allSinflar = [...new Set(existing.flatMap(j => j.sinflar))];
 
   if (allSinflar.length) {
@@ -377,7 +377,7 @@ function renderSavedJadvallar() {
   wrap.innerHTML = JADVALLAR.map((j, i) => `
     <div class="saved-jad-item">
       <div class="sji-info">
-        <div class="sji-name">${j.teacher_ism} ${j.teacher_familiya}
+        <div class="sji-name">${j.teacher_familiya} ${j.teacher_ism}
           <span style="font-size:11px;color:var(--muted);margin-left:6px;">${j.fan||'—'}</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;">
@@ -388,7 +388,7 @@ function renderSavedJadvallar() {
       </div>
       <div class="sji-btns">
         <button class="btn-action" title="Tahrirlash" onclick="editJadval(${i})">✏️</button>
-        <button class="btn-action" title="O'chirish"  onclick="deleteJadval(${j.id},'${esc(j.teacher_ism+' '+j.teacher_familiya)}')">🗑️</button>
+        <button class="btn-action" title="O'chirish"  onclick="deleteJadval(${j.id},'${esc(j.teacher_familiya+' '+j.teacher_ism)}')">🗑️</button>
       </div>
     </div>`).join('');
 }
@@ -402,7 +402,7 @@ function editJadval(idx) {
   switchTab('biriktir', g('tab-biriktir'));
 
   // O'qituvchini tanlash
-  g('b-teacher').value = j.teacher_ism + ' ' + j.teacher_familiya;
+  g('b-teacher').value = j.teacher_familiya + ' ' + j.teacher_ism;
 
   // Avval barcha chiplarni tozalaymiz
   clearBirikChips();
@@ -593,7 +593,7 @@ function buildImgBySinf(wrap, filterS) {
           html += `<div style="background:${cbg};border:1px solid ${cbdr};border-radius:8px;
               padding:6px 9px;margin-bottom:4px;">
             <div style="font-weight:700;color:${ctxt};font-size:12px;">${j.fan||'—'}</div>
-            <div style="color:#6b7280;font-size:10px;margin-top:2px;">${j.teacher_ism} ${j.teacher_familiya}</div>
+            <div style="color:#6b7280;font-size:10px;margin-top:2px;">${j.teacher_familiya} ${j.teacher_ism}</div>
             ${j.boshlanish ? `<div style="color:#6b7280;font-size:10px;">⏰ ${j.boshlanish}–${j.tugash}</div>` : ''}
           </div>`;
         });
@@ -635,7 +635,7 @@ function buildImgByTeacher(wrap, filterT) {
     </tr></thead><tbody>`;
 
   teachers.forEach((tRef, ti) => {
-    const tName = tRef.teacher_ism + ' ' + tRef.teacher_familiya;
+    const tName = tRef.teacher_familiya + ' ' + tRef.teacher_ism;
     const tJad  = jadvallar.filter(j => j.teacher_ism+' '+j.teacher_familiya === tName);
     const bg    = ti % 2 === 0 ? '#fafafa' : '#ffffff';
 
@@ -739,7 +739,7 @@ function buildSinfSheet(wb, sinf) {
     const row = [vaqt || 'Belgilanmagan'];
     KUNLAR_IDX.forEach(kun => {
       const lesson = sinfJad.find(j => j.kunlar.includes(kun) && (j.boshlanish||'') === vaqt);
-      row.push(lesson ? `${lesson.fan||'—'}\n${lesson.teacher_ism} ${lesson.teacher_familiya}` : '—');
+      row.push(lesson ? `${lesson.fan||'—'}\n${lesson.teacher_familiya} ${lesson.teacher_ism}` : '—');
     });
     rows.push(row);
   });

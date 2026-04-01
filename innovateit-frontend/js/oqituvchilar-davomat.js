@@ -136,7 +136,7 @@ async function loadTeachersAndDavomat(date) {
     TEACHERS = [];
     jd.jadvallar.forEach(j => {
       if (!parseDays(j.kunlar).includes(dayOfWeek)) return;
-      const name  = j.teacher_ism + ' ' + j.teacher_familiya;
+      const name  = j.teacher_familiya + ' ' + j.teacher_ism;
       const vaqt  = (j.boshlanish||'') + '-' + (j.tugash||'');
       const uniq  = name + '|' + vaqt;
       if (vaqtMap.has(uniq)) {
@@ -206,14 +206,14 @@ function render() {
     // Agar bir xil o'qituvchi 2 xil vaqtda dars o'tsa — uni vaqt bilan farqlaymiz
     const sameNameCount = TEACHERS.filter(x=>x.ism===t.ism&&x.familiya===t.familiya).length;
     const key = sameNameCount > 1
-      ? t.ism + ' ' + t.familiya + ' ' + (t.boshlanish||i)
-      : t.ism + ' ' + t.familiya;
+      ? t.familiya + ' ' + t.ism + ' ' + (t.boshlanish||i)
+      : t.familiya + ' ' + t.ism;
     const cur = attendance[key] || '';
     const sinflar = parseSinflar(t.sinflar);
     return `<div class="teacher-row${cur?' done':''}" id="row-${safeId(key)}" style="animation-delay:${i*0.04}s">
       <div class="teacher-num">${i+1}</div>
       <div class="teacher-info">
-        <div class="teacher-name">${t.ism} ${t.familiya}</div>
+        <div class="teacher-name">${t.familiya} ${t.ism}</div>
         <div class="teacher-meta">
           <span class="fan-badge">${t.fan||'—'}</span>
           <span class="vaqt-badge">${fmtVaqt(t.boshlanish,t.tugash)}</span>
@@ -475,8 +475,8 @@ async function doSave() {
   const records = TEACHERS.map((t, i) => {
     const sameNameCount = TEACHERS.filter(x=>x.ism===t.ism&&x.familiya===t.familiya).length;
     const key = sameNameCount > 1
-      ? t.ism + ' ' + t.familiya + ' ' + (t.boshlanish||i)
-      : t.ism + ' ' + t.familiya;
+      ? t.familiya + ' ' + t.ism + ' ' + (t.boshlanish||i)
+      : t.familiya + ' ' + t.ism;
     const dv  = darsVaqtlar[key];
     return {
       ism:         key,

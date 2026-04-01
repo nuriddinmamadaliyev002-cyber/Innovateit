@@ -589,7 +589,7 @@ function renderTeachers(list) {
           <div class="tc-head">
             <div class="tc-avatar" style="background:${clr};">${initials}</div>
             <div>
-              <div class="tc-name">${esc(t.ism)} ${esc(t.familiya)}</div>
+              <div class="tc-name">${esc(t.familiya)} ${esc(t.ism)}</div>
               <div class="tc-fan">${esc(t.fan || "Fan ko'rsatilmagan")}</div>
             </div>
           </div>
@@ -637,7 +637,7 @@ async function openDetail(id) {
     // Header
     document.getElementById('dc-avatar').textContent = initials;
     document.getElementById('dc-avatar').style.background = clr;
-    document.getElementById('dc-name').textContent = `${t.ism} ${t.familiya}`;
+    document.getElementById('dc-name').textContent = `${t.familiya} ${t.ism}`;
     document.getElementById('dc-fan').textContent  = t.fan || 'Fan ko\'rsatilmagan';
 
     // Profile fields

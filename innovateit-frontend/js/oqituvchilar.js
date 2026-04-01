@@ -126,7 +126,7 @@ async function loadTeachers() {
 function applyFilter() {
   const q = (g('f-search').value || '').toLowerCase();
   const d = T.filter(t =>
-    !q || (t.ism + ' ' + t.familiya + ' ' + (t.fan||'')).toLowerCase().includes(q)
+    !q || (t.familiya + ' ' + t.ism + ' ' + (t.fan||'')).toLowerCase().includes(q)
   );
   renderTable(d);
   renderMobile(d);
@@ -170,7 +170,7 @@ function renderTable(d) {
 
       return '<tr>'
         + '<td class="mono">' + (i+1) + '</td>'
-        + '<td><strong>' + esc2(t.ism) + '</strong> ' + esc2(t.familiya) + '</td>'
+        + '<td><strong>' + esc2(t.familiya) + '</strong> ' + esc2(t.ism) + '</td>'
         + '<td><span class="fan-badge">' + (t.fan||'—') + '</span></td>'
         + '<td class="td-maktablar">'
           + '<div class="maktab-tags-wrap">' + (maktabBadges || '<span class="maktab-none">Biriktirilmagan</span>') + '</div>'
@@ -199,7 +199,7 @@ function renderTable(d) {
     // Oddiy admin ko'rinishi: faqat asosiy ma'lumotlar
     return '<tr>'
       + '<td class="mono">' + (i+1) + '</td>'
-      + '<td><strong>' + esc2(t.ism) + '</strong> ' + esc2(t.familiya) + '</td>'
+      + '<td><strong>' + esc2(t.familiya) + '</strong> ' + esc2(t.ism) + '</td>'
       + '<td><span class="fan-badge">' + (t.fan||'—') + '</span></td>'
       + '<td class="mono">' + (t.telefon||'—') + '</td>'
       + '<td class="mono">' + (t.telefon2||'—') + '</td>'
@@ -228,7 +228,7 @@ function renderMobile(d) {
     return '<div class="tc">'
       + '<div class="tc-head">'
         + '<div>'
-          + '<div class="tc-name">' + esc2(t.ism) + ' ' + esc2(t.familiya) + '</div>'
+          + '<div class="tc-name">' + esc2(t.familiya) + ' ' + esc2(t.ism) + '</div>'
           + '<div class="tc-sub">#' + (i+1) + ' · <span class="fan-badge">' + (t.fan||'—') + '</span></div>'
         + '</div>'
         + (isSuper
@@ -272,7 +272,7 @@ async function addMaktab(ri) {
 async function removeMaktab(ri, adminUsername) {
   const t = T[ri]; if (!t) return;
   const nom = ADMINS_MAP[adminUsername] || adminUsername;
-  if (!confirm('"' + t.ism + ' ' + t.familiya + '" o\'qituvchini ' + nom + ' maktabidan ajratasizmi?')) return;
+  if (!confirm('"' + t.familiya + ' ' + t.ism + '" o\'qituvchini ' + nom + ' maktabidan ajratasizmi?')) return;
   try {
     const r = await api.removeTeacherMaktab({ username: U.username, parol: U.parol, teacherId: t.id, adminUsername });
     if (r.ok) { toast('✅ ' + nom + " maktabidan ajratildi", 'success'); await loadTeachers(); }
@@ -302,8 +302,8 @@ function injectSuperModals() {
     <div class="modal-title">➕ Yangi o'qituvchi qo'shish</div>
     <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;">📋 Asosiy ma'lumotlar</div>
     <div class="form-grid" style="margin-bottom:16px;">
-      <div class="field-group"><label class="field-label">Ism *</label><input class="field-input" id="sa-ism" placeholder="Nodira" autocomplete="off"></div>
       <div class="field-group"><label class="field-label">Familiya *</label><input class="field-input" id="sa-familiya" placeholder="Yusupova" autocomplete="off"></div>
+      <div class="field-group"><label class="field-label">Ism *</label><input class="field-input" id="sa-ism" placeholder="Nodira" autocomplete="off"></div>
       <div class="field-group"><label class="field-label">Fan *</label><select class="field-input" id="sa-fan">${fanOptions}</select></div>
       <div class="field-group"><label class="field-label">Telefon *</label><div class="tel-wrap"><input class="field-input tel-input" id="sa-tel" placeholder="+998 __ ___ __ __" maxlength="17" inputmode="tel"><div class="tel-hint" id="sa-tel-hint"></div></div></div>
       <div class="field-group"><label class="field-label">Qo'sh. telefon <span style="font-weight:400;font-size:10px;">(ixtiyoriy)</span></label><div class="tel-wrap"><input class="field-input tel-input" id="sa-tel2" placeholder="+998 __ ___ __ __" maxlength="17" inputmode="tel"><div class="tel-hint" id="sa-tel2-hint"></div></div></div>
@@ -330,8 +330,8 @@ function injectSuperModals() {
     <input type="hidden" id="se-id">
     <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;">📋 Asosiy ma'lumotlar</div>
     <div class="form-grid" style="margin-bottom:16px;">
-      <div class="field-group"><label class="field-label">Ism *</label><input class="field-input" id="se-ism"></div>
       <div class="field-group"><label class="field-label">Familiya *</label><input class="field-input" id="se-familiya"></div>
+      <div class="field-group"><label class="field-label">Ism *</label><input class="field-input" id="se-ism"></div>
       <div class="field-group"><label class="field-label">Fan *</label><select class="field-input" id="se-fan">${fanOptions}</select></div>
       <div class="field-group"><label class="field-label">Telefon *</label><div class="tel-wrap"><input class="field-input tel-input" id="se-tel" maxlength="17" inputmode="tel"><div class="tel-hint" id="se-tel-hint"></div></div></div>
       <div class="field-group"><label class="field-label">Qo'sh. telefon</label><div class="tel-wrap"><input class="field-input tel-input" id="se-tel2" maxlength="17" inputmode="tel"><div class="tel-hint" id="se-tel2-hint"></div></div></div>
@@ -708,10 +708,10 @@ function openMergeModal(ri) {
   } else {
     // Ro'yxatdan tanlash
     const lines = candidates.map((c, i) =>
-      `${i+1}. ${c.ism} ${c.familiya} — ${c.fan||"Fan yo'q"} — Maktablar: ${(c.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ')||'Biriktirilmagan'}`
+      `${i+1}. ${c.familiya} ${c.ism} — ${c.fan||"Fan yo'q"} — Maktablar: ${(c.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ')||'Biriktirilmagan'}`
     );
     const choice = prompt(
-      '🔀 Qaysi o\'qituvchini o\'chirish (birlashtirish) kerak?\n\nSaqlanadigan: ' + keep.ism + ' ' + keep.familiya +
+      '🔀 Qaysi o\'qituvchini o\'chirish (birlashtirish) kerak?\n\nSaqlanadigan: ' + keep.familiya + ' ' + keep.ism +
       '\n\nO\'chirish uchun raqam kiriting:\n' + lines.join('\n')
     );
     if (!choice) return;
@@ -733,17 +733,17 @@ function renderMergeModal() {
   if (!keep || !remove) return;
 
   // Info panellarini to'ldirish
-  g('mg-keep-name').textContent   = keep.ism + ' ' + keep.familiya;
+  g('mg-keep-name').textContent   = keep.familiya + ' ' + keep.ism;
   g('mg-keep-fan').textContent    = keep.fan || "Fan ko'rsatilmagan";
   g('mg-keep-maktab').textContent = (keep.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ') || 'Maktab biriktirilmagan';
 
-  g('mg-remove-name').textContent   = remove.ism + ' ' + remove.familiya;
+  g('mg-remove-name').textContent   = remove.familiya + ' ' + remove.ism;
   g('mg-remove-fan').textContent    = remove.fan || "Fan ko'rsatilmagan";
   g('mg-remove-maktab').textContent = (remove.maktablar||[]).map(u => ADMINS_MAP[u]||u).join(', ') || 'Maktab biriktirilmagan';
 
   // Ism/familiya tanlov tugmalari
   const keepName   = keep.ism   + ' ' + keep.familiya;
-  const removeName = remove.ism + ' ' + remove.familiya;
+  const removeName = remove.familiya + ' ' + remove.ism;
   const sameNames  = keepName.toLowerCase() === removeName.toLowerCase();
 
   const nameOpts = g('mg-name-options');
@@ -751,7 +751,7 @@ function renderMergeModal() {
   if (!sameNames) {
     nameOpts.innerHTML =
       mkChoiceBtn('mg-name', 'keep',   keep.ism   + ' ' + keep.familiya,   true)  +
-      mkChoiceBtn('mg-name', 'remove', remove.ism + ' ' + remove.familiya, false) +
+      mkChoiceBtn('mg-name', 'remove', remove.familiya + ' ' + remove.ism, false) +
       mkChoiceBtn('mg-name', 'custom', '✳ Boshqa kiriting…',               false);
   } else {
     nameOpts.innerHTML = '<span style="font-size:13px;color:#374151;padding:6px 0;">' + esc2(keepName) + ' <span style="color:#6b7280;">(ikkalasida bir xil)</span></span>';
@@ -924,7 +924,7 @@ async function confirmMerge() {
 // ─────────────────────────────────────────────
 function confirmDelSuper(ri) {
   const t = T[ri]; if (!t) return;
-  if (!confirm('"' + t.ism + ' ' + t.familiya + "\" o'qituvchini to'liq o'chirishni tasdiqlaysizmi?\n\nBarcha davomat va portfolio ma'lumotlari ham o'chiriladi!")) return;
+  if (!confirm('"' + t.familiya + ' ' + t.ism + "\" o'qituvchini to'liq o'chirishni tasdiqlaysizmi?\n\nBarcha davomat va portfolio ma'lumotlari ham o'chiriladi!")) return;
   delTeacherSuper(t);
 }
 
@@ -1036,7 +1036,7 @@ async function saveEdit() {
 // ─────────────────────────────────────────────
 function confirmDel(idx) {
   const t = T[idx]; if (!t) return;
-  if (!confirm('"' + t.ism + ' ' + t.familiya + "\" o'qituvchini o'z ro'yxatingizdan chiqarishni tasdiqlaysizmi?")) return;
+  if (!confirm('"' + t.familiya + ' ' + t.ism + "\" o'qituvchini o'z ro'yxatingizdan chiqarishni tasdiqlaysizmi?")) return;
   delTeacher(idx);
 }
 
@@ -1208,7 +1208,7 @@ function renderOqPortfolio() {
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
             <div style="width:44px;height:44px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex-shrink:0;">${initials}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:14px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc2(t.ism)} ${esc2(t.familiya)}</div>
+              <div style="font-weight:600;font-size:14px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc2(t.familiya)} ${esc2(t.ism)}</div>
               <div style="font-size:12px;color:#6b7280;">${esc2(t.fan||'Fan ko\'rsatilmagan')}</div>
             </div>
           </div>
@@ -1255,7 +1255,7 @@ async function oqOpenPortfolioModal(teacherId) {
 
   g('oq-pm-avatar').textContent = ((t.ism||'')[0]||'T').toUpperCase();
   g('oq-pm-avatar').style.background = `linear-gradient(135deg,${colors[t.id % colors.length]},#574fd6)`;
-  g('oq-pm-name').textContent = `${t.ism} ${t.familiya}`;
+  g('oq-pm-name').textContent = `${t.familiya} ${t.ism}`;
   g('oq-pm-fan').textContent  = t.fan || '';
 
   if (p) {
@@ -1394,7 +1394,7 @@ async function openVTModalFromOq() {
                      style="width:16px;height:16px;accent-color:#6c63ff;flex-shrink:0;">
               <div style="width:34px;height:34px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;">${((t.ism||'')[0]||'T').toUpperCase()}</div>
               <div style="flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:13px;color:#111827;">${esc2(t.ism)} ${esc2(t.familiya)}</div>
+                <div style="font-weight:600;font-size:13px;color:#111827;">${esc2(t.familiya)} ${esc2(t.ism)}</div>
                 <div style="font-size:12px;color:#6b7280;">${esc2(t.fan||'')}</div>
               </div>
             </label>`;
@@ -1628,7 +1628,7 @@ function oqRenderVT2List() {
     <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid ${assigned?'#a5b4fc':'#e5e7eb'};border-radius:10px;background:${assigned?'#f5f3ff':'#fff'};margin-bottom:8px;transition:all .2s;">
       <div style="width:38px;height:38px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0;">${initials}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:13px;color:#111827;">${esc2(t.ism)} ${esc2(t.familiya)}</div>
+        <div style="font-weight:600;font-size:13px;color:#111827;">${esc2(t.familiya)} ${esc2(t.ism)}</div>
         <div style="font-size:11px;color:#6b7280;margin-bottom:3px;">${esc2(t.fan||'Fan ko\'rsatilmagan')}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
           <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${hasProfil?'#d1fae5':'#f3f4f6'};color:${hasProfil?'#065f46':'#9ca3af'};">
