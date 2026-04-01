@@ -85,14 +85,14 @@ router.post('/', async (req, res) => {
       `INSERT INTO oqituvchilar (ism,familiya,fan,telefon,telefon2,kunlar,sinflar,boshlanish,tugash,admin,qoshilgan)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
       [p.ism.trim(), p.familiya.trim(), p.fan||'', p.telefon||'', p.telefon2||'',
-       p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.username, p.date||todayUZ()]
+       p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', username, p.date||todayUZ()]
     );
     const teacherId = ins.rows[0].id;
 
     // Shu admin bilan avtomatik biriktirish
     await client.query(
       `INSERT INTO oqituvchi_maktablar (oqituvchi_id, admin_username) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-      [teacherId, p.username]
+      [teacherId, username]
     );
 
     await client.query('COMMIT');
@@ -120,7 +120,7 @@ router.put('/', async (req, res) => {
       : 'WHERE ism=$10 AND familiya=$11 AND admin=$12';
     params = isSuper
       ? [p.ism, p.familiya, p.fan, p.telefon, p.telefon2||'', p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.oldIsm, p.oldFamiliya]
-      : [p.ism, p.familiya, p.fan, p.telefon, p.telefon2||'', p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.oldIsm, p.oldFamiliya, p.username];
+      : [p.ism, p.familiya, p.fan, p.telefon, p.telefon2||'', p.kunlar||'', p.sinflar||'', p.boshlanish||'', p.tugash||'', p.oldIsm, p.oldFamiliya, username];
   }
 
   const result = await pool.query(
