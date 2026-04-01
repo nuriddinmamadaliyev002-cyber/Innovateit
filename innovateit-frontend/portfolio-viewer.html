@@ -119,8 +119,35 @@
     .search-bar input { border: none; outline: none; font-size: 14px; flex: 1; background: transparent; }
     .search-bar span  { font-size: 18px; color: #9ca3af; }
 
-    /* Teacher Grid */
-    .teacher-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    /* Teacher Container */
+    .teacher-grid { display: flex; flex-direction: column; gap: 36px; }
+
+    /* Category Section */
+    .fan-category { }
+    .fan-category-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .fan-category-title {
+      font-size: 17px; font-weight: 800; color: var(--text);
+      white-space: nowrap;
+    }
+    .fan-category-line {
+      flex: 1; height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      border-radius: 2px;
+    }
+    .fan-category-count {
+      font-size: 12px; font-weight: 600;
+      background: #ede9fe; color: #5b21b6;
+      padding: 3px 10px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    .fan-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
 
     .teacher-card {
       background: #fff;
@@ -315,7 +342,7 @@
     </div>
 
     <div id="teacher-grid" class="teacher-grid">
-      <div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-state">
         <div class="empty-icon">⏳</div>
         <div class="empty-text">O'qituvchilar yuklanmoqda...</div>
       </div>
@@ -515,29 +542,73 @@ async function loadTeachers() {
   }
 }
 
+// Fan ikonkalari
+const FAN_ICONS = {
+  'matematika': '📐', 'ingliz tili': '🇬🇧', 'ingliz': '🇬🇧',
+  'it': '💻', 'informatika': '💻', 'fizika': '⚡', 'kimyo': '🧪',
+  'biologiya': '🌿', 'tarix': '📜', 'ona tili': '📖', 'rus tili': '🇷🇺',
+  'musiqa': '🎵', 'jismoniy': '⚽', 'geografiya': '🌍',
+};
+function fanIcon(fan) {
+  if (!fan) return '📚';
+  const key = fan.toLowerCase();
+  for (const [k, v] of Object.entries(FAN_ICONS)) {
+    if (key.includes(k)) return v;
+  }
+  return '📚';
+}
+
 function renderTeachers(list) {
   const el = document.getElementById('teacher-grid');
 
   if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">👨‍🏫</div><div class="empty-text">Ko'rish uchun o'qituvchilar biriktirilmagan</div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👨‍🏫</div><div class="empty-text">Ko'rish uchun o'qituvchilar biriktirilmagan</div></div>`;
     return;
   }
 
-  el.innerHTML = list.map(t => {
-    const clr      = getColor(t.id);
-    const initials = ((t.fish || t.ism || 'T')[0]).toUpperCase();
-    const sertSoni = parseInt(t.sert_soni) || 0;
-    return `
-      <div class="teacher-card" onclick="openDetail(${t.id})">
-        <div class="tc-head">
-          <div class="tc-avatar" style="background:${clr};">${initials}</div>
-          <div>
-            <div class="tc-name">${esc(t.ism)} ${esc(t.familiya)}</div>
-            <div class="tc-fan">${esc(t.fan || 'Fan ko\'rsatilmagan')}</div>
+  // Fanlar bo'yicha guruhlash
+  const groups = {};
+  list.forEach(t => {
+    const fan = (t.fan || "Fan ko'rsatilmagan").trim();
+    if (!groups[fan]) groups[fan] = [];
+    groups[fan].push(t);
+  });
+
+  // Fanlarni alifbo tartibida saralash, "Fan ko'rsatilmagan" oxirga
+  const sortedFans = Object.keys(groups).sort((a, b) => {
+    if (a === "Fan ko'rsatilmagan") return 1;
+    if (b === "Fan ko'rsatilmagan") return -1;
+    return a.localeCompare(b, 'uz');
+  });
+
+  el.innerHTML = sortedFans.map(fan => {
+    const teachers = groups[fan];
+    const icon = fanIcon(fan);
+    const cards = teachers.map(t => {
+      const clr      = getColor(t.id);
+      const initials = ((t.fish || t.ism || 'T')[0]).toUpperCase();
+      return `
+        <div class="teacher-card" onclick="openDetail(${t.id})">
+          <div class="tc-head">
+            <div class="tc-avatar" style="background:${clr};">${initials}</div>
+            <div>
+              <div class="tc-name">${esc(t.ism)} ${esc(t.familiya)}</div>
+              <div class="tc-fan">${esc(t.fan || "Fan ko'rsatilmagan")}</div>
+            </div>
           </div>
+          <div class="tc-badges"></div>
+          <button class="tc-btn">Ko'rish →</button>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="fan-category">
+        <div class="fan-category-header">
+          <div class="fan-category-title">${icon} ${esc(fan)} o'qituvchilarimiz:</div>
+          <div class="fan-category-line"></div>
+          <div class="fan-category-count">${teachers.length} nafar</div>
         </div>
-        <div class="tc-badges"></div>
-        <button class="tc-btn">Ko'rish →</button>
+        <div class="fan-cards-grid">${cards}</div>
       </div>`;
   }).join('');
 }
