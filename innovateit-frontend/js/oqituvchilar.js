@@ -311,7 +311,7 @@ function injectSuperModals() {
     <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;">📂 Portfolio ma'lumotlari <span style="font-weight:400;text-transform:none;font-size:10px;">(ixtiyoriy)</span></div>
     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
       <div class="field-group"><label class="field-label">F.I.SH. (To'liq ism)</label><input class="field-input" id="sa-fish" placeholder="Yusupova Nodira Karimovna"></div>
-      <div class="field-group"><label class="field-label">O'qigan yoki bitirgan universiteti</label><input class="field-input" id="sa-univ" placeholder="Toshkent Davlat Pedagogika Universiteti"></div>
+      <div class="field-group"><label class="field-label">O'qiyotgan yoki bitirgan universiteti(lari)</label><input class="field-input" id="sa-univ" placeholder="Toshkent Davlat Pedagogika Universiteti"></div>
       <div class="field-group"><label class="field-label">Olgan sertifikatlari (matn)</label><textarea class="field-input" id="sa-sert" rows="3" style="resize:vertical;font-family:inherit;" placeholder="IELTS 7.0, Cambridge B2..."></textarea></div>
       <div class="field-group"><label class="field-label">Ish joylari va Ish tajribasi</label><textarea class="field-input" id="sa-tajriba" rows="3" style="resize:vertical;font-family:inherit;" placeholder="2018-2020: 45-maktab&#10;2020-hozir: InnovateIT School"></textarea></div>
     </div>
@@ -339,7 +339,7 @@ function injectSuperModals() {
     <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;">📂 Portfolio ma'lumotlari</div>
     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
       <div class="field-group"><label class="field-label">F.I.SH. (To'liq ism)</label><input class="field-input" id="se-fish" placeholder="Yusupova Nodira Karimovna"></div>
-      <div class="field-group"><label class="field-label">O'qigan yoki bitirgan universiteti</label><input class="field-input" id="se-univ" placeholder="Toshkent Davlat Pedagogika Universiteti"></div>
+      <div class="field-group"><label class="field-label">O'qiyotgan yoki bitirgan universiteti(lari)</label><input class="field-input" id="se-univ" placeholder="Toshkent Davlat Pedagogika Universiteti"></div>
       <div class="field-group"><label class="field-label">Olgan sertifikatlari (matn)</label><textarea class="field-input" id="se-sert" rows="3" style="resize:vertical;font-family:inherit;"></textarea></div>
       <div class="field-group"><label class="field-label">Ish joylari va Ish tajribasi</label><textarea class="field-input" id="se-tajriba" rows="3" style="resize:vertical;font-family:inherit;"></textarea></div>
     </div>
@@ -550,10 +550,15 @@ async function openSuperEdit(teacherId) {
     if (r.ok) {
       const p = r.portfolio;
       if (p) {
-        setValue('se-fish',    p.fish||'');
+        // fish bo'sh bo'lsa — familiya ism tartibida avtomatik to'ldirish
+        const fishVal = p.fish || '';
+        setValue('se-fish',    fishVal || ((t ? t.familiya+' '+t.ism : '')).trim());
         setValue('se-univ',    p.universitet||'');
         setValue('se-sert',    p.sertifikatlar||'');
         setValue('se-tajriba', p.ish_tajribasi||'');
+      } else {
+        // Portfolio yo'q — familiya ism bilan to'ldirish
+        if (t) setValue('se-fish', (t.familiya+' '+t.ism).trim());
       }
       SE_SERTS = r.sertifikatlar || [];
       renderSeGallery();
