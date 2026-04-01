@@ -1122,10 +1122,22 @@ let OQ_CURRENT_TAB  = 'teachers';
 // ─── Tab sozlamalari (init da chaqiriladi) ───
 function initPortfolioTab() {
   // Superadmin bo'lsa doim tab ko'rinadi
-  if (!U.isSuper) return;
+  if (!U.isSuper) {
+    // Oddiy admin — tab yo'q, sticky bar topbar ostida
+    const stickyBar = g('oq-pt-sticky-bar');
+    if (stickyBar) stickyBar.style.top = '52px';
+    return;
+  }
 
   const tabRow = g('oq-tab-row');
   if (tabRow) tabRow.style.display = 'block';
+
+  // Sticky bar uchun top qiymat
+  const stickyBar = g('oq-pt-sticky-bar');
+  if (stickyBar) {
+    const tabRowH = tabRow ? tabRow.offsetHeight || 44 : 0;
+    stickyBar.style.top = (52 + tabRowH) + 'px';
+  }
 
   // Viewer kartasidan kelgan bo'lsa — Portfolio tabiga o'tish
   if (U.fromPortfolio) {
@@ -1162,6 +1174,13 @@ function switchOqTab(tab) {
   if (portfolioContent) portfolioContent.style.display = isTeachers ? 'none' : 'block';
 
   if (!isTeachers) {
+    // Sticky bar top qiymatini dinamik hisoblash
+    const tabRow  = g('oq-tab-row');
+    const stickyBar = g('oq-pt-sticky-bar');
+    if (stickyBar) {
+      const tabRowH = (tabRow && tabRow.offsetHeight) ? tabRow.offsetHeight : 0;
+      stickyBar.style.top = (52 + tabRowH) + 'px';
+    }
     loadOqPortfolio();
   }
 }
@@ -1686,3 +1705,41 @@ window.oqOpenVT2Modal      = oqOpenVT2Modal;
 window.oqRenderVT2List     = oqRenderVT2List;
 window.oqVt2Toggle         = oqVt2Toggle;
 window.oqCloseVTModal2     = oqCloseVTModal2;
+// ─── Portfolio qidiruv ───
+function oqFilterPortfolio(q) {
+  const clearBtn = document.getElementById('oq-pt-search-clear');
+  if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+  const query = q.toLowerCase().trim();
+  const el    = document.getElementById('oq-pt-list');
+  if (!el) return;
+
+  const filtered = query
+    ? OQ_PT_DATA.filter(t =>
+        (t.familiya||'').toLowerCase().includes(query) ||
+        (t.ism||'').toLowerCase().includes(query) ||
+        (t.fan||'').toLowerCase().includes(query) ||
+        (t.fish||'').toLowerCase().includes(query)
+      )
+    : OQ_PT_DATA;
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:60px;color:#9ca3af;font-size:15px;">🔍 "${q}" bo'yicha hech narsa topilmadi</div>`;
+    return;
+  }
+
+  // renderOqPortfolio ni filtered data bilan chaqiramiz
+  const backup = OQ_PT_DATA;
+  OQ_PT_DATA = filtered;
+  renderOqPortfolio();
+  OQ_PT_DATA = backup;
+}
+
+function oqClearPtSearch() {
+  const inp = document.getElementById('oq-pt-search');
+  if (inp) { inp.value = ''; inp.focus(); }
+  oqFilterPortfolio('');
+}
+
+window.oqFilterPortfolio = oqFilterPortfolio;
+window.oqClearPtSearch   = oqClearPtSearch;

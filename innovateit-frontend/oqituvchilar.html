@@ -25,7 +25,7 @@
 </div>
 
 <!-- Tab navigatsiya (faqat superadmin uchun) -->
-<div id="oq-tab-row" style="display:none;background:#fff;border-bottom:2px solid #f3f4f6;padding:0 24px;">
+<div id="oq-tab-row" style="display:none;background:#fff;border-bottom:2px solid #f3f4f6;padding:0 24px;position:sticky;top:52px;z-index:150;">
   <div style="display:flex;gap:4px;padding-top:8px;">
     <button id="tab-btn-teachers" onclick="switchOqTab('teachers')"
       style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;color:#6c63ff;border-bottom:3px solid #6c63ff;margin-bottom:-2px;font-family:inherit;transition:all .2s;">
@@ -149,9 +149,22 @@
     </div>
 
     <!-- ── O'QITUVCHILAR PORTFOLIO ── -->
-    <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:16px;">
-      🎓 O'qituvchilar Portfolio
-      <span style="font-size:13px;font-weight:400;color:#6b7280;margin-left:8px;">Har bir o'qituvchiga portfolio ma'lumotlari va sertifikatlar yuklang</span>
+    <div id="oq-pt-sticky-bar" style="position:sticky;top:96px;z-index:120;background:#f3f4f6;padding:12px 0 10px;margin:0 -4px;border-bottom:1.5px solid #e5e7eb;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:16px;font-weight:700;color:#111827;">
+          🎓 O'qituvchilar Portfolio
+          <span style="font-size:13px;font-weight:400;color:#6b7280;margin-left:8px;">Har bir o'qituvchiga portfolio ma'lumotlari va sertifikatlar yuklang</span>
+        </div>
+        <div style="position:relative;display:inline-flex;align-items:center;">
+          <span style="position:absolute;left:12px;font-size:15px;pointer-events:none;">🔍</span>
+          <input id="oq-pt-search" type="text" placeholder="Ism, familiya yoki fan…"
+            oninput="oqFilterPortfolio(this.value)"
+            style="padding:9px 36px 9px 36px;border:1.5px solid #e5e7eb;border-radius:22px;font-size:13px;font-family:inherit;outline:none;background:#fff;color:#111827;width:260px;transition:border-color .15s;"
+            onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+          <button id="oq-pt-search-clear" onclick="oqClearPtSearch()" title="Tozalash"
+            style="display:none;position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;padding:0;line-height:1;">✕</button>
+        </div>
+      </div>
     </div>
     <div id="oq-pt-list"></div>
 
