@@ -220,16 +220,7 @@
     }
     .sert-name { padding: 6px 8px; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* PDF Button */
-    .pdf-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 24px;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff; border: none; border-radius: 10px;
-      font-size: 14px; font-weight: 700; cursor: pointer;
-      transition: opacity .2s;
-    }
-    .pdf-btn:hover { opacity: .9; }
+
 
     .dc-footer { display: flex; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 2px solid var(--bg); }
 
@@ -247,16 +238,6 @@
     #lightbox-close { position: absolute; top: 20px; right: 24px; background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; }
     #lightbox-name { color: #fff; font-size: 13px; margin-top: 12px; opacity: .7; }
 
-    /* ── PRINT STYLES ── */
-    @media print {
-      body * { visibility: hidden; }
-      #print-area, #print-area * { visibility: visible; }
-      #print-area {
-        position: absolute; inset: 0;
-        background: #fff; padding: 40px;
-      }
-      .print-hide { display: none !important; }
-    }
 
     /* ── EMPTY STATE ── */
     .empty-state {
@@ -278,8 +259,6 @@
     #toast.success { background: #10b981; }
     #toast.error   { background: #ef4444; }
 
-    /* Hidden print area */
-    #print-area { display: none; }
   </style>
 </head>
 <body>
@@ -390,7 +369,6 @@
     </div>
 
     <div class="dc-footer">
-      <button class="pdf-btn" onclick="downloadPDF()">📄 PDF yuklab olish</button>
       <button onclick="closeModal()" style="padding:12px 20px;background:var(--bg);border:none;border-radius:10px;cursor:pointer;font-size:14px;color:var(--text-muted);">Yopish</button>
     </div>
   </div>
@@ -408,7 +386,6 @@
 <!-- ══════════════════════════════════
      PRINT AREA (hidden)
 ══════════════════════════════════════ -->
-<div id="print-area"></div>
 
 <!-- TOAST -->
 <div id="toast"></div>
@@ -671,81 +648,6 @@ function openLightbox(url, name) {
 function closeLightbox() {
   document.getElementById('lightbox').style.display = 'none';
   document.getElementById('lb-img').src = '';
-}
-
-// ─── PDF DOWNLOAD ───
-function downloadPDF() {
-  if (!CUR_TEACHER) return;
-  const t = CUR_TEACHER.teacher;
-  const p = CUR_TEACHER.portfolio || {};
-  const serts = CUR_TEACHER.sertifikatlar || [];
-
-  // Sertifikat rasmlari uchun base64 olish (CORS bo'lsa ishlaydi)
-  // window.print() yordamida PDF chiqaramiz
-  const printArea = document.getElementById('print-area');
-  const clr = getColor(t.id);
-  const today = new Date().toLocaleDateString('ru-RU');
-
-  // Sertifikat imgs
-  const sertImgsHtml = serts.length > 0 ? `
-    <div style="page-break-inside:avoid;">
-      <h3 style="font-size:14px;font-weight:700;color:#374151;border-bottom:2px solid #e5e7eb;padding-bottom:8px;margin:28px 0 16px;">📎 Sertifikat rasmlari</h3>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-        ${serts.map(s => {
-          const url = `${BASE}/uploads/${s.fayl_nomi}`;
-          const isPdf = s.fayl_nomi.endsWith('.pdf');
-          return isPdf
-            ? `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;text-align:center;background:#fef3c7;"><div style="font-size:28px;">📄</div><div style="font-size:10px;color:#6b7280;margin-top:6px;word-break:break-all;">${esc(s.asl_nomi||s.fayl_nomi)}</div></div>`
-            : `<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;"><img src="${url}" style="width:100%;height:120px;object-fit:cover;display:block;" crossorigin="anonymous"><div style="padding:4px 6px;font-size:10px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.asl_nomi||s.fayl_nomi)}</div></div>`;
-        }).join('')}
-      </div>
-    </div>` : '';
-
-  const section = (icon, title, val) => val && val.trim() ? `
-    <div style="margin-bottom:24px;page-break-inside:avoid;">
-      <h3 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;border-bottom:2px solid #e5e7eb;padding-bottom:8px;margin-bottom:12px;">${icon} ${title}</h3>
-      <p style="font-size:14px;color:#111827;line-height:1.7;white-space:pre-wrap;">${esc(val.trim())}</p>
-    </div>` : '';
-
-  printArea.innerHTML = `
-    <style>
-      @page { size: A4; margin: 20mm; }
-      body { font-family: Arial, sans-serif; }
-    </style>
-    <div style="font-family:Arial,sans-serif;color:#111827;max-width:700px;margin:0 auto;">
-
-      <!-- Header -->
-      <div style="display:flex;align-items:center;gap:18px;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid ${clr};">
-        <div style="width:70px;height:70px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:700;flex-shrink:0;">
-          ${((p.fish||t.ism||'T')[0]).toUpperCase()}
-        </div>
-        <div>
-          <h1 style="font-size:24px;font-weight:800;margin:0 0 4px;">${esc(t.ism)} ${esc(t.familiya)}</h1>
-          <div style="font-size:14px;color:#6b7280;">${esc(t.fan||'Fan ko\'rsatilmagan')}</div>
-          ${t.telefon ? `<div style="font-size:13px;color:#6b7280;margin-top:2px;">📞 ${esc(t.telefon)}</div>` : ''}
-        </div>
-        <div style="margin-left:auto;text-align:right;">
-          <div style="font-size:11px;color:#9ca3af;">InnovateIT School</div>
-          <div style="font-size:11px;color:#9ca3af;">${today}</div>
-        </div>
-      </div>
-
-      ${section('👤', "F.I.SH.", p.fish)}
-      ${section('🎓', "O'qigan/bitirgan universiteti", p.universitet)}
-      ${section('🏅', "Olgan sertifikatlari", p.sertifikatlar)}
-      ${section('💼', "Ish joylari va Ish tajribasi", p.ish_tajribasi)}
-      ${sertImgsHtml}
-
-      <!-- Footer -->
-      <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:11px;color:#9ca3af;">
-        InnovateIT School — O'qituvchi Portfolio | ${today}
-      </div>
-    </div>
-  `;
-
-  printArea.style.display = 'block';
-  window.print();
-  setTimeout(() => { printArea.style.display = 'none'; }, 1000);
 }
 
 // ─── KEYBOARD ───
