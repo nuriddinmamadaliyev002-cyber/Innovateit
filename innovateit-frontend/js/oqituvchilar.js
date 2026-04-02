@@ -154,14 +154,15 @@ function renderTable(d) {
 
   tb.innerHTML = d.map((t, i) => {
     if (isSuper) {
-      // Biriktirilgan maktab badge'lari
-      const maktabBadges = (t.maktablar || []).map(u => {
+      // Biriktirilgan maktab badge'lari (superadmin o'zi filtrlanadi)
+      const validMaktablar = (t.maktablar || []).filter(u => u && u !== 'superadmin');
+      const maktabBadges = validMaktablar.map(u => {
         const nom = ADMINS_MAP[u] || u;
         return '<span class="maktab-badge-item">' + esc2(nom)
           + ' <button class="maktab-badge-x" onclick="removeMaktab(' + t.ri + ',\'' + esc(u) + '\')" title="Ajratish">✕</button></span>';
       }).join('');
 
-      const taken = new Set(t.maktablar || []);
+      const taken = new Set(validMaktablar);
       const freeOpts = ADMINS_LIST
         .filter(a => !taken.has(a.username))
         .map(a => '<option value="' + esc(a.username) + '">' + esc2(a.ism) + '</option>')
