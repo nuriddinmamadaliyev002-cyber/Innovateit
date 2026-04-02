@@ -142,12 +142,13 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
       SELECT
         o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
         p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
+        p.display_order,
         COUNT(DISTINCT s.id)::int AS sert_soni
       FROM oqituvchilar o
       INNER JOIN viewer_teachers vt ON o.id = vt.teacher_id AND vt.viewer_username = $1
       LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
       LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
-      GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi
+      GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
       ORDER BY o.id
     `, [req.user.username]);
   } else {
@@ -156,6 +157,7 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
       SELECT
         o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
         p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
+        p.display_order,
         COUNT(DISTINCT s.id)::int AS sert_soni,
         COALESCE(
           json_agg(DISTINCT vt.viewer_username) FILTER (WHERE vt.viewer_username IS NOT NULL),
@@ -165,7 +167,7 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
       LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
       LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
       LEFT JOIN viewer_teachers vt ON o.id = vt.teacher_id
-      GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi
+      GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
       ORDER BY o.id
     `);
   }
@@ -201,7 +203,7 @@ router.get('/teacher/:id', requireAuth(['admin', 'viewer']), async (req, res) =>
 
 // POST /api/portfolio/teacher/:id — profil saqlash/yangilash (superadmin)
 router.post('/teacher/:id', requireAuth(['admin']), async (req, res) => {
-  const { fish, universitet, sertifikatlar, ish_tajribasi } = req.body;
+  const { fish, universitet, sertifikatlar, ish_tajribasi, display_order } = req.body;
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
   const id = parseInt(req.params.id);
@@ -210,13 +212,15 @@ router.post('/teacher/:id', requireAuth(['admin']), async (req, res) => {
   const found = await pool.query('SELECT id FROM oqituvchilar WHERE id=$1', [id]);
   if (found.rows.length === 0) return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
 
+  const orderVal = display_order ? parseInt(display_order) : null;
+
   await pool.query(`
     INSERT INTO oqituvchi_portfolio
-      (oqituvchi_id, fish, universitet, sertifikatlar, ish_tajribasi, yangilangan)
-    VALUES ($1,$2,$3,$4,$5,$6)
+      (oqituvchi_id, fish, universitet, sertifikatlar, ish_tajribasi, display_order, yangilangan)
+    VALUES ($1,$2,$3,$4,$5,$6,$7)
     ON CONFLICT (oqituvchi_id) DO UPDATE SET
-      fish=$2, universitet=$3, sertifikatlar=$4, ish_tajribasi=$5, yangilangan=$6
-  `, [id, fish||'', universitet||'', sertifikatlar||'', ish_tajribasi||'', todayUZ()]);
+      fish=$2, universitet=$3, sertifikatlar=$4, ish_tajribasi=$5, display_order=$6, yangilangan=$7
+  `, [id, fish||'', universitet||'', sertifikatlar||'', ish_tajribasi||'', orderVal, todayUZ()]);
 
   res.json({ ok: true });
 });

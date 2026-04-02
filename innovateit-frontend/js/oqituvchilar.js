@@ -1290,6 +1290,7 @@ async function oqOpenPortfolioModal(teacherId) {
     g('oq-pm-univ').value    = p.universitet   || '';
     g('oq-pm-sert').value    = p.sertifikatlar || '';
     g('oq-pm-tajriba').value = p.ish_tajribasi || '';
+    g('oq-pm-order').value   = p.display_order || '';
   }
 
   OQ_PM_SERTS = r.sertifikatlar || [];
@@ -1303,17 +1304,169 @@ function oqClosePModal(e) {
 
 async function oqSavePortfolio() {
   const id = g('oq-pm-teacher-id').value;
+  const orderVal = g('oq-pm-order').value.trim();
   const r  = await api.savePortfolioTeacher({
     username:      U.username,
     parol:         U.parol,
     fish:          g('oq-pm-fish').value.trim(),
     universitet:   g('oq-pm-univ').value.trim(),
     sertifikatlar: g('oq-pm-sert').value.trim(),
-    ish_tajribasi: g('oq-pm-tajriba').value.trim()
+    ish_tajribasi: g('oq-pm-tajriba').value.trim(),
+    display_order: orderVal ? parseInt(orderVal) : null
   }, id);
   if (!r.ok) return toast('❌ ' + r.error, 'error');
   toast('✅ Portfolio saqlandi', 'success');
   loadOqPortfolio();
+}
+
+// ─── FAN TARTIB MODAL ───
+let FO_FAN      = '';   // joriy fan nomi
+let FO_TEACHERS = [];   // shu fandagi o'qituvchilar
+
+function openFanOrderModal() {
+  const teacherId = parseInt(g('oq-pm-teacher-id').value);
+  const teacher = OQ_PT_DATA.find(t => t.id === teacherId);
+  if (!teacher) return;
+
+  FO_FAN = teacher.fan || '';
+  // Shu fandagi barcha o'qituvchilarni filterlash
+  FO_TEACHERS = OQ_PT_DATA
+    .filter(t => (t.fan || '').toLowerCase().trim() === FO_FAN.toLowerCase().trim())
+    .map(t => ({
+      id:            t.id,
+      ism:           t.ism,
+      familiya:      t.familiya,
+      display_order: t.display_order || null
+    }))
+    .sort((a, b) => {
+      const oa = a.display_order || 9999;
+      const ob = b.display_order || 9999;
+      if (oa !== ob) return oa - ob;
+      return (a.familiya||'').localeCompare(b.familiya||'', 'uz');
+    });
+
+  const title = g('fo-title');
+  if (title) title.textContent = `📋 "${FO_FAN}" o'qituvchilari tartibi`;
+
+  renderFanOrderList();
+  g('fan-order-modal').style.display = 'flex';
+}
+
+function renderFanOrderList() {
+  const el = g('fo-list');
+  if (!el) return;
+  const colors = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
+
+  el.innerHTML = FO_TEACHERS.map((t, i) => {
+    const clr = colors[t.id % colors.length];
+    const initials = ((t.ism||'')[0]||'T').toUpperCase();
+    const isCurrentUser = parseInt(g('oq-pm-teacher-id').value) === t.id;
+    return `
+      <div data-teacher-id="${t.id}" draggable="true"
+        ondragstart="foDragStart(event,${i})"
+        ondragover="foDragOver(event)"
+        ondrop="foDrop(event,${i})"
+        ondragend="foDragEnd(event)"
+        style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid ${isCurrentUser?'#c4b5fd':'#e5e7eb'};border-radius:11px;background:${isCurrentUser?'#faf5ff':'#fff'};cursor:grab;transition:all .15s;user-select:none;">
+        <div style="font-size:18px;color:#9ca3af;cursor:grab;flex-shrink:0;">⠿</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13px;color:#111827;">${esc2(t.familiya)} ${esc2(t.ism)} ${isCurrentUser ? '<span style="font-size:10px;background:#ede9fe;color:#6c63ff;padding:2px 7px;border-radius:20px;font-weight:700;">Hozirgi</span>' : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <span style="font-size:11px;color:#9ca3af;">№</span>
+          <input type="number" min="1" max="99" value="${t.display_order||''}" placeholder="—"
+            data-tid="${t.id}"
+            oninput="foUpdateOrder(${t.id},this.value)"
+            style="width:52px;padding:6px 8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-weight:700;color:#6c63ff;text-align:center;outline:none;"
+            onfocus="this.style.borderColor='#6c63ff'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+      </div>`;
+  }).join('');
+
+  addFoDragListeners();
+}
+
+// Tartibni yangilash (raqam kiritilganda)
+function foUpdateOrder(teacherId, val) {
+  const t = FO_TEACHERS.find(x => x.id === teacherId);
+  if (t) t.display_order = val ? parseInt(val) : null;
+}
+
+// Drag & Drop
+let foDragIdx = null;
+
+function addFoDragListeners() {
+  // already set via inline attributes
+}
+
+function foDragStart(e, idx) {
+  foDragIdx = idx;
+  e.currentTarget.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function foDragEnd(e) {
+  e.currentTarget.style.opacity = '1';
+  foDragIdx = null;
+}
+
+function foDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.background = '#f0eeff';
+}
+
+function foDrop(e, toIdx) {
+  e.preventDefault();
+  e.currentTarget.style.background = '';
+  if (foDragIdx === null || foDragIdx === toIdx) return;
+
+  // Massivda qayta tartiblaymiz
+  const moved = FO_TEACHERS.splice(foDragIdx, 1)[0];
+  FO_TEACHERS.splice(toIdx, 0, moved);
+
+  // display_order ni yangi tartib asosida yangilaymiz
+  FO_TEACHERS.forEach((t, i) => { t.display_order = i + 1; });
+
+  renderFanOrderList();
+}
+
+async function saveFanOrder() {
+  // Har bir o'qituvchining display_order ini saqlaymiz
+  let errors = 0;
+  for (const t of FO_TEACHERS) {
+    // Avval o'sha o'qituvchining to'liq portfolio ma'lumotini olamiz
+    const rGet = await api.getPortfolioTeacher({ username: U.username, parol: U.parol }, t.id);
+    const p = rGet.ok ? (rGet.portfolio || {}) : {};
+
+    const rSave = await api.savePortfolioTeacher({
+      username:      U.username,
+      parol:         U.parol,
+      fish:          p.fish          || '',
+      universitet:   p.universitet   || '',
+      sertifikatlar: p.sertifikatlar || '',
+      ish_tajribasi: p.ish_tajribasi || '',
+      display_order: t.display_order || null
+    }, t.id);
+    if (!rSave.ok) errors++;
+  }
+
+  if (errors > 0) {
+    toast(`❌ ${errors} ta saqlashda xato`, 'error');
+  } else {
+    toast('✅ Tartib saqlandi!', 'success');
+    // Joriy modal dagi tartib maydonini ham yangilaymiz
+    const curId = parseInt(g('oq-pm-teacher-id').value);
+    const cur = FO_TEACHERS.find(t => t.id === curId);
+    if (cur && g('oq-pm-order')) g('oq-pm-order').value = cur.display_order || '';
+    await loadOqPortfolio();
+    closeFanOrderModal();
+  }
+}
+
+function closeFanOrderModal() {
+  g('fan-order-modal').style.display = 'none';
 }
 
 // ─── Sertifikat gallery ───

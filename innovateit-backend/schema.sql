@@ -198,6 +198,9 @@ CREATE TABLE IF NOT EXISTS oqituvchi_portfolio (
     yangilangan     TEXT DEFAULT TO_CHAR(NOW(), 'DD.MM.YYYY'),
     UNIQUE(oqituvchi_id)
 );
+
+ALTER TABLE oqituvchi_portfolio ADD COLUMN IF NOT EXISTS display_order INTEGER;
+
 -- ─── O'qituvchi sertifikat fayllari (max 10) ───
 CREATE TABLE IF NOT EXISTS oqituvchi_sertifikat_fayllar (
     id              SERIAL PRIMARY KEY,

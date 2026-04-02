@@ -273,6 +273,96 @@
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
     .empty-text { font-size: 14px; color: var(--text-muted); }
 
+    /* ── FAN FILTER BUTTONS ── */
+    .fan-filter-section {
+      margin-bottom: 28px;
+    }
+    .fan-filter-label {
+      font-size: 12px; font-weight: 600; color: var(--text-muted);
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .fan-filter-btns {
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+    .fan-filter-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 20px;
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 50px;
+      font-size: 14px; font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .22s cubic-bezier(.4,0,.2,1);
+      user-select: none;
+      position: relative; overflow: hidden;
+    }
+    .fan-filter-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .fan-filter-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 4px 16px rgba(108,99,255,.14);
+      transform: translateY(-1px);
+    }
+    .fan-filter-btn.active {
+      background: linear-gradient(135deg, #6c63ff, #574fd6);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(108,99,255,.35);
+      transform: translateY(-2px);
+    }
+    .fan-filter-btn .btn-count {
+      background: rgba(255,255,255,.22);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      transition: background .2s;
+    }
+    .fan-filter-btn:not(.active) .btn-count {
+      background: #f0f0f5;
+      color: var(--text-muted);
+    }
+
+    /* ── CARD ANIMATION ── */
+    @keyframes cardSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(28px) scale(.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .teacher-card.anim-in {
+      animation: cardSlideIn .38s cubic-bezier(.23,1,.32,1) both;
+    }
+
+    @keyframes sectionFadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fan-category.anim-section {
+      animation: sectionFadeIn .3s ease both;
+    }
+
+    /* ── WELCOME SCREEN ── */
+    .welcome-state {
+      text-align: center;
+      padding: 60px 20px 40px;
+    }
+    .welcome-icon { font-size: 56px; margin-bottom: 16px; }
+    .welcome-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .welcome-sub { font-size: 14px; color: var(--text-muted); }
+
     /* Toast */
     #toast {
       position: fixed; bottom: 28px; right: 28px;
@@ -340,10 +430,27 @@
       <input type="text" id="search-inp" placeholder="Ism, familiya yoki fan bo'yicha qidirish..." oninput="filterTeachers()">
     </div>
 
+    <!-- Fan filter tugmalari -->
+    <div class="fan-filter-section">
+      <div class="fan-filter-label">Fan bo'yicha ko'rish</div>
+      <div class="fan-filter-btns" id="fan-filter-btns">
+        <button class="fan-filter-btn" data-fan="IT" onclick="filterByFan('IT', this)">
+          💻 IT o'qituvchilarimiz <span class="btn-count" id="count-IT">0</span>
+        </button>
+        <button class="fan-filter-btn" data-fan="Ingliz tili" onclick="filterByFan('Ingliz tili', this)">
+          🇬🇧 Ingliz tili o'qituvchilarimiz <span class="btn-count" id="count-ingliz">0</span>
+        </button>
+        <button class="fan-filter-btn" data-fan="Matematika" onclick="filterByFan('Matematika', this)">
+          📐 Matematika o'qituvchilarimiz <span class="btn-count" id="count-matematika">0</span>
+        </button>
+      </div>
+    </div>
+
     <div id="teacher-grid" class="teacher-grid">
-      <div class="empty-state">
-        <div class="empty-icon">⏳</div>
-        <div class="empty-text">O'qituvchilar yuklanmoqda...</div>
+      <div class="welcome-state">
+        <div class="welcome-icon">👆</div>
+        <div class="welcome-title">Fan tanlang</div>
+        <div class="welcome-sub">Yuqoridagi tugmalardan birini bosing va o'qituvchilarni ko'ring</div>
       </div>
     </div>
   </div>
@@ -533,7 +640,8 @@ async function loadTeachers() {
     const r = await pvFetch(`${BASE}/api/portfolio/teachers`);
     if (!r.ok) return toast('❌ ' + r.error, 'error');
     TEACHERS = r.teachers || [];
-    renderTeachers(TEACHERS);
+    updateCounts();
+    renderTeachers([], false);
   } catch (e) {
     toast('❌ Server xatoligi', 'error');
   }
@@ -555,13 +663,102 @@ function fanIcon(fan) {
   return '📚';
 }
 
-function renderTeachers(list) {
-  const el = document.getElementById('teacher-grid');
+// ─── FAN FILTER STATE ───
+let ACTIVE_FAN = null;
 
-  if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👨‍🏫</div><div class="empty-text">Ko'rish uchun o'qituvchilar biriktirilmagan</div></div>`;
+// Fan nomi normalize qilish (katta-kichik harf, bo'shliq)
+function normalizeFan(fan) {
+  return (fan || '').toLowerCase().trim();
+}
+
+// O'qituvchi qaysi fan kategoriyasiga tegishliligini tekshirish
+function matchesFan(teacher, fanKey) {
+  const f = normalizeFan(teacher.fan);
+  const key = fanKey.toLowerCase();
+  if (key === 'it') {
+    return f.includes('it') || f.includes('informatika') || f.includes('dasturlash') || f.includes('kompyuter');
+  }
+  if (key === 'ingliz tili') {
+    return f.includes('ingliz') || f.includes('english');
+  }
+  if (key === 'matematika') {
+    return f.includes('matema') || f.includes('algebra') || f.includes('geometriya');
+  }
+  return false;
+}
+
+// Tugma bosilganda
+function filterByFan(fanKey, btnEl) {
+  const q = document.getElementById('search-inp').value.toLowerCase();
+
+  // Agar shu tugma allaqachon active bo'lsa — o'chirish
+  if (ACTIVE_FAN === fanKey) {
+    ACTIVE_FAN = null;
+    document.querySelectorAll('.fan-filter-btn').forEach(b => b.classList.remove('active'));
+    renderTeachers(q ? TEACHERS.filter(t =>
+      (t.ism||'').toLowerCase().includes(q) ||
+      (t.familiya||'').toLowerCase().includes(q) ||
+      (t.fan||'').toLowerCase().includes(q) ||
+      (t.fish||'').toLowerCase().includes(q)
+    ) : [], true);
     return;
   }
+
+  ACTIVE_FAN = fanKey;
+  document.querySelectorAll('.fan-filter-btn').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+
+  let filtered = TEACHERS.filter(t => matchesFan(t, fanKey));
+  if (q) filtered = filtered.filter(t =>
+    (t.ism||'').toLowerCase().includes(q) ||
+    (t.familiya||'').toLowerCase().includes(q) ||
+    (t.fan||'').toLowerCase().includes(q) ||
+    (t.fish||'').toLowerCase().includes(q)
+  );
+
+  renderTeachers(filtered, true);
+}
+
+// Sonlarni yangilash
+function updateCounts() {
+  const itCount   = TEACHERS.filter(t => matchesFan(t, 'IT')).length;
+  const ingCount  = TEACHERS.filter(t => matchesFan(t, 'Ingliz tili')).length;
+  const matCount  = TEACHERS.filter(t => matchesFan(t, 'Matematika')).length;
+  const itEl  = document.getElementById('count-IT');
+  const ingEl = document.getElementById('count-ingliz');
+  const matEl = document.getElementById('count-matematika');
+  if (itEl)  itEl.textContent  = itCount;
+  if (ingEl) ingEl.textContent = ingCount;
+  if (matEl) matEl.textContent = matCount;
+}
+
+function renderTeachers(list, animate = false) {
+  const el = document.getElementById('teacher-grid');
+
+  // Hech narsa tanlanmagan holat
+  if (!ACTIVE_FAN && !document.getElementById('search-inp').value) {
+    el.innerHTML = `
+      <div class="welcome-state">
+        <div class="welcome-icon">👆</div>
+        <div class="welcome-title">Fan tanlang</div>
+        <div class="welcome-sub">Yuqoridagi tugmalardan birini bosing va o'qituvchilarni ko'ring</div>
+      </div>`;
+    return;
+  }
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👨‍🏫</div><div class="empty-text">Bu fan bo'yicha o'qituvchilar topilmadi</div></div>`;
+    return;
+  }
+
+  // display_order bo'yicha saralash (0 yoki null bo'lsa oxirga)
+  list = [...list].sort((a, b) => {
+    const oa = a.display_order || 9999;
+    const ob = b.display_order || 9999;
+    if (oa !== ob) return oa - ob;
+    // Teng bo'lsa — ism bo'yicha
+    return (a.familiya||'').localeCompare(b.familiya||'', 'uz');
+  });
 
   // Fanlar bo'yicha guruhlash
   const groups = {};
@@ -571,25 +768,28 @@ function renderTeachers(list) {
     groups[fan].push(t);
   });
 
-  // Fanlarni alifbo tartibida saralash, "Fan ko'rsatilmagan" oxirga
   const sortedFans = Object.keys(groups).sort((a, b) => {
     if (a === "Fan ko'rsatilmagan") return 1;
     if (b === "Fan ko'rsatilmagan") return -1;
     return a.localeCompare(b, 'uz');
   });
 
-  el.innerHTML = sortedFans.map(fan => {
+  el.innerHTML = sortedFans.map((fan, fi) => {
     const teachers = groups[fan];
     const icon = fanIcon(fan);
-    const cards = teachers.map(t => {
+    const cards = teachers.map((t, ci) => {
       const clr      = getColor(t.id);
       const initials = ((t.fish || t.ism || 'T')[0]).toUpperCase();
+      const delay    = animate ? (ci * 60) : 0;
+      const orderBadge = t.display_order
+        ? `<span style="font-size:10px;background:#f0f0f8;color:#6c63ff;border-radius:20px;padding:2px 7px;font-weight:700;">№${t.display_order}</span>`
+        : '';
       return `
-        <div class="teacher-card" onclick="openDetail(${t.id})">
+        <div class="teacher-card${animate ? ' anim-in' : ''}" style="${animate ? `animation-delay:${delay}ms` : ''}" onclick="openDetail(${t.id})">
           <div class="tc-head">
             <div class="tc-avatar" style="background:${clr};">${initials}</div>
             <div>
-              <div class="tc-name">${esc(t.familiya)} ${esc(t.ism)}</div>
+              <div class="tc-name">${esc(t.familiya)} ${esc(t.ism)} ${orderBadge}</div>
               <div class="tc-fan">${esc(t.fan || "Fan ko'rsatilmagan")}</div>
             </div>
           </div>
@@ -598,8 +798,9 @@ function renderTeachers(list) {
         </div>`;
     }).join('');
 
+    const sectionDelay = animate ? (fi * 40) : 0;
     return `
-      <div class="fan-category">
+      <div class="fan-category${animate ? ' anim-section' : ''}" style="${animate ? `animation-delay:${sectionDelay}ms` : ''}">
         <div class="fan-category-header">
           <div class="fan-category-title">${icon} ${esc(fan)} o'qituvchilarimiz:</div>
           <div class="fan-category-line"></div>
@@ -612,14 +813,21 @@ function renderTeachers(list) {
 
 function filterTeachers() {
   const q = document.getElementById('search-inp').value.toLowerCase();
-  if (!q) return renderTeachers(TEACHERS);
+  if (ACTIVE_FAN) {
+    filterByFan(ACTIVE_FAN, document.querySelector(`.fan-filter-btn[data-fan="${ACTIVE_FAN}"]`));
+    return;
+  }
+  if (!q) {
+    renderTeachers([], false);
+    return;
+  }
   const filtered = TEACHERS.filter(t =>
     (t.ism||'').toLowerCase().includes(q) ||
     (t.familiya||'').toLowerCase().includes(q) ||
     (t.fan||'').toLowerCase().includes(q) ||
     (t.fish||'').toLowerCase().includes(q)
   );
-  renderTeachers(filtered);
+  renderTeachers(filtered, true);
 }
 
 // ─── OPEN DETAIL MODAL ───
