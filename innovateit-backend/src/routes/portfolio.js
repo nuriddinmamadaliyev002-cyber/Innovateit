@@ -62,11 +62,15 @@ function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 router.get('/viewers', requireAuth(['admin']), async (req, res) => {
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
-  const r = await pool.query(
-    'SELECT id,ism,username,yaratilgan FROM portfolio_viewers ORDER BY id'
-    // Parolni HECH QACHON frontendga yubormang!
-  );
-  res.json({ ok: true, viewers: r.rows });
+  try {
+    const r = await pool.query(
+      'SELECT id,ism,username,yaratilgan FROM portfolio_viewers ORDER BY id'
+    );
+    res.json({ ok: true, viewers: r.rows });
+  } catch (err) {
+    console.error('GET /viewers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
 });
 
 // POST /api/portfolio/viewers
@@ -85,7 +89,8 @@ router.post('/viewers', requireAuth(['admin']), async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ ok: false, error: 'Bu username allaqachon mavjud' });
-    throw err;
+    console.error('POST /viewers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
   }
 });
 
@@ -96,19 +101,23 @@ router.put('/viewers', requireAuth(['admin']), async (req, res) => {
   if (!oldUsername?.trim() || !nu?.trim() || !newIsm?.trim())
     return res.status(400).json({ ok: false, error: 'Majburiy maydonlar yetishmaydi' });
 
-  let q, params;
-  if (np?.trim()) {
-    const hashed = await hashPassword(np.trim());
-    q = 'UPDATE portfolio_viewers SET ism=$1,username=$2,parol=$3 WHERE username=$4';
-    params = [newIsm.trim(), nu.trim(), hashed, oldUsername.trim()];
-  } else {
-    q = 'UPDATE portfolio_viewers SET ism=$1,username=$2 WHERE username=$3';
-    params = [newIsm.trim(), nu.trim(), oldUsername.trim()];
+  try {
+    let q, params;
+    if (np?.trim()) {
+      const hashed = await hashPassword(np.trim());
+      q = 'UPDATE portfolio_viewers SET ism=$1,username=$2,parol=$3 WHERE username=$4';
+      params = [newIsm.trim(), nu.trim(), hashed, oldUsername.trim()];
+    } else {
+      q = 'UPDATE portfolio_viewers SET ism=$1,username=$2 WHERE username=$3';
+      params = [newIsm.trim(), nu.trim(), oldUsername.trim()];
+    }
+    const r = await pool.query(q, params);
+    if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Viewer topilmadi' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /viewers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
   }
-
-  const r = await pool.query(q, params);
-  if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Viewer topilmadi' });
-  res.json({ ok: true });
 });
 
 // DELETE /api/portfolio/viewers
@@ -116,12 +125,17 @@ router.delete('/viewers', requireAuth(['admin']), async (req, res) => {
   const { deleteUsername } = req.body;
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
-  const r = await pool.query(
-    'DELETE FROM portfolio_viewers WHERE username=$1',
-    [deleteUsername?.trim()]
-  );
-  if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Viewer topilmadi' });
-  res.json({ ok: true });
+  try {
+    const r = await pool.query(
+      'DELETE FROM portfolio_viewers WHERE username=$1',
+      [deleteUsername?.trim()]
+    );
+    if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Viewer topilmadi' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /viewers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
 });
 
 // ═══════════════════════════════════
@@ -135,43 +149,46 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
   const isViewer = req.user?.role === 'viewer';
   if (!req.user?.isSuper && !isViewer) return res.status(403).json({ ok: false, error: "Ruxsat yo'q" });
 
-  let r;
-  if (isViewer) {
-    // Viewer — faqat o'ziga biriktirilgan o'qituvchilar
-    r = await pool.query(`
-      SELECT
-        o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
-        p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
-        p.display_order,
-        COUNT(DISTINCT s.id)::int AS sert_soni
-      FROM oqituvchilar o
-      INNER JOIN viewer_teachers vt ON o.id = vt.teacher_id AND vt.viewer_username = $1
-      LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
-      LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
-      GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
-      ORDER BY o.id
-    `, [req.user.username]);
-  } else {
-    // Superadmin — hammasi + har biri uchun biriktirilgan viewer usernamelari
-    r = await pool.query(`
-      SELECT
-        o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
-        p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
-        p.display_order,
-        COUNT(DISTINCT s.id)::int AS sert_soni,
-        COALESCE(
-          json_agg(DISTINCT vt.viewer_username) FILTER (WHERE vt.viewer_username IS NOT NULL),
-          '[]'
-        ) AS biriktirilgan_viewers
-      FROM oqituvchilar o
-      LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
-      LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
-      LEFT JOIN viewer_teachers vt ON o.id = vt.teacher_id
-      GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
-      ORDER BY o.id
-    `);
+  try {
+    let r;
+    if (isViewer) {
+      r = await pool.query(`
+        SELECT
+          o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
+          p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
+          p.display_order,
+          COUNT(DISTINCT s.id)::int AS sert_soni
+        FROM oqituvchilar o
+        INNER JOIN viewer_teachers vt ON o.id = vt.teacher_id AND vt.viewer_username = $1
+        LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
+        LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
+        GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
+        ORDER BY o.id
+      `, [req.user.username]);
+    } else {
+      r = await pool.query(`
+        SELECT
+          o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
+          p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
+          p.display_order,
+          COUNT(DISTINCT s.id)::int AS sert_soni,
+          COALESCE(
+            json_agg(DISTINCT vt.viewer_username) FILTER (WHERE vt.viewer_username IS NOT NULL),
+            '[]'
+          ) AS biriktirilgan_viewers
+        FROM oqituvchilar o
+        LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
+        LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
+        LEFT JOIN viewer_teachers vt ON o.id = vt.teacher_id
+        GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
+        ORDER BY o.id
+      `);
+    }
+    res.json({ ok: true, teachers: r.rows });
+  } catch (err) {
+    console.error('GET /teachers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
   }
-  res.json({ ok: true, teachers: r.rows });
 });
 
 // GET /api/portfolio/teacher/:id — bitta o'qituvchi to'liq profili
@@ -182,23 +199,28 @@ router.get('/teacher/:id', requireAuth(['admin', 'viewer']), async (req, res) =>
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
 
-  const [teacherR, portfolioR, sertR] = await Promise.all([
-    pool.query('SELECT * FROM oqituvchilar WHERE id=$1', [id]),
-    pool.query('SELECT * FROM oqituvchi_portfolio WHERE oqituvchi_id=$1', [id]),
-    pool.query(
-      'SELECT id,fayl_nomi,asl_nomi,yuklangan FROM oqituvchi_sertifikat_fayllar WHERE oqituvchi_id=$1 ORDER BY id',
-      [id]
-    )
-  ]);
+  try {
+    const [teacherR, portfolioR, sertR] = await Promise.all([
+      pool.query('SELECT * FROM oqituvchilar WHERE id=$1', [id]),
+      pool.query('SELECT * FROM oqituvchi_portfolio WHERE oqituvchi_id=$1', [id]),
+      pool.query(
+        'SELECT id,fayl_nomi,asl_nomi,yuklangan FROM oqituvchi_sertifikat_fayllar WHERE oqituvchi_id=$1 ORDER BY id',
+        [id]
+      )
+    ]);
 
-  if (teacherR.rows.length === 0) return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
+    if (teacherR.rows.length === 0) return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
 
-  res.json({
-    ok: true,
-    teacher:      teacherR.rows[0],
-    portfolio:    portfolioR.rows[0] || null,
-    sertifikatlar: sertR.rows
-  });
+    res.json({
+      ok: true,
+      teacher:       teacherR.rows[0],
+      portfolio:     portfolioR.rows[0] || null,
+      sertifikatlar: sertR.rows
+    });
+  } catch (err) {
+    console.error('GET /teacher/:id xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
 });
 
 // POST /api/portfolio/teacher/:id — profil saqlash/yangilash (superadmin)
@@ -209,20 +231,25 @@ router.post('/teacher/:id', requireAuth(['admin']), async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
 
-  const found = await pool.query('SELECT id FROM oqituvchilar WHERE id=$1', [id]);
-  if (found.rows.length === 0) return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
+  try {
+    const found = await pool.query('SELECT id FROM oqituvchilar WHERE id=$1', [id]);
+    if (found.rows.length === 0) return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
 
-  const orderVal = display_order ? parseInt(display_order) : null;
+    const orderVal = display_order ? parseInt(display_order) : null;
 
-  await pool.query(`
-    INSERT INTO oqituvchi_portfolio
-      (oqituvchi_id, fish, universitet, sertifikatlar, ish_tajribasi, display_order, yangilangan)
-    VALUES ($1,$2,$3,$4,$5,$6,$7)
-    ON CONFLICT (oqituvchi_id) DO UPDATE SET
-      fish=$2, universitet=$3, sertifikatlar=$4, ish_tajribasi=$5, display_order=$6, yangilangan=$7
-  `, [id, fish||'', universitet||'', sertifikatlar||'', ish_tajribasi||'', orderVal, todayUZ()]);
+    await pool.query(`
+      INSERT INTO oqituvchi_portfolio
+        (oqituvchi_id, fish, universitet, sertifikatlar, ish_tajribasi, display_order, yangilangan)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      ON CONFLICT (oqituvchi_id) DO UPDATE SET
+        fish=$2, universitet=$3, sertifikatlar=$4, ish_tajribasi=$5, display_order=$6, yangilangan=$7
+    `, [id, fish||'', universitet||'', sertifikatlar||'', ish_tajribasi||'', orderVal, todayUZ()]);
 
-  res.json({ ok: true });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /teacher/:id xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
 });
 
 // POST /api/portfolio/teacher/:id/sertifikat — fayl yuklash
@@ -239,21 +266,26 @@ router.post('/teacher/:id/sertifikat', requireAuth(['admin']), upload.single('fi
     return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
   }
 
-  // Mavjud sertifikat sonini tekshirish
-  const count = await pool.query(
-    'SELECT COUNT(*)::int AS cnt FROM oqituvchi_sertifikat_fayllar WHERE oqituvchi_id=$1', [id]
-  );
-  if (count.rows[0].cnt >= MAX_SERTIFIKAT) {
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    return res.status(400).json({ ok: false, error: `Maksimal ${MAX_SERTIFIKAT} ta sertifikat yuklanishi mumkin` });
+  try {
+    const count = await pool.query(
+      'SELECT COUNT(*)::int AS cnt FROM oqituvchi_sertifikat_fayllar WHERE oqituvchi_id=$1', [id]
+    );
+    if (count.rows[0].cnt >= MAX_SERTIFIKAT) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ ok: false, error: `Maksimal ${MAX_SERTIFIKAT} ta sertifikat yuklanishi mumkin` });
+    }
+
+    await pool.query(
+      'INSERT INTO oqituvchi_sertifikat_fayllar (oqituvchi_id,fayl_nomi,asl_nomi,yuklangan) VALUES ($1,$2,$3,$4)',
+      [id, req.file.filename, req.file.originalname, todayUZ()]
+    );
+
+    res.json({ ok: true, filename: req.file.filename, asl_nomi: req.file.originalname });
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    console.error('POST /sertifikat xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
   }
-
-  await pool.query(
-    'INSERT INTO oqituvchi_sertifikat_fayllar (oqituvchi_id,fayl_nomi,asl_nomi,yuklangan) VALUES ($1,$2,$3,$4)',
-    [id, req.file.filename, req.file.originalname, todayUZ()]
-  );
-
-  res.json({ ok: true, filename: req.file.filename, asl_nomi: req.file.originalname });
 });
 
 // DELETE /api/portfolio/teacher/:id/sertifikat/:filename — fayl o'chirish
@@ -263,32 +295,42 @@ router.delete('/teacher/:id/sertifikat/:filename', requireAuth(['admin']), async
   const id       = parseInt(req.params.id);
   const filename = req.params.filename;
 
-  const r = await pool.query(
-    'DELETE FROM oqituvchi_sertifikat_fayllar WHERE oqituvchi_id=$1 AND fayl_nomi=$2 RETURNING fayl_nomi',
-    [id, filename]
-  );
-  if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Sertifikat topilmadi' });
+  try {
+    const r = await pool.query(
+      'DELETE FROM oqituvchi_sertifikat_fayllar WHERE oqituvchi_id=$1 AND fayl_nomi=$2 RETURNING fayl_nomi',
+      [id, filename]
+    );
+    if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Sertifikat topilmadi' });
 
-  const fp = path.join(UPLOAD_DIR, filename);
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    const fp = path.join(UPLOAD_DIR, filename);
+    if (fs.existsSync(fp)) fs.unlinkSync(fp);
 
-  res.json({ ok: true });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /sertifikat xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
 });
 
 // GET /api/portfolio/viewer-teachers/:viewerUsername — viewer uchun biriktirilgan teacher ID lari
 router.get('/viewer-teachers/:viewerUsername', requireAuth(['admin']), async (req, res) => {
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
 
-  const r = await pool.query(
-    'SELECT teacher_id FROM viewer_teachers WHERE viewer_username=$1',
-    [req.params.viewerUsername]
-  );
-  res.json({ ok: true, teacher_ids: r.rows.map(row => row.teacher_id) });
+  try {
+    const r = await pool.query(
+      'SELECT teacher_id FROM viewer_teachers WHERE viewer_username=$1',
+      [req.params.viewerUsername]
+    );
+    res.json({ ok: true, teacher_ids: r.rows.map(row => row.teacher_id) });
+  } catch (err) {
+    console.error('GET /viewer-teachers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
 });
 
 // POST /api/portfolio/viewer-teachers — o'qituvchini viewerga biriktirish
 router.post('/viewer-teachers', requireAuth(['admin']), async (req, res) => {
-  const { username, parol, viewerUsername, teacherId } = req.body;
+  const { viewerUsername, teacherId } = req.body;
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!viewerUsername || !teacherId) return res.status(400).json({ ok: false, error: "viewerUsername va teacherId majburiy" });
 
@@ -299,21 +341,27 @@ router.post('/viewer-teachers', requireAuth(['admin']), async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
+    console.error('POST /viewer-teachers xatolik:', err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
 
 // DELETE /api/portfolio/viewer-teachers — o'qituvchini viewerdan ajratish
 router.delete('/viewer-teachers', requireAuth(['admin']), async (req, res) => {
-  const { username, parol, viewerUsername, teacherId } = req.body;
+  const { viewerUsername, teacherId } = req.body;
   if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
   if (!viewerUsername || !teacherId) return res.status(400).json({ ok: false, error: "viewerUsername va teacherId majburiy" });
 
-  await pool.query(
-    'DELETE FROM viewer_teachers WHERE viewer_username=$1 AND teacher_id=$2',
-    [viewerUsername, parseInt(teacherId)]
-  );
-  res.json({ ok: true });
+  try {
+    await pool.query(
+      'DELETE FROM viewer_teachers WHERE viewer_username=$1 AND teacher_id=$2',
+      [viewerUsername, parseInt(teacherId)]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /viewer-teachers xatolik:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 module.exports = router;
