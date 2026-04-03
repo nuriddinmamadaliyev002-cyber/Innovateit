@@ -781,15 +781,12 @@ function renderTeachers(list, animate = false) {
       const clr      = getColor(t.id);
       const initials = ((t.fish || t.ism || 'T')[0]).toUpperCase();
       const delay    = animate ? (ci * 60) : 0;
-      const orderBadge = t.display_order
-        ? `<span style="font-size:10px;background:#f0f0f8;color:#6c63ff;border-radius:20px;padding:2px 7px;font-weight:700;">№${t.display_order}</span>`
-        : '';
       return `
         <div class="teacher-card${animate ? ' anim-in' : ''}" style="${animate ? `animation-delay:${delay}ms` : ''}" onclick="openDetail(${t.id})">
           <div class="tc-head">
             <div class="tc-avatar" style="background:${clr};">${initials}</div>
             <div>
-              <div class="tc-name">${esc(t.familiya)} ${esc(t.ism)} ${orderBadge}</div>
+              <div class="tc-name">${esc(t.familiya)} ${esc(t.ism)}</div>
               <div class="tc-fan">${esc(t.fan || "Fan ko'rsatilmagan")}</div>
             </div>
           </div>
