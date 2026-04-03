@@ -206,6 +206,20 @@ const api = {
   assignViewerTeacher:   (d)     => api.post('/api/portfolio/viewer-teachers', d),
   unassignViewerTeacher: (d)     => api.del('/api/portfolio/viewer-teachers', d),
 
+  // ─── Avatar upload/delete — token bilan ───
+  uploadAvatar: async (id, formData) => {
+    const token = tokenStore.get();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const r = await fetch(`${BASE}/api/portfolio/teacher/${id}/avatar`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    return r.json();
+  },
+  deleteAvatar: (d, id) => api.del(`/api/portfolio/teacher/${id}/avatar`, d),
+
   // ─── Sertifikat upload — token bilan FormData ───
   uploadSertifikat: async (id, formData) => {
     const token = tokenStore.get();

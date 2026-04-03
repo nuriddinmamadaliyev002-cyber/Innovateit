@@ -52,6 +52,38 @@ const upload = multer({
   }
 });
 
+// ─── Multer (avatar uchun — faqat rasm, max 5 MB) ───
+const avatarStorage = multer.diskStorage({
+  destination: UPLOAD_DIR,
+  filename: (req, file, cb) => {
+    let ext = path.extname(file.originalname).toLowerCase();
+    if (!ext) {
+      const m = {
+        'image/jpeg': '.jpg', 'image/png': '.png',
+        'image/gif': '.gif',  'image/webp': '.webp'
+      };
+      ext = m[file.mimetype] || '.jpg';
+    }
+    const id = req.params.id || 'x';
+    cb(null, `avatar_${id}_${Date.now()}${ext}`);
+  }
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const allowedExt   = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if ((ext ? allowedExt.includes(ext) : false) || allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Faqat rasm formatlari (jpg, png, gif, webp) qabul qilinadi'));
+    }
+  }
+});
+
 function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 
 // ═══════════════════════════════════
@@ -156,13 +188,13 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
         SELECT
           o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
           p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
-          p.display_order,
+          p.display_order, p.avatar,
           COUNT(DISTINCT s.id)::int AS sert_soni
         FROM oqituvchilar o
         INNER JOIN viewer_teachers vt ON o.id = vt.teacher_id AND vt.viewer_username = $1
         LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
         LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
-        GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
+        GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order, p.avatar
         ORDER BY o.id
       `, [req.user.username]);
     } else {
@@ -170,7 +202,7 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
         SELECT
           o.id, o.ism, o.familiya, o.fan, o.telefon, o.qoshilgan,
           p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi,
-          p.display_order,
+          p.display_order, p.avatar,
           COUNT(DISTINCT s.id)::int AS sert_soni,
           COALESCE(
             json_agg(DISTINCT vt.viewer_username) FILTER (WHERE vt.viewer_username IS NOT NULL),
@@ -180,7 +212,7 @@ router.get('/teachers', requireAuth(['admin','viewer']), async (req, res) => {
         LEFT JOIN oqituvchi_portfolio p ON o.id = p.oqituvchi_id
         LEFT JOIN oqituvchi_sertifikat_fayllar s ON o.id = s.oqituvchi_id
         LEFT JOIN viewer_teachers vt ON o.id = vt.teacher_id
-        GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order
+        GROUP BY o.id, p.fish, p.universitet, p.sertifikatlar, p.ish_tajribasi, p.display_order, p.avatar
         ORDER BY o.id
       `);
     }
@@ -248,6 +280,84 @@ router.post('/teacher/:id', requireAuth(['admin']), async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('POST /teacher/:id xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
+});
+
+// POST /api/portfolio/teacher/:id/avatar — avatar yuklash (superadmin)
+router.post('/teacher/:id/avatar', requireAuth(['admin']), uploadAvatar.single('avatar'), async (req, res) => {
+  if (!req.user?.isSuper) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+  }
+  if (!req.file) return res.status(400).json({ ok: false, error: 'Rasm yuklanmadi' });
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
+  }
+
+  try {
+    // O'qituvchi mavjudligini tekshirish
+    const found = await pool.query('SELECT id FROM oqituvchilar WHERE id=$1', [id]);
+    if (found.rows.length === 0) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
+    }
+
+    // Eski avatarni o'chirish
+    const old = await pool.query(
+      'SELECT avatar FROM oqituvchi_portfolio WHERE oqituvchi_id=$1', [id]
+    );
+    if (old.rows[0]?.avatar) {
+      const oldPath = path.join(UPLOAD_DIR, old.rows[0].avatar);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    // Yangi avatarni saqlash (portfolio row yo'q bo'lsa yaratish)
+    await pool.query(`
+      INSERT INTO oqituvchi_portfolio (oqituvchi_id, avatar, yangilangan)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (oqituvchi_id) DO UPDATE SET avatar=$2, yangilangan=$3
+    `, [id, req.file.filename, todayUZ()]);
+
+    res.json({ ok: true, avatar: req.file.filename });
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    console.error('POST /avatar xatolik:', err.message);
+    res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
+  }
+});
+
+// DELETE /api/portfolio/teacher/:id/avatar — avatarni o'chirish (superadmin)
+router.delete('/teacher/:id/avatar', requireAuth(['admin']), async (req, res) => {
+  if (!req.user?.isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin" });
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ ok: false, error: "Noto'g'ri id" });
+
+  try {
+    const r = await pool.query(
+      'SELECT avatar FROM oqituvchi_portfolio WHERE oqituvchi_id=$1', [id]
+    );
+    if (!r.rows[0]?.avatar) {
+      return res.status(404).json({ ok: false, error: 'Avatar mavjud emas' });
+    }
+
+    // Faylni o'chirish
+    const fp = path.join(UPLOAD_DIR, r.rows[0].avatar);
+    if (fs.existsSync(fp)) fs.unlinkSync(fp);
+
+    // DBdan tozalash
+    await pool.query(
+      "UPDATE oqituvchi_portfolio SET avatar='', yangilangan=$1 WHERE oqituvchi_id=$2",
+      [todayUZ(), id]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /avatar xatolik:', err.message);
     res.status(500).json({ ok: false, error: 'Server xatoligi: ' + err.message });
   }
 });

@@ -200,6 +200,7 @@ CREATE TABLE IF NOT EXISTS oqituvchi_portfolio (
 );
 
 ALTER TABLE oqituvchi_portfolio ADD COLUMN IF NOT EXISTS display_order INTEGER;
+ALTER TABLE oqituvchi_portfolio ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';
 
 -- ─── O'qituvchi sertifikat fayllari (max 10) ───
 CREATE TABLE IF NOT EXISTS oqituvchi_sertifikat_fayllar (

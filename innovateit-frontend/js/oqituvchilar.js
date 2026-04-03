@@ -1223,6 +1223,8 @@ function renderOqPortfolio() {
   }
 
   const colors = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
+  const BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '')
+    ? 'http://localhost:3001' : 'https://innovateitschool.uz';
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
       ${OQ_PT_DATA.map(t => {
@@ -1230,10 +1232,14 @@ function renderOqPortfolio() {
         const hasProfil = !!(t.fish || t.universitet || t.sertifikatlar || t.ish_tajribasi);
         const sertSoni  = parseInt(t.sert_soni) || 0;
         const clr = colors[t.id % colors.length];
+        const avatarHtml = t.avatar
+          ? `<img src="${BASE}/uploads/${encodeURIComponent(t.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+          : initials;
+        const avatarBg = t.avatar ? 'none' : clr;
         return `
         <div style="border:1.5px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <div style="width:44px;height:44px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex-shrink:0;">${initials}</div>
+            <div style="width:44px;height:44px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden;">${avatarHtml}</div>
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;font-size:14px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc2(t.familiya)} ${esc2(t.ism)}</div>
               <div style="font-size:12px;color:#6b7280;">${esc2(t.fan||'Fan ko\'rsatilmagan')}</div>
@@ -1280,8 +1286,17 @@ async function oqOpenPortfolioModal(teacherId) {
   const p = r.portfolio;
   const colors = ['#6c63ff','#4ecdc4','#f59e0b','#ef4444','#10b981','#3b82f6'];
 
-  g('oq-pm-avatar').textContent = ((t.ism||'')[0]||'T').toUpperCase();
-  g('oq-pm-avatar').style.background = `linear-gradient(135deg,${colors[t.id % colors.length]},#574fd6)`;
+  // Avatar — rasm bo'lsa ko'rsat, bo'lmasa harf
+  const avatarEl = g('oq-pm-avatar');
+  if (p?.avatar) {
+    avatarEl.innerHTML = `<img src="${BASE}/uploads/${encodeURIComponent(p.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    avatarEl.style.background = 'none';
+    avatarEl.title = 'Rasmni o\'zgartirish uchun bosing';
+  } else {
+    avatarEl.innerHTML = ((t.ism||'')[0]||'T').toUpperCase();
+    avatarEl.style.background = `linear-gradient(135deg,${colors[t.id % colors.length]},#574fd6)`;
+    avatarEl.title = 'Profil rasmi yuklash uchun bosing';
+  }
   g('oq-pm-name').textContent = `${t.familiya} ${t.ism}`;
   g('oq-pm-fan').textContent  = t.fan || '';
 
@@ -1537,6 +1552,37 @@ async function oqDeleteSert(filename) {
   OQ_PM_SERTS = OQ_PM_SERTS.filter(s => s.fayl_nomi !== filename);
   oqRenderSertGallery();
   toast('✅ Sertifikat o\'chirildi');
+  loadOqPortfolio();
+}
+
+// ─── Avatar yuklash ───
+async function oqUploadAvatar() {
+  const fileInput = g('oq-pm-avatar-input');
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+
+  const id = g('oq-pm-teacher-id').value;
+  const fd = new FormData();
+  fd.append('avatar', file);
+  fd.append('username', U.username);
+  fd.append('parol', U.parol);
+
+  fileInput.value = '';
+  toast('⏳ Rasm yuklanmoqda...');
+
+  const r = await api.uploadAvatar(id, fd);
+  if (!r.ok) return toast('❌ ' + r.error, 'error');
+
+  // Avatarni darhol ko'rsatish
+  const BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '')
+    ? 'http://localhost:3001' : 'https://innovateitschool.uz';
+
+  const avatarEl = g('oq-pm-avatar');
+  avatarEl.innerHTML = `<img src="${BASE}/uploads/${encodeURIComponent(r.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  avatarEl.style.background = 'none';
+  avatarEl.title = 'Rasmni o\'zgartirish uchun bosing';
+
+  toast('✅ Profil rasmi saqlandi', 'success');
   loadOqPortfolio();
 }
 

@@ -166,7 +166,7 @@
       width: 48px; height: 48px; border-radius: 50%;
       display: flex; align-items: center; justify-content:center;
       font-size: 20px; font-weight: 700; color: #fff;
-      flex-shrink: 0;
+      flex-shrink: 0; overflow: hidden;
     }
     .tc-name   { font-weight: 700; font-size: 14px; color: var(--text); }
     .tc-fan    { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -207,7 +207,7 @@
     }
 
     .dc-header { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid var(--bg); }
-    .dc-avatar { width: 72px; height: 72px; border-radius: 50%; font-size: 28px; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .dc-avatar { width: 72px; height: 72px; border-radius: 50%; font-size: 28px; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; cursor: pointer; }
     .dc-name { font-size: 24px; font-weight: 800; color: var(--text); }
     .dc-fan  { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
 
@@ -464,7 +464,7 @@
     <button class="dc-close" onclick="closeModal()">✕</button>
 
     <div class="dc-header">
-      <div class="dc-avatar" id="dc-avatar">T</div>
+      <div class="dc-avatar" id="dc-avatar" onclick="openAvatarLightbox()">T</div>
       <div>
         <div class="dc-name" id="dc-name">—</div>
         <div class="dc-fan"  id="dc-fan">—</div>
@@ -780,11 +780,15 @@ function renderTeachers(list, animate = false) {
     const cards = teachers.map((t, ci) => {
       const clr      = getColor(t.id);
       const initials = ((t.fish || t.ism || 'T')[0]).toUpperCase();
+      const avatarContent = t.avatar
+        ? `<img src="${BASE}/uploads/${encodeURIComponent(t.avatar)}" style="width:100%;height:100%;object-fit:cover;" alt="">`
+        : initials;
+      const avatarBg = t.avatar ? 'none' : clr;
       const delay    = animate ? (ci * 60) : 0;
       return `
         <div class="teacher-card${animate ? ' anim-in' : ''}" style="${animate ? `animation-delay:${delay}ms` : ''}" onclick="openDetail(${t.id})">
           <div class="tc-head">
-            <div class="tc-avatar" style="background:${clr};">${initials}</div>
+            <div class="tc-avatar" style="background:${avatarBg};">${avatarContent}</div>
             <div>
               <div class="tc-name">${esc(t.familiya)} ${esc(t.ism)}</div>
               <div class="tc-fan">${esc(t.fan || "Fan ko'rsatilmagan")}</div>
@@ -840,8 +844,14 @@ async function openDetail(id) {
     const initials = ((p.fish || t.ism || 'T')[0]).toUpperCase();
 
     // Header
-    document.getElementById('dc-avatar').textContent = initials;
-    document.getElementById('dc-avatar').style.background = clr;
+    const dcAvatar = document.getElementById('dc-avatar');
+    if (p.avatar) {
+      dcAvatar.innerHTML = `<img src="${BASE}/uploads/${encodeURIComponent(p.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="">`;
+      dcAvatar.style.background = 'none';
+    } else {
+      dcAvatar.textContent = initials;
+      dcAvatar.style.background = clr;
+    }
     document.getElementById('dc-name').textContent = `${t.familiya} ${t.ism}`;
     document.getElementById('dc-fan').textContent  = t.fan || 'Fan ko\'rsatilmagan';
 
@@ -921,6 +931,14 @@ function openLightbox(url, name) {
 function closeLightbox() {
   document.getElementById('lightbox').style.display = 'none';
   document.getElementById('lb-img').src = '';
+}
+
+function openAvatarLightbox() {
+  if (!CUR_TEACHER?.portfolio?.avatar) return;
+  const t = CUR_TEACHER.teacher;
+  const url = `${BASE}/uploads/${encodeURIComponent(CUR_TEACHER.portfolio.avatar)}`;
+  const name = `${t.familiya} ${t.ism}`;
+  openLightbox(url, name);
 }
 
 // ─── KEYBOARD ───
