@@ -48,14 +48,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     badge.textContent = U.ism;
   }
 
-  if (U.isSuper || U.isSuperProxy) {
+  if (U.isSuper) {
     setDisplay('add-form', 'none');
     setDisplay('btn-davomat-teacher', 'none');
     setDisplay('btn-jadval-teacher', 'none');
-    if (U.isSuper) {
-      setDisplay('super-add-bar', 'block');
-      injectSuperModals(); // Faqat superadmin uchun modal HTMLni qo'shamiz
-    }
+    setDisplay('super-add-bar', 'block');
+    injectSuperModals();
+  } else if (U.isSuperProxy) {
+    setDisplay('add-form', 'none');
+    setDisplay('btn-davomat-teacher', 'none');
+    setDisplay('btn-jadval-teacher', 'none');
+  } else {
+    // Oddiy admin: faqat ro'yxat ko'rinadi
+    setDisplay('add-form', 'none');
   }
 
   setupTel('f-tel',  'f-tel-hint');
@@ -143,7 +148,7 @@ function renderTable(d) {
     if (thAmal)   thAmal.style.display   = '';
     if (thMaktab) thMaktab.style.display = '';
   } else {
-    if (thAmal)   thAmal.style.display   = isAdmin ? '' : 'none';
+    if (thAmal)   thAmal.style.display   = 'none';  // Admin faqat ko'radi
     if (thMaktab) thMaktab.style.display = 'none';
   }
 
@@ -204,12 +209,7 @@ function renderTable(d) {
       + '<td><span class="fan-badge">' + (t.fan||'—') + '</span></td>'
       + '<td class="mono">' + (t.telefon||'—') + '</td>'
       + '<td class="mono">' + (t.telefon2||'—') + '</td>'
-      + (isAdmin
-          ? '<td><div style="display:flex;gap:6px;">'
-              + '<button class="btn-action" onclick="openEdit(' + t.ri + ')">✏️</button>'
-              + '<button class="btn-action" onclick="confirmDel(' + t.ri + ')">🗑️</button>'
-            + '</div></td>'
-          : '')
+      + ''  // Admin faqat ko'radi — qo'shish/o'chirish superadmin orqali
       + '</tr>';
   }).join('');
 }

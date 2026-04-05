@@ -78,7 +78,7 @@ async function loadTeachers() {
         while (sel.options.length > 1) sel.remove(1);
         TEACHERS.forEach(t => {
           const opt = document.createElement('option');
-          opt.value = t.ism + ' ' + t.familiya;
+          opt.value = t.familiya + ' ' + t.ism;
           opt.textContent = `${t.familiya} ${t.ism} (${t.fan || '—'})`;
           sel.appendChild(opt);
         });
@@ -196,10 +196,10 @@ function renderBySinf(wrap, filterS, today) {
 
 function renderByTeacher(wrap, filterT, today) {
   let jadvallar = JADVALLAR;
-  if (filterT) jadvallar = jadvallar.filter(j => (j.teacher_ism+' '+j.teacher_familiya) === filterT);
+  if (filterT) jadvallar = jadvallar.filter(j => (j.teacher_familiya+' '+j.teacher_ism) === filterT);
 
   // Unique o'qituvchilar
-  const teachers = [...new Map(jadvallar.map(j => [j.teacher_ism+' '+j.teacher_familiya, j])).values()];
+  const teachers = [...new Map(jadvallar.map(j => [j.teacher_familiya+' '+j.teacher_ism, j])).values()];
 
   if (!teachers.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:40px;"><p>Mos jadval topilmadi</p></div>';
@@ -213,7 +213,7 @@ function renderByTeacher(wrap, filterT, today) {
 
   teachers.forEach(tRef => {
     const tName = tRef.teacher_familiya + ' ' + tRef.teacher_ism;
-    const tJad  = jadvallar.filter(j => j.teacher_ism+' '+j.teacher_familiya === tName);
+    const tJad  = jadvallar.filter(j => j.teacher_familiya+' '+j.teacher_ism === tName);
 
     html += `<tr><td class="td-name">
       <div style="font-weight:600;">${tName}</div>
@@ -336,7 +336,7 @@ async function saveBiriktir() {
   if (!sinflar.length) { toast('⚠️ Kamida 1 sinf tanlang', 'error'); return; }
   if (!kunlar.length)  { toast('⚠️ Kamida 1 kun tanlang', 'error'); return; }
 
-  const teacher = TEACHERS.find(t => t.ism + ' ' + t.familiya === teacherVal);
+  const teacher = TEACHERS.find(t => t.familiya + ' ' + t.ism === teacherVal);
   const boshlanish = padZ(g('b-bosh-s').value) + ':' + padZ(g('b-bosh-m').value);
   const tugash     = padZ(g('b-tug-s').value)  + ':' + padZ(g('b-tug-m').value);
 
@@ -345,8 +345,8 @@ async function saveBiriktir() {
     const r = await api.saveJadval({
       username: U.username, parol: U.parol,
       id: editingJadvalId || undefined,   // Tahrirlash: UPDATE, yo'q bo'lsa: INSERT
-      teacher_ism: teacher ? teacher.ism : teacherVal.split(' ')[0],
-      teacher_familiya: teacher ? teacher.familiya : teacherVal.split(' ').slice(1).join(' '),
+      teacher_ism: teacher ? teacher.ism : teacherVal.split(' ').slice(1).join(' '),
+      teacher_familiya: teacher ? teacher.familiya : teacherVal.split(' ')[0],
       fan: teacher ? teacher.fan : '',
       sinflar: sinflar.join(','),
       kunlar: kunlar.join(','),
@@ -479,7 +479,7 @@ function populateImgFilter(view) {
     const sinflar = [...new Set(JADVALLAR.flatMap(j => j.sinflar))].sort((a,b)=>parseInt(a)-parseInt(b));
     sinflar.forEach(s => sel.innerHTML += `<option value="${esc(s)}">${s}</option>`);
   } else {
-    const teachers = [...new Set(JADVALLAR.map(j => j.teacher_ism+' '+j.teacher_familiya))];
+    const teachers = [...new Set(JADVALLAR.map(j => j.teacher_familiya+' '+j.teacher_ism))];
     teachers.forEach(t => sel.innerHTML += `<option value="${esc(t)}">${t}</option>`);
   }
 }
@@ -611,9 +611,9 @@ function buildImgBySinf(wrap, filterS) {
 
 function buildImgByTeacher(wrap, filterT) {
   let jadvallar = JADVALLAR;
-  if (filterT) jadvallar = jadvallar.filter(j => (j.teacher_ism+' '+j.teacher_familiya) === filterT);
+  if (filterT) jadvallar = jadvallar.filter(j => (j.teacher_familiya+' '+j.teacher_ism) === filterT);
 
-  const teachers = [...new Map(jadvallar.map(j => [j.teacher_ism+' '+j.teacher_familiya, j])).values()];
+  const teachers = [...new Map(jadvallar.map(j => [j.teacher_familiya+' '+j.teacher_ism, j])).values()];
 
   const COLORS = [
     ['#f0f9ff','#bae6fd','#0369a1'],
@@ -636,7 +636,7 @@ function buildImgByTeacher(wrap, filterT) {
 
   teachers.forEach((tRef, ti) => {
     const tName = tRef.teacher_familiya + ' ' + tRef.teacher_ism;
-    const tJad  = jadvallar.filter(j => j.teacher_ism+' '+j.teacher_familiya === tName);
+    const tJad  = jadvallar.filter(j => j.teacher_familiya+' '+j.teacher_ism === tName);
     const bg    = ti % 2 === 0 ? '#fafafa' : '#ffffff';
 
     html += `<tr style="background:${bg};border-bottom:1px solid #e5e7eb;">
@@ -705,7 +705,7 @@ function doExportJadval() {
     const filterT = g('exp-teacher-sel').value;
     const teachers = filterT
       ? [filterT]
-      : [...new Set(JADVALLAR.map(j => j.teacher_ism+' '+j.teacher_familiya))];
+      : [...new Set(JADVALLAR.map(j => j.teacher_familiya+' '+j.teacher_ism))];
 
     teachers.forEach(tName => {
       buildTeacherSheet(wb, tName);
@@ -717,7 +717,7 @@ function doExportJadval() {
     // Umumiy — sinf bo'yicha + o'qituvchi bo'yicha
     const sinflar = [...new Set(JADVALLAR.flatMap(j => j.sinflar))].sort((a,b)=>parseInt(a)-parseInt(b));
     sinflar.forEach(s => buildSinfSheet(wb, s));
-    const teachers = [...new Set(JADVALLAR.map(j => j.teacher_ism+' '+j.teacher_familiya))];
+    const teachers = [...new Set(JADVALLAR.map(j => j.teacher_familiya+' '+j.teacher_ism))];
     teachers.forEach(t => buildTeacherSheet(wb, t));
     if (!wb.SheetNames.length) { toast('⚠️ Ma\'lumot topilmadi', 'error'); return; }
     XLSX.writeFile(wb, 'Haftalik_Dars_Jadvali.xlsx');
@@ -759,7 +759,7 @@ function buildSinfSheet(wb, sinf) {
 }
 
 function buildTeacherSheet(wb, tName) {
-  const tJad = JADVALLAR.filter(j => j.teacher_ism+' '+j.teacher_familiya === tName);
+  const tJad = JADVALLAR.filter(j => j.teacher_familiya+' '+j.teacher_ism === tName);
   if (!tJad.length) return;
 
   const rows = [['Sinf(lar)', ...KUN_NAMES.slice(1)]];

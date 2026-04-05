@@ -69,10 +69,11 @@ router.get('/', async (req, res) => {
   });
 });
 
-// ─── POST /api/teachers — qo'shish ───
+// ─── POST /api/teachers — qo'shish (faqat superadmin) ───
 router.post('/', async (req, res) => {
   const p = req.body;
   const { username, isSuper } = req.user;
+  if (!isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin o'qituvchi qo'sha oladi" });
   if (!(p.ism||'').trim())     return res.status(400).json({ ok: false, error: 'Ism kiritilmagan' });
   if (!(p.familiya||'').trim()) return res.status(400).json({ ok: false, error: 'Familiya kiritilmagan' });
 
@@ -103,12 +104,13 @@ router.post('/', async (req, res) => {
   } finally { client.release(); }
 });
 
-// ─── PUT /api/teachers — tahrirlash ───
+// ─── PUT /api/teachers — tahrirlash (faqat superadmin) ───
 router.put('/', async (req, res) => {
   const p = req.body;
   const { username, isSuper } = req.user;
+  if (!isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin o'qituvchini tahrirlay oladi" });
 
-  // id orqali yoki ism+familiya+admin orqali topish
+  // id orqali yoki ism+familiya orqali topish
   let whereClause, params;
   if (p.id) {
     whereClause = 'WHERE id=$10';
@@ -131,32 +133,31 @@ router.put('/', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ─── DELETE /api/teachers — o'chirish (admin o'z o'qituvchisini) ───
+// ─── DELETE /api/teachers — o'chirish (faqat superadmin) ───
 router.delete('/', async (req, res) => {
   const { delIsm, delFamiliya, delId } = req.body;
   const { username, isSuper } = req.user;
+  if (!isSuper) return res.status(403).json({ ok: false, error: "Faqat superadmin o'qituvchini o'chira oladi" });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // Faqat shu admin bilan bog'lanishni uzish (o'qituvchi boshqa maktabda qolishi mumkin)
     let teacherId = delId;
     if (!teacherId) {
-      const found = isSuper
-        ? await client.query('SELECT id FROM oqituvchilar WHERE ism=$1 AND familiya=$2 LIMIT 1', [delIsm, delFamiliya])
-        : await client.query('SELECT o.id FROM oqituvchilar o INNER JOIN oqituvchi_maktablar om ON o.id=om.oqituvchi_id WHERE o.ism=$1 AND o.familiya=$2 AND om.admin_username=$3 LIMIT 1', [delIsm, delFamiliya, username]);
-      if (found.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" }); }
+      const found = await client.query(
+        'SELECT id FROM oqituvchilar WHERE ism=$1 AND familiya=$2 LIMIT 1',
+        [delIsm, delFamiliya]
+      );
+      if (found.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ ok: false, error: "O'qituvchi topilmadi" });
+      }
       teacherId = found.rows[0].id;
     }
 
-    if (isSuper) {
-      // Superadmin: to'liq o'chirish (CASCADE bilan oqituvchi_maktablar ham tozalanadi)
-      await client.query('DELETE FROM oqituvchilar WHERE id=$1', [teacherId]);
-    } else {
-      // Oddiy admin: faqat o'z maktabidan ajratish
-      await client.query('DELETE FROM oqituvchi_maktablar WHERE oqituvchi_id=$1 AND admin_username=$2', [teacherId, username]);
-    }
+    // To'liq o'chirish (CASCADE bilan bog'liq barcha yozuvlar ham o'chadi)
+    await client.query('DELETE FROM oqituvchilar WHERE id=$1', [teacherId]);
 
     await client.query('COMMIT');
     res.json({ ok: true });
@@ -253,10 +254,10 @@ router.post('/merge', async (req, res) => {
 
     // 3. oqituvchilar_davomat: removeId → keepId (ism bilan saqlanadi, yangisini yozamiz)
     //    ism/familiya TEXT sifatida saqlanadi — yangilangan ism bilan almashtiramiz
-    const newFullIsm = (ism||'').trim() + ' ' + (familiya||'').trim();
+    const newFullIsm = (familiya||'').trim() + ' ' + (ism||'').trim();  // familiya ism tartibida
     const keepRow = both.rows.find(r => r.id == keepId);
     const removeRow = both.rows.find(r => r.id == removeId);
-    const removeFullIsm = removeRow.ism + ' ' + removeRow.familiya;
+    const removeFullIsm = removeRow.familiya + ' ' + removeRow.ism;
 
     // oqituvchilar_davomat da ism maydoni "Ism Familiya" yoki faqat "Ism" bo'lishi mumkin
     await client.query(`
