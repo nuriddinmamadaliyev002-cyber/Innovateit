@@ -318,7 +318,7 @@ function render() {
           return `
           <div class="student-row${cur ? ' done' : ''}" id="row-${safeId(key)}">
             <span class="student-num">${i + 1}</span>
-            <span class="student-name" title="${s.ism} ${s.familiya}">${s.ism} ${s.familiya}</span>
+            <span class="student-name" title="${s.familiya} ${s.ism}">${s.familiya} ${s.ism}</span>
             <div class="status-btns">
               ${STATUSES.map(st => `
                 <button class="s-btn${cur === st.key ? ' active-' + st.key : ''}"
