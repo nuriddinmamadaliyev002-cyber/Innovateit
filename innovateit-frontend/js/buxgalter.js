@@ -8,6 +8,7 @@ let U         = null;   // { username, parol, ism }
 let ALL_DATA  = [];     // { student, tolov } merged array
 let FILTERED  = [];     // after filter
 let CURRENT_OY = '';   // '2025-03'
+let STAT_FILTER = '';  // 'all' | 'toliq' | 'qarzdor' | 'nofaol' | 'empty'
 
 // ─── Yordamchi ───────────────────────────────────
 const g = id => document.getElementById(id);
@@ -71,7 +72,9 @@ function tolovHolati(kerak, qildi) {
 
 // ─── Kirish ──────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  CURRENT_OY = currentOyStr();
+  // Oxirgi tanlangan oyni saqlash/tiklash
+  const savedOy = localStorage.getItem('iit_bux_oy');
+  CURRENT_OY = (savedOy && /^\d{4}-\d{2}$/.test(savedOy)) ? savedOy : currentOyStr();
   g('oy-label').textContent = oyNomi(CURRENT_OY);
 
   // Saved session
@@ -304,6 +307,14 @@ function renderHiddenChips() {
 function changeOy(dir) {
   CURRENT_OY = dir > 0 ? nextOy(CURRENT_OY) : prevOy(CURRENT_OY);
   g('oy-label').textContent = oyNomi(CURRENT_OY);
+  // Tanlangan oyni saqlash (refresh da qaytsin)
+  localStorage.setItem('iit_bux_oy', CURRENT_OY);
+  // Oy o'zgarganda stat filterni reset qilish
+  STAT_FILTER = '';
+  ['all','toliq','qarzdor','nofaol','empty'].forEach(t => {
+    const el = g('stat-btn-' + t);
+    if (el) el.classList.remove('active');
+  });
   loadData();
 }
 
@@ -344,7 +355,6 @@ async function loadData() {
 function applyFilters() {
   const maktab     = g('filter-maktab').value;
   const sinf       = g('filter-sinf').value;
-  const tolovF     = g('filter-tolov').value;
   const search     = g('filter-search').value.toLowerCase().trim();
 
   FILTERED = ALL_DATA.filter(({student: s, tolov: t}) => {
@@ -354,13 +364,15 @@ function applyFilters() {
       const full = `${s.ism} ${s.familiya} ${s.telefon}`.toLowerCase();
       if (!full.includes(search)) return false;
     }
-    // To'lov holati filtri
-    if (tolovF) {
+    // Stat card filtri
+    if (STAT_FILTER && STAT_FILTER !== 'all') {
       const kerak = t?.tolov_kerak || 0;
       const qildi = t?.tolov_qildi || 0;
-      if (tolovF === 'yopgan'  && !(qildi >= kerak && kerak > 0)) return false;
-      if (tolovF === 'qarzdor' && !(qildi > 0 && qildi < kerak))  return false;
-      if (tolovF === 'umuman'  && !(qildi === 0 && kerak > 0))    return false;
+      const isNofaol = s.nofaol === true || !!s.chiqgan;
+      if (STAT_FILTER === 'toliq'   && !(qildi >= kerak && kerak > 0 && !isNofaol)) return false;
+      if (STAT_FILTER === 'qarzdor' && !(kerak > 0 && qildi < kerak && !isNofaol))  return false;
+      if (STAT_FILTER === 'nofaol'  && !isNofaol)                                   return false;
+      if (STAT_FILTER === 'empty'   && !(kerak <= 0 && !isNofaol))                  return false;
     }
     return true;
   });
@@ -368,6 +380,18 @@ function applyFilters() {
   buildFilterOptions();
   renderTable();
   updateStats();
+}
+
+// ─── Stat card filter ────────────────────────────
+function setStatFilter(type) {
+  // Toggle: qayta bossa — o'chiradi
+  STAT_FILTER = (STAT_FILTER === type) ? '' : type;
+  // Active class yangilanishi
+  ['all','toliq','qarzdor','nofaol','empty'].forEach(t => {
+    const el = g('stat-btn-' + t);
+    if (el) el.classList.toggle('active', STAT_FILTER === t);
+  });
+  applyFilters();
 }
 
 function buildFilterOptions() {
@@ -427,19 +451,19 @@ function renderTable() {
       <td class="col-maktab">${s.maktab || '—'}</td>
       <td class="col-sinf">${s.sinf || '—'}</td>
       <td class="col-tel">${s.telefon || '—'}</td>
-      <td class="col-qayd editable" onclick="editCell(${i},'qaydnoma',event)">
+      <td class="col-qayd editable" data-field="qaydnoma" onclick="cellClick(${i},'qaydnoma',event)">
         <span id="disp-qaydnoma-${i}">${t?.qaydnoma || '<span class="amount-0">—</span>'}</span>
       </td>
-      <td class="col-gap editable" onclick="editCell(${i},'gaplashilgan_vaqt',event)">
-        <span id="disp-gaplashilgan_vaqt-${i}">${t?.gaplashilgan_vaqt || '<span class="amount-0">—</span>'}</span>
+      <td class="col-gap editable" data-field="gaplashilgan_vaqt" onclick="cellClick(${i},'gaplashilgan_vaqt',event)">
+        <span id="disp-gaplashilgan_vaqt-${i}">${t?.gaplashilgan_vaqt ? tolovSanasi(t.gaplashilgan_vaqt) : '<span class="amount-0">—</span>'}</span>
       </td>
-      <td class="col-kerak editable" onclick="editCell(${i},'tolov_kerak',event)">
+      <td class="col-kerak editable" data-field="tolov_kerak" onclick="cellClick(${i},'tolov_kerak',event)">
         <span id="disp-tolov_kerak-${i}">${formatSum(kerak,'kerak')}</span>
       </td>
-      <td class="col-qildi editable" onclick="editCell(${i},'tolov_qildi',event)">
+      <td class="col-qildi editable" data-field="tolov_qildi" onclick="cellClick(${i},'tolov_qildi',event)">
         <span id="disp-tolov_qildi-${i}">${formatSum(qildi,'qildi')}</span>
       </td>
-      <td class="col-sana" onclick="editCell(${i},'tolov_sanasi',event)" style="cursor:pointer;">
+      <td class="col-sana editable" data-field="tolov_sanasi" onclick="cellClick(${i},'tolov_sanasi',event)" style="cursor:pointer;">
         <span id="disp-tolov_sanasi-${i}">${t?.tolov_sanasi ? tolovSanasi(t.tolov_sanasi) : '<span class="amount-0">—</span>'}</span>
       </td>
       <td class="col-holat" id="holat-${i}">${tolovHolati(kerak, qildi)}</td>
@@ -468,10 +492,52 @@ function encodeKey(s) {
 }
 
 // ─── Inline tahrirlash ───────────────────────────
-let activeEdit = null;
+let activeEdit   = null;
+let selectedCell = null; // { idx, field } — hozir tanlangan yacheyka
+
+// 1-click: yacheykani tanlaydi (Excel/Sheets kabi)
+// 2-click: tahrirlash rejimiga kiradi
+function cellClick(idx, field, ev) {
+  if (activeEdit) {
+    const wasEditing = activeEdit.idx === idx && activeEdit.field === field;
+    commitEdit(activeEdit.idx, activeEdit.field);
+    if (wasEditing) return;
+  }
+
+  const isSameCell = selectedCell && selectedCell.idx === idx && selectedCell.field === field;
+
+  if (isSameCell) {
+    // 2-chi bosish — tahrirlashga kirish
+    selectedCell = null;
+    editCell(idx, field, ev);
+  } else {
+    // 1-chi bosish — faqat tanlash
+    if (selectedCell) {
+      const prevTd = document.querySelector(`#row-${selectedCell.idx} [data-field="${selectedCell.field}"]`);
+      if (prevTd) prevTd.classList.remove('cell-selected');
+    }
+    selectedCell = { idx, field };
+    const td = document.querySelector(`#row-${idx} [data-field="${field}"]`);
+    if (td) td.classList.add('cell-selected');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.editable') && !e.target.closest('.cell-input')) {
+    if (selectedCell) {
+      const prevTd = document.querySelector(`#row-${selectedCell.idx} [data-field="${selectedCell.field}"]`);
+      if (prevTd) prevTd.classList.remove('cell-selected');
+      selectedCell = null;
+    }
+  }
+}, true);
 
 function editCell(idx, field, ev) {
   if (activeEdit) commitEdit(activeEdit.idx, activeEdit.field);
+
+  // Barcha qolgan cell-selected chegaralarini tozalaymiz (xavfsizlik uchun)
+  document.querySelectorAll('.cell-selected').forEach(el => el.classList.remove('cell-selected'));
+  selectedCell = null;
 
   const item    = FILTERED[idx];
   const tolov   = item.tolov || {};
@@ -479,29 +545,53 @@ function editCell(idx, field, ev) {
   const td      = dispEl?.parentElement;
   if (!td) return;
 
-  // Click koordinatalarini saqlаb olamiz (input yaratilgandan keyin ishlatamiz)
-  const clickX = ev ? ev.clientX : null;
-  const clickY = ev ? ev.clientY : null;
-
   const curVal = tolov[field] !== undefined ? String(tolov[field] || '') : '';
   const isNum  = ['tarif','tolov_kerak','tolov_qildi'].includes(field);
-  const isDate = field === 'tolov_sanasi';
+  const isDate = field === 'tolov_sanasi' || field === 'gaplashilgan_vaqt';
 
-  let inputHtml;
+  // TD o'lchamlarini saqlash (input kengaytirmasin)
+  td.style.position = 'relative';
+  const tdRect = td.getBoundingClientRect();
+
+  // Display elementini yashiramiz (td kengligi o'zgarmaydi)
+  if (dispEl) dispEl.style.visibility = 'hidden';
+
+  // Input ni td ustiga absolut joylashtiramiz
+  let inputEl;
   if (isDate) {
     const isoVal = dateUZtoISO(curVal);
-    inputHtml = `<input type="date" class="cell-input date-input" id="cedit-${field}-${idx}"
-      value="${isoVal}" max="${todayISO()}"
-      style="width:100%;cursor:pointer;">`;
+    inputEl = document.createElement('input');
+    inputEl.type = 'date';
+    inputEl.className = 'cell-input cell-input-overlay date-input';
+    inputEl.id = `cedit-${field}-${idx}`;
+    inputEl.value = isoVal;
+    inputEl.max = todayISO();
+    inputEl.style.cssText = 'cursor:pointer;';
   } else {
-    inputHtml = `<input type="text" inputmode="numeric" class="cell-input"
-      id="cedit-${field}-${idx}"
-      value="${isNum ? (parseInt(curVal)||0) : curVal}"
-      ${isNum ? 'autocomplete="off"' : ""}>`;
+    inputEl = document.createElement('input');
+    inputEl.type = 'text';
+    inputEl.inputMode = 'numeric';
+    inputEl.className = 'cell-input cell-input-overlay';
+    inputEl.id = `cedit-${field}-${idx}`;
+    inputEl.value = isNum ? (parseInt(curVal)||0) : curVal;
+    if (isNum) inputEl.autocomplete = 'off';
   }
+  td.appendChild(inputEl);
+  const inp = inputEl;
 
-  td.innerHTML = inputHtml;
-  const inp = g(`cedit-${field}-${idx}`);
+  // Boshqa joyga mousedown bo'lganda blur ishga tushadi.
+  // inp o'zi bo'lmagan joyga mousedown kelsa — blur ni to'samiz,
+  // lekin inp ni fokusda tutamiz va kursor pozitsiyasini o'rnatamiz.
+  function onDocMouseDown(e) {
+    if (e.target === inp) return; // inp ichiga bosish — to'smoymiz
+    e.preventDefault();           // blur bo'lmasin
+    // Agar inp tashqarisiga bosilsa — commitEdit
+    if (!td.contains(e.target)) {
+      document.removeEventListener('mousedown', onDocMouseDown, true);
+      commitEdit(idx, field);
+    }
+  }
+  document.addEventListener('mousedown', onDocMouseDown, true);
 
   if (isDate) {
     inp.focus();
@@ -511,24 +601,6 @@ function editCell(idx, field, ev) {
     inp.addEventListener('blur',   () => setTimeout(() => commitEdit(idx, field), 200));
   } else {
     inp.focus();
-    // Click koordinatasiga kursor qo'yamiz
-    if (clickX !== null && clickY !== null) {
-      // Brauzerga bir tick vaqt beramiz — input render bo'lsin
-      setTimeout(() => {
-        // caretPositionFromPoint (Firefox) yoki caretRangeFromPoint (Chrome/Safari)
-        let pos = null;
-        if (document.caretPositionFromPoint) {
-          const cp = document.caretPositionFromPoint(clickX, clickY);
-          if (cp) pos = cp.offset;
-        } else if (document.caretRangeFromPoint) {
-          const cr = document.caretRangeFromPoint(clickX, clickY);
-          if (cr) pos = cr.startOffset;
-        }
-        if (pos !== null) {
-          inp.setSelectionRange(pos, pos);
-        }
-      }, 0);
-    }
 
     // Raqam maydonida faqat raqam va navigatsiya tugmalari ishlashi
     if (isNum) {
@@ -536,15 +608,24 @@ function editCell(idx, field, ev) {
         const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown',
                          'Home','End','Tab','Enter','Escape'];
         if (allowed.includes(e.key)) return;
-        if (e.ctrlKey || e.metaKey) return; // Ctrl+A, Ctrl+C, Ctrl+V va h.k.
-        if (!/^\d$/.test(e.key)) e.preventDefault(); // faqat raqamlar
+        if (e.ctrlKey || e.metaKey) return;
+        if (!/^\d$/.test(e.key)) e.preventDefault();
       });
     }
 
-    inp.addEventListener('blur',    () => commitEdit(idx, field));
+    inp.addEventListener('blur', () => {
+      document.removeEventListener('mousedown', onDocMouseDown, true);
+      commitEdit(idx, field);
+    });
     inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter')  commitEdit(idx, field);
-      if (e.key === 'Escape') cancelEdit(idx, field, dispEl.outerHTML);
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        document.removeEventListener('mousedown', onDocMouseDown, true);
+        commitEdit(idx, field);
+      }
+      if (e.key === 'Escape') {
+        document.removeEventListener('mousedown', onDocMouseDown, true);
+        cancelEdit(idx, field, dispEl.outerHTML);
+      }
     });
   }
 
@@ -561,7 +642,7 @@ async function commitEdit(idx, field) {
 
   let val = inp.value.trim();
   const isNum  = ['tarif','tolov_kerak','tolov_qildi'].includes(field);
-  const isDate = field === 'tolov_sanasi';
+  const isDate = field === 'tolov_sanasi' || field === 'gaplashilgan_vaqt';
 
   if (isNum)  val = parseInt(val) || 0;
   if (isDate) val = val ? dateISOtoUZ(val) : '';
@@ -572,13 +653,21 @@ async function commitEdit(idx, field) {
 
   // Update display
   const td = inp.parentElement;
+  inp.remove(); // overlay inputni olib tashlaymiz
   const dispVal = isNum
     ? (field === 'tolov_qildi' ? formatSum(val,'qildi')
        : field === 'tolov_kerak' ? formatSum(val,'kerak')
        : formatSum(val))
     : isDate ? (val ? tolovSanasi(val) : '<span class="amount-0">—</span>')
     : (val || '<span class="amount-0">—</span>');
-  td.innerHTML = `<span id="disp-${field}-${idx}">${dispVal}</span>`;
+  const dispEl2 = g(`disp-${field}-${idx}`);
+  if (dispEl2) {
+    dispEl2.innerHTML = dispVal;
+    dispEl2.style.visibility = '';
+  } else {
+    td.innerHTML = `<span id="disp-${field}-${idx}">${dispVal}</span>`;
+  }
+  td.style.position = '';
 
   // To'lov holati ni yangilash
   if (['tolov_kerak','tolov_qildi'].includes(field)) {
@@ -597,6 +686,13 @@ async function commitEdit(idx, field) {
 
   document.getElementById(`row-${idx}`)?.classList.remove('editing');
 
+  // cell-selected ni ham tozalaymiz
+  if (selectedCell) {
+    const prevTd = document.querySelector(`#row-${selectedCell.idx} [data-field="${selectedCell.field}"]`);
+    if (prevTd) prevTd.classList.remove('cell-selected');
+    selectedCell = null;
+  }
+
   // Saqlash
   await saveRow(idx);
   updateStats();
@@ -605,8 +701,20 @@ async function commitEdit(idx, field) {
 function cancelEdit(idx, field, oldHtml) {
   activeEdit = null;
   const inp = g(`cedit-${field}-${idx}`);
-  if (inp) inp.parentElement.innerHTML = oldHtml;
+  if (inp) {
+    inp.remove();
+    const dispEl = g(`disp-${field}-${idx}`);
+    if (dispEl) dispEl.style.visibility = '';
+    const td = document.querySelector(`#row-${idx} [data-field="${field}"]`);
+    if (td) td.style.position = '';
+  }
   document.getElementById(`row-${idx}`)?.classList.remove('editing');
+  // cell-selected ni ham tozalaymiz
+  if (selectedCell) {
+    const prevTd = document.querySelector(`#row-${selectedCell.idx} [data-field="${selectedCell.field}"]`);
+    if (prevTd) prevTd.classList.remove('cell-selected');
+    selectedCell = null;
+  }
 }
 
 async function saveRow(idx) {
@@ -663,20 +771,41 @@ async function initOy() {
 // ─── Statistika ──────────────────────────────────
 function updateStats() {
   let total=0, kerakSum=0, qildiSum=0;
-  FILTERED.forEach(({tolov: t}) => {
+  let toliqCount=0, qarzdorCount=0, nofaolCount=0, emptyCount=0;
+
+  FILTERED.forEach(({student: s, tolov: t}) => {
     total++;
-    kerakSum += t?.tolov_kerak || 0;
-    qildiSum += t?.tolov_qildi || 0;
+    const kerak = t?.tolov_kerak || 0;
+    const qildi = t?.tolov_qildi || 0;
+    kerakSum += kerak;
+    qildiSum += qildi;
+
+    // Nofaol (chiqib ketgan) o'quvchi
+    if (s && (s.nofaol || s.chiqgan)) {
+      nofaolCount++;
+    } else if (kerak <= 0) {
+      emptyCount++;
+    } else if (qildi >= kerak) {
+      toliqCount++;
+    } else {
+      qarzdorCount++;
+    }
   });
+
   const qarzSum = Math.max(0, kerakSum - qildiSum);
 
-  g('stat-total').textContent = total;
+  g('stat-total').textContent         = total;
+  g('stat-toliq-count').textContent   = toliqCount;
+  g('stat-qarzdor-count').textContent = qarzdorCount;
+  g('stat-nofaol-count').textContent  = nofaolCount;
+  g('stat-empty-count').textContent   = emptyCount;
   g('stat-kerak').textContent = kerakSum ? kerakSum.toLocaleString('ru-RU') + " so'm" : '—';
   g('stat-qildi').textContent = qildiSum ? qildiSum.toLocaleString('ru-RU') + " so'm" : '—';
   g('stat-qarz').textContent  = qarzSum  ? qarzSum.toLocaleString('ru-RU')  + " so'm" : '✅ 0';
 }
 function clearStats() {
-  ['stat-total','stat-kerak','stat-qildi','stat-qarz'].forEach(id => {
+  ['stat-total','stat-toliq-count','stat-qarzdor-count','stat-nofaol-count',
+   'stat-empty-count','stat-kerak','stat-qildi','stat-qarz'].forEach(id => {
     const el = g(id); if (el) el.textContent = '—';
   });
 }
@@ -1018,6 +1147,53 @@ function kvitLbClose(e) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') kvitLbClose({ target: { id: 'kvit-lightbox' } });
+
+  // Delete / Backspace — tanlangan yacheykani tozalash
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedCell && !activeEdit) {
+    // Input, textarea yoki contenteditable ichida bo'lsa — tegmaymiz
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+
+    e.preventDefault();
+
+    const { idx, field } = selectedCell;
+    const item = FILTERED[idx];
+    if (!item) return;
+
+    // Qiymatni tozalash
+    if (!item.tolov) item.tolov = {};
+    const isNum = ['tarif','tolov_kerak','tolov_qildi'].includes(field);
+    item.tolov[field] = isNum ? 0 : '';
+
+    // Display ni yangilash
+    const dispEl = g(`disp-${field}-${idx}`);
+    if (dispEl) {
+      if (isNum) {
+        dispEl.innerHTML = field === 'tolov_qildi' ? formatSum(0,'qildi')
+                         : field === 'tolov_kerak' ? formatSum(0,'kerak')
+                         : formatSum(0);
+      } else {
+        dispEl.innerHTML = '<span class="amount-0">—</span>';
+      }
+    }
+
+    // To'lov holati va qator rangini yangilash
+    if (isNum) {
+      const kerak = item.tolov.tolov_kerak || 0;
+      const qildi = item.tolov.tolov_qildi || 0;
+      const holatEl = g(`holat-${idx}`);
+      if (holatEl) holatEl.innerHTML = tolovHolati(kerak, qildi);
+      const row = document.getElementById(`row-${idx}`);
+      if (row && !row.classList.contains('row-nofaol')) {
+        row.classList.remove('row-toliq', 'row-qarzdor');
+        if (kerak > 0 && qildi >= kerak)     row.classList.add('row-toliq');
+        else if (kerak > 0 && qildi < kerak) row.classList.add('row-qarzdor');
+      }
+    }
+
+    saveRow(idx);
+    updateStats();
+  }
 });
 
 // ─── Filter events ───────────────────────────────
@@ -1028,6 +1204,7 @@ window.applyFilters   = applyFilters;
 window.exportExcel    = exportExcel;
 window.initOy         = initOy;
 window.editCell       = editCell;
+window.cellClick      = cellClick;
 window.uploadKvit     = uploadKvit;
 window.deleteKvit     = deleteKvit;
 window.openKvit       = openKvit;

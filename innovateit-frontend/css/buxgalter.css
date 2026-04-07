@@ -94,26 +94,116 @@
 /* ── Stats bar ── */
 .stats-bar {
   position: fixed;
-  top: calc(var(--topbar-h) + 52px); /* JS fixMainMargin() tomonidan yangilanadi */
+  top: calc(var(--topbar-h) + 52px);
   left: 0; right: 0; z-index: 80;
-  background: var(--surface); /* oq fon — content ko'rinmasin */
-  border-bottom: 1px solid #ccf2ec;
-  padding: 8px var(--p);
-  display: flex; gap: 16px; flex-wrap: wrap;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px var(--p);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 60px;
 }
-.stat-item {
-  display: flex; flex-direction: column; align-items: flex-start;
-  font-size: 11px;
+
+/* ── Chap: Moliyaviy kartalar ── */
+.finance-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
+.fin-card {
+  display: flex;
+  flex-direction: column;
+  padding: 7px 14px;
+  border-radius: 8px;
+  min-width: 130px;
+}
+.fin-card--orange { background: #FFF8EE; border: 1px solid #F5D499; }
+.fin-card--teal   { background: #EEF9F5; border: 1px solid #A8DFC9; }
+.fin-card--red    { background: #FEF2F2; border: 1px solid #F5BEBE; }
+.fin-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px;
+  font-family: 'DM Sans', sans-serif;
+}
+.fin-card--orange .fin-label { color: #B07D3A; }
+.fin-card--teal   .fin-label { color: #3A8C6E; }
+.fin-card--red    .fin-label { color: #C05555; }
+.fin-val {
+  font-size: 15px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif; white-space: nowrap;
+}
+.fin-card--orange .fin-val { color: #7A5020; }
+.fin-card--teal   .fin-val { color: #1A6B50; }
+.fin-card--red    .fin-val { color: #9B3535; }
+
+/* ── Separator ── */
+.stat-sep {
+  width: 1px; background: var(--border);
+  height: 40px; margin: 0 14px; flex-shrink: 0;
+}
+
+/* ── O'ng: Filter knopkalari ── */
+.filter-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+.filter-label {
+  font-size: 11px; color: var(--muted);
+  font-weight: 600; margin-right: 2px; white-space: nowrap;
+}
+.filter-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg); cursor: pointer;
+  transition: background .12s, border-color .12s;
+  font-family: inherit;
+}
+.filter-btn:hover { background: var(--border); }
+.filter-btn.active { border-width: 1.5px; }
+.filter-btn--all.active    { background: #E6F1FB; border-color: #378ADD; }
+.filter-btn--green.active  { background: #EAF3DE; border-color: #639922; }
+.filter-btn--yellow.active { background: #FAEEDA; border-color: #EF9F27; }
+.filter-btn--red.active    { background: #FCEBEB; border-color: #E24B4A; }
+.filter-btn--gray.active   { background: #F1EFE8; border-color: #888780; }
+
+.btn-icon {
+  width: 20px; height: 20px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.btn-icon--all    { background: #B5D4F4; }
+.btn-icon--green  { background: #C0DD97; }
+.btn-icon--yellow { background: #FAC775; }
+.btn-icon--red    { background: #F7C1C1; }
+.btn-icon--gray   { background: #D3D1C7; }
+
+.btn-body { display: flex; flex-direction: column; align-items: flex-start; }
+.btn-count {
+  font-size: 14px; font-weight: 700; line-height: 1;
+  color: var(--text); font-family: 'DM Mono', monospace;
+}
+.btn-text {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em;
+  font-weight: 600; line-height: 1; margin-top: 2px;
+  white-space: nowrap;
+}
+
+/* ── Moslik uchun (eski .stat-card ishlatilsa) ── */
+.stat-item { display: flex; flex-direction: column; font-size: 11px; }
 .stat-label { color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
-.stat-val {
-  font-size: 15px; font-weight: 700;
-  font-family: 'DM Mono', monospace;
-}
+.stat-val { font-size: 15px; font-weight: 700; font-family: 'DM Mono', monospace; }
 .stat-val.green  { color: #16a34a; }
 .stat-val.blue   { color: #2563eb; }
 .stat-val.red    { color: #dc2626; }
 .stat-val.orange { color: #d97706; }
+.stat-val.muted  { color: #6b7280; }
+.stat-divider { width: 1px; background: var(--border); align-self: stretch; margin: 0 4px; }
 
 /* ── Main table wrapper ── */
 .bux-main {
@@ -171,7 +261,7 @@
   border-bottom: 1px solid var(--border);
   transition: background .12s;
 }
-.bux-table tbody tr:hover { background: #f0fdfb; }
+.bux-table tbody tr:hover { background: inherit; } /* hover o'chirildi */
 .bux-table tbody tr.editing { background: #fffbeb; }
 .bux-table tbody tr:last-child { border-bottom: none; }
 
@@ -194,7 +284,7 @@
 .col-name { font-weight: 600; color: #111827; }
 .col-maktab { text-align: center; color: #6b7280; font-size: 12px; }
 .col-sinf   { text-align: center; color: #6b7280; font-size: 12px; font-weight: 600; }
-.col-tel    { font-family: 'DM Mono', monospace; font-size: 12px; color: #374151; }
+.col-tel    { font-family: inherit; font-size: 13px; color: #374151; }
 .col-tarif  { text-align: right; }
 
 /* Editable cells */
@@ -202,13 +292,16 @@
   cursor: pointer;
   position: relative;
 }
-.bux-table td.editable:hover::after {
-  content: '✏️';
-  position: absolute;
-  right: 4px; top: 50%;
-  transform: translateY(-50%);
-  font-size: 10px;
-  opacity: .6;
+.bux-table td.editable:hover::after { content: none; }
+
+/* Tanlangan yacheyka (1-chi click) — Excel/Sheets kabi */
+.bux-table td.cell-selected {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  background: #eff6ff !important;
+}
+.bux-table td.cell-selected::after {
+  content: '' !important; /* hover emoji ni o'chirish */
 }
 
 /* Inline input inside td */
@@ -217,7 +310,7 @@
   padding: 4px 6px;
   border: 1.5px solid var(--accent);
   border-radius: 6px;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   background: #fff;
   color: var(--text);
@@ -225,6 +318,28 @@
   min-width: 90px;
 }
 .cell-input:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+
+/* Overlay input — yacheyka ustiga "suzadi", o'lchamini o'zgartirmaydi */
+.cell-input-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  min-width: unset;
+  padding: 0 8px;
+  margin: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 0;
+  z-index: 10;
+  background: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+}
+.cell-input-overlay:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.2);
+}
 
 /* Barcha amount/sana/holat/kvit ustun kengliklarini JS boshqaradi */
 .col-kerak  { text-align: right; }
@@ -245,21 +360,19 @@
 
 /* Amount display spans */
 .amount-kerak {
-  font-family: 'DM Mono', monospace;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   color: #374151;
-  letter-spacing: -.01em;
 }
 .amount-qildi {
-  font-family: 'DM Mono', monospace;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   color: #15803d;
-  letter-spacing: -.01em;
 }
 .amount-default {
-  font-family: 'DM Mono', monospace;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   color: #374151;
@@ -273,11 +386,13 @@
 .amount-0 { color: #d1d5db; font-size: 14px; }
 
 /* Debt badge */
+/* ── To'lov holati badge'lari ── */
 .badge-toliq {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 12px;
-  background: #dcfce7; color: #15803d;
-  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+  background: #16a34a; color: #fff;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: .3px;
 }
 .badge-ortiqcha {
   display: inline-block;
@@ -287,24 +402,26 @@
   margin-left: 2px;
 }
 .badge-qisman {
-  display: inline-block; padding: 2px 8px; border-radius: 12px;
-  background: #fef9c3; color: #92400e;
-  font-size: 11px; font-weight: 700;
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  background: #f59e0b; color: #fff;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: .3px;
 }
 .badge-qarzdor {
-  display: inline-block; padding: 2px 8px; border-radius: 12px;
-  background: #fee2e2; color: #dc2626;
-  font-size: 11px; font-weight: 700;
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  background: #dc2626; color: #fff;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: .3px;
 }
 .badge-empty {
-  display: inline-block; padding: 2px 8px; border-radius: 12px;
-  background: #f3f4f6; color: #9ca3af;
-  font-size: 11px; font-weight: 600;
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  background: #e5e7eb; color: #6b7280;
+  font-size: 12px; font-weight: 600;
 }
 
 /* Amount display */
 .amount-display {
-  font-family: 'DM Mono', monospace;
+  font-family: inherit;
 }
 .amount-0 { color: #9ca3af; }
 
@@ -387,21 +504,21 @@
 
 /* Nofaol o'quvchi qatori */
 .row-nofaol {
-  background: #fff5f5 !important;
-  opacity: .85;
+  background: #fecaca !important;
+  opacity: .9;
 }
-.row-nofaol:hover { background: #fee2e2 !important; }
+
 
 /* To'lov holati bo'yicha qator rangi */
 .row-toliq {
-  background: #f0fdf4 !important;
+  background: #bbf7d0 !important;
 }
-.row-toliq:hover { background: #dcfce7 !important; }
+
 
 .row-qarzdor {
-  background: #fefce8 !important;
+  background: #fde68a !important;
 }
-.row-qarzdor:hover { background: #fef9c3 !important; }
+
 
 .badge-nofaol-row {
   display: inline-block;
@@ -557,9 +674,12 @@
   .btn-init-oy   { font-size: 12px; padding: 6px 10px; }
 
   /* Stats bar */
-  .stats-bar { gap: 12px; padding: 6px 12px; flex-wrap: wrap; }
-  .stat-val  { font-size: 13px; }
-  .stat-label { font-size: 10px; }
+  .stats-bar { padding: 8px 12px; min-height: 54px; }
+  .fin-card { min-width: 110px; padding: 6px 10px; }
+  .fin-val { font-size: 12px; }
+  .filter-btn { padding: 6px 9px; gap: 5px; }
+  .btn-count { font-size: 13px; }
+  .stat-sep { margin: 0 10px; }
 
   /* Table */
   .bux-main { padding: 10px; padding-top: 10px; }
@@ -595,10 +715,20 @@
   /* Stats bar — top JS tomonidan dinamik o'rnatiladi */
   .stats-bar {
     padding: 5px 10px;
-    gap: 10px;
+    gap: 5px;
   }
-  .stat-val   { font-size: 12px; }
-  .stat-label { font-size: 9px; }
+  .stat-card { padding: 4px 8px; gap: 5px; min-width: unset; }
+  .stat-sep { display: none; }
+  .stats-bar { flex-direction: column; align-items: flex-start; gap: 6px; min-height: unset; padding: 8px 10px; }
+  .finance-section { gap: 4px; }
+  .fin-card { min-width: 90px; padding: 5px 8px; }
+  .fin-val { font-size: 11px; }
+  .fin-label { font-size: 9px; }
+  .filter-section { justify-content: flex-start; flex-wrap: wrap; gap: 4px; }
+  .filter-label { display: none; }
+  .filter-btn { padding: 5px 8px; gap: 4px; }
+  .btn-count { font-size: 12px; }
+  .btn-text { font-size: 9px; }
 
   /* Main margin — JS tomonidan dinamik o'rnatiladi */
   .bux-main {

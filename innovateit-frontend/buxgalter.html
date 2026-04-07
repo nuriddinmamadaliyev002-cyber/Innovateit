@@ -83,12 +83,6 @@
     <select class="filter-select" id="filter-sinf" onchange="applyFilters()">
       <option value="">📚 Barcha sinflar</option>
     </select>
-    <select class="filter-select" id="filter-tolov" onchange="applyFilters()">
-      <option value="">💳 Hammasi</option>
-      <option value="yopgan">✅ To'lovni yopganlar</option>
-      <option value="qarzdor">❌ Qarzdorlar</option>
-      <option value="umuman">⛔ Umuman to'lov qilmaganlar</option>
-    </select>
     <input class="search-input" type="text" id="filter-search"
       placeholder="🔍 Ism / telefon…" oninput="applyFilters()">
 
@@ -104,23 +98,82 @@
 
   <!-- STATS BAR -->
   <div class="stats-bar" id="stats-bar">
-    <div class="stat-item">
-      <span class="stat-label">O'quvchilar</span>
-      <span class="stat-val blue" id="stat-total">—</span>
+
+    <!-- CHAP: Moliyaviy ko'rsatkichlar -->
+    <div class="finance-section">
+      <div class="fin-card fin-card--orange">
+        <span class="fin-label">To'lov kerak</span>
+        <span class="fin-val" id="stat-kerak">—</span>
+      </div>
+      <div class="fin-card fin-card--teal">
+        <span class="fin-label">To'lov qilindi</span>
+        <span class="fin-val" id="stat-qildi">—</span>
+      </div>
+      <div class="fin-card fin-card--red">
+        <span class="fin-label">Umumiy qarz</span>
+        <span class="fin-val" id="stat-qarz">—</span>
+      </div>
     </div>
-    <div class="stat-item">
-      <span class="stat-label">To'lov kerak</span>
-      <span class="stat-val orange" id="stat-kerak">—</span>
+
+    <div class="stat-sep"></div>
+
+    <!-- O'NG: Filter knopkalari -->
+    <div class="filter-section">
+      <span class="filter-label">Filter:</span>
+
+      <button class="filter-btn filter-btn--all active" onclick="setStatFilter('all')" id="stat-btn-all" title="Hammani ko'rsat">
+        <div class="btn-icon btn-icon--all">
+          <svg viewBox="0 0 12 12" width="11" height="11"><circle cx="3" cy="6" r="1.5" fill="#0C447C"/><circle cx="6" cy="6" r="1.5" fill="#0C447C"/><circle cx="9" cy="6" r="1.5" fill="#0C447C"/></svg>
+        </div>
+        <div class="btn-body">
+          <span class="btn-count" id="stat-total">—</span>
+          <span class="btn-text">Jami</span>
+        </div>
+      </button>
+
+      <button class="filter-btn filter-btn--green" onclick="setStatFilter('toliq')" id="stat-btn-toliq" title="To'liq to'laganlar">
+        <div class="btn-icon btn-icon--green">
+          <svg viewBox="0 0 12 12" width="11" height="11"><path d="M2 6.5 L4.5 9 L10 3" stroke="#27500A" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="btn-body">
+          <span class="btn-count" id="stat-toliq-count">—</span>
+          <span class="btn-text">To'liq to'lagan</span>
+        </div>
+      </button>
+
+      <button class="filter-btn filter-btn--yellow" onclick="setStatFilter('qarzdor')" id="stat-btn-qarzdor" title="Qarzdorlar">
+        <div class="btn-icon btn-icon--yellow">
+          <svg viewBox="0 0 12 12" width="11" height="11"><path d="M6 2 L6 7 M6 9.5 L6 10" stroke="#633806" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+        </div>
+        <div class="btn-body">
+          <span class="btn-count" id="stat-qarzdor-count">—</span>
+          <span class="btn-text">Qarzdor</span>
+        </div>
+      </button>
+
+      <button class="filter-btn filter-btn--red" onclick="setStatFilter('nofaol')" id="stat-btn-nofaol" title="Chiqib ketganlar">
+        <div class="btn-icon btn-icon--red">
+          <svg viewBox="0 0 12 12" width="11" height="11"><path d="M2 10 L10 2 M8 2 L10 2 L10 4" stroke="#791F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </div>
+        <div class="btn-body">
+          <span class="btn-count" id="stat-nofaol-count">—</span>
+          <span class="btn-text">Chiqib ketgan</span>
+        </div>
+      </button>
+
+      <button class="filter-btn filter-btn--gray" onclick="setStatFilter('empty')" id="stat-btn-empty" title="To'lov yo'qlar">
+        <div class="btn-icon btn-icon--gray">
+          <svg viewBox="0 0 12 12" width="11" height="11"><path d="M3 6 L9 6" stroke="#444441" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+        </div>
+        <div class="btn-body">
+          <span class="btn-count" id="stat-empty-count">—</span>
+          <span class="btn-text">To'lov yo'q</span>
+        </div>
+      </button>
     </div>
-    <div class="stat-item">
-      <span class="stat-label">To'lov qilindi</span>
-      <span class="stat-val green" id="stat-qildi">—</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Umumiy qarz</span>
-      <span class="stat-val red" id="stat-qarz">—</span>
-    </div>
+
   </div>
+
 
   <!-- TABLE -->
   <div class="bux-main">

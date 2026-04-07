@@ -26,6 +26,7 @@ function todayUZ() { return new Date().toLocaleDateString('ru-RU'); }
 router.get('/students', requireAuth(['admin','buxgalter']), async (req, res) => {
   const { oy } = req.query;
   const auth = req.user;  // requireAuth middleware
+  const username = auth?.username || '';
   if (!oy) return res.status(400).json({ ok: false, error: 'oy parametri kerak' });
 
   try {
