@@ -21,6 +21,16 @@ const tokenStore = {
       return payload.exp * 1000 < Date.now();
     } catch { return true; }
   },
+  // Token muddatining 25% qolganda yangilash kerak deb hisoblaymiz
+  // Masalan 30 kunlik token bo'lsa — 22.5 kun o'tganda yangilanadi
+  needsRefresh(t) {
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1]));
+      const total   = payload.exp - payload.iat;        // tokenning umumiy muddati (soniyada)
+      const left    = payload.exp - Math.floor(Date.now() / 1000); // qolgan vaqt
+      return left < total * 0.25;                       // 25% qolsa yangilash vaqti
+    } catch { return false; }
+  },
   getUser() {
     const t = this.get();
     if (!t) return null;
@@ -28,6 +38,27 @@ const tokenStore = {
     catch { return null; }
   }
 };
+
+// ─── Avtomatik token yangilash ────────────────────────────────────────────────
+// Sahifa ochilganda token muddatining 25% dan kam qolganda — yangilaydi
+// Admin hech narsa sezmaydi, fon da ishlaydi
+async function autoRefreshToken() {
+  const t = tokenStore.get();
+  if (!t || tokenStore.isExpired(t)) return;   // muddati tugagan — logindan o'tadi
+  if (!tokenStore.needsRefresh(t)) return;     // hali vaqt bor — hech narsa qilmaymiz
+
+  try {
+    const res = await fetch(`${BASE}/api/auth/refresh`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` }
+    });
+    const data = await res.json();
+    if (data.ok && data.token) {
+      tokenStore.set(data.token);
+      console.log('Token avtomatik yangilandi ✅');
+    }
+  } catch (_) { /* tarmoq xatoligi — avvalgi token bilan davom etadi */ }
+}
 
 // ─── 401 holatida login sahifasiga qaytish ───────────────────────────────────
 function handleUnauthorized() {
