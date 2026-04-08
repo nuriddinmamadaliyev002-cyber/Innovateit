@@ -226,6 +226,15 @@ async function addStudent() {
   const boshlagan = g('f-boshlagan').value;
 
   if (yil && (yil < 2009 || yil > 2019)) { toast("⚠️ Yil 2009–2019 bo'lishi kerak", 'error'); return; }
+
+  // Tug'ilgan sana: agar bitta maydon to'ldirilgan bo'lsa — barchasi to'ldirilishi shart
+  const tugFilledCount = [kun && kun !== '00', oy, yil].filter(Boolean).length;
+  if (tugFilledCount > 0 && tugFilledCount < 3) {
+    if (!kun || kun === '00') { toast("⚠️ Tug'ilgan kunni kiriting", 'error'); g('f-kun').classList.add('err'); return; }
+    if (!oy)                  { toast("⚠️ Tug'ilgan oyni tanlang",   'error'); g('f-oy').classList.add('err');  return; }
+    if (!yil)                 { toast("⚠️ Tug'ilgan yilni kiriting", 'error'); g('f-yil').classList.add('err'); return; }
+  }
+
   if (yil && oy && kun) g('f-tug').value = yil + '-' + oy + '-' + kun;
   const tug = g('f-tug').value;
 
@@ -252,6 +261,22 @@ async function addStudent() {
     else toast('❌ ' + r.error, 'error');
   } catch (e) { toast('❌ Xatolik', 'error'); }
   bl('submit-btn', 'spinner', 'btn-txt', false, 'Saqlash');
+}
+
+function toggleClearBtn() {
+  const input = g('f-search');
+  const btn   = g('f-search-clear');
+  if (!input || !btn) return;
+  btn.style.display = input.value.length > 0 ? 'block' : 'none';
+}
+
+function clearSearch() {
+  const input = g('f-search');
+  const btn   = g('f-search-clear');
+  if (!input) return;
+  input.value = '';
+  if (btn) btn.style.display = 'none';
+  applyFilters();
 }
 
 function applyFilters() {
@@ -441,6 +466,15 @@ async function saveES() {
   const yil      = g('e-yil').value;
 
   if (yil && (yil < 2009 || yil > 2019)) { toast("⚠️ Yil 2009–2019 bo'lishi kerak", 'error'); return; }
+
+  // Tug'ilgan sana: agar bitta maydon to'ldirilgan bo'lsa — barchasi to'ldirilishi shart
+  const tugFilledCount = [kun && kun !== '00', oy, yil].filter(Boolean).length;
+  if (tugFilledCount > 0 && tugFilledCount < 3) {
+    if (!kun || kun === '00') { toast("⚠️ Tug'ilgan kunni kiriting", 'error'); g('e-kun').classList.add('err'); return; }
+    if (!oy)                  { toast("⚠️ Tug'ilgan oyni tanlang",   'error'); g('e-oy').classList.add('err');  return; }
+    if (!yil)                 { toast("⚠️ Tug'ilgan yilni kiriting", 'error'); g('e-yil').classList.add('err'); return; }
+  }
+
   if (yil && oy && kun) g('e-tug').value = yil + '-' + oy + '-' + kun;
   const tug = g('e-tug').value;
 
@@ -796,10 +830,13 @@ function esc(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); 
 // ─── Telefon mask va validatsiya ───
 function fmtTel(val) {
   const digits = val.replace(/\D/g, '');
+  if (!digits) return '';
   let d = digits.startsWith('998') ? digits
         : digits.startsWith('0')   ? '998' + digits.slice(1)
         : '998' + digits;
   d = d.slice(0, 12);
+  // Faqat mamlakat kodi qolgan bo'lsa (998 dan ortiq raqam yo'q) — bo'sh qaytaramiz
+  if (d === '998') return '';
   let out = '';
   if (d.length > 0)  out = '+' + d.slice(0, 3);
   if (d.length > 3)  out += ' ' + d.slice(3, 5);

@@ -299,6 +299,13 @@ select.field-input {
   background-position: right 12px center;
   padding-right: 32px;
 }
+select.field-input:invalid,
+select.field-input option[value=""] {
+  color: var(--muted);
+}
+select.field-input option:not([value=""]) {
+  color: var(--text);
+}
 
 .btn-submit {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -330,13 +337,24 @@ select.field-input {
 .table-title { font-size: 14px; font-weight: 600; }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; }
 
+.search-wrapper {
+  flex: 1; min-width: 120px; position: relative; display: flex; align-items: center;
+}
 .search-input {
-  flex: 1; min-width: 120px; padding: 9px 12px;
+  width: 100%; padding: 9px 32px 9px 12px;
   border: 1.5px solid var(--border); border-radius: 8px;
   font-family: 'DM Sans', sans-serif; font-size: 14px;
   background: var(--bg); color: var(--text); outline: none; -webkit-appearance: none;
 }
 .search-input:focus { border-color: var(--accent); background: #fff; }
+.search-clear-btn {
+  position: absolute; right: 8px;
+  background: none; border: none; cursor: pointer;
+  font-size: 13px; color: #999; padding: 2px 4px;
+  border-radius: 50%; line-height: 1;
+  display: none;
+}
+.search-clear-btn:hover { background: #f0f0f0; color: #333; }
 
 .filter-sel {
   flex: none; width: calc(50% - 4px); padding: 9px 12px;

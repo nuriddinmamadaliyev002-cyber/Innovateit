@@ -100,7 +100,7 @@
             <label class="field-label">Maktab raqami</label>
             <input class="field-input" id="f-maktab" type="number" inputmode="numeric"
               placeholder="5" min="1" max="99" oninput="valM(this)"
-              style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;text-align:center;letter-spacing:3px;padding:10px;">
+              style="font-family:'DM Mono',monospace;font-size:20px;font-weight:400;text-align:center;letter-spacing:3px;padding:10px;">
             <p class="field-hint">Faqat 1–99 oralig'idagi raqam</p>
           </div>
           <div class="field-group">
@@ -127,7 +127,7 @@
             <div class="dob-row">
               <input class="field-input" id="f-kun" type="number" inputmode="numeric"
                 placeholder="Kun" min="1" max="31" style="text-align:center;padding-left:4px;padding-right:4px;">
-              <select class="field-input" id="f-oy">
+              <select class="field-input" id="f-oy" required>
                 <option value="">Oy</option>
                 <option value="01">Yanvar</option>  <option value="02">Fevral</option>
                 <option value="03">Mart</option>    <option value="04">Aprel</option>
@@ -163,7 +163,10 @@
         <div class="table-header">
           <div class="table-title">O'quvchilar ro'yxati</div>
           <div class="filters">
-            <input class="search-input" id="f-search" placeholder="🔍  Ism, telefon…" oninput="applyFilters()">
+            <div class="search-wrapper">
+              <input class="search-input" id="f-search" placeholder="🔍  Ism, telefon…" oninput="applyFilters(); toggleClearBtn()">
+              <button class="search-clear-btn" id="f-search-clear" onclick="clearSearch()" title="Tozalash">✕</button>
+            </div>
             <select class="filter-sel" id="f-maktab-f" onchange="applyFilters()">
               <option value="">Barcha maktab</option>
             </select>
@@ -346,7 +349,7 @@
       <div class="field-group">
         <label class="field-label">Maktab raqami</label>
         <input class="field-input" id="e-maktab" type="number" inputmode="numeric" min="1" max="99" oninput="valM(this)"
-          style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;text-align:center;letter-spacing:3px;padding:10px;">
+          style="font-family:'DM Mono',monospace;font-size:20px;font-weight:400;text-align:center;letter-spacing:3px;padding:10px;">
         <p class="field-hint">1–99 oralig'idagi raqam</p>
       </div>
       <div class="field-group">
@@ -364,7 +367,7 @@
         <label class="field-label">Tug'ilgan sana</label>
         <div class="dob-row">
           <input class="field-input" id="e-kun" type="number" inputmode="numeric" placeholder="Kun" min="1" max="31" style="text-align:center;padding-left:4px;padding-right:4px;">
-          <select class="field-input" id="e-oy">
+          <select class="field-input" id="e-oy" required>
             <option value="">Oy</option>
             <option value="01">Yanvar</option><option value="02">Fevral</option>
             <option value="03">Mart</option><option value="04">Aprel</option>
