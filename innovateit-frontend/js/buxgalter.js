@@ -139,21 +139,26 @@ function showApp() {
 }
 
 function fixMainMargin() {
-  const topbar   = document.querySelector('.topbar');
   const ctrlBar  = document.querySelector('.ctrl-bar');
   const statsBar = g('stats-bar');
   const main     = document.querySelector('.bux-main');
+  const wrap     = g('bux-table-wrap');
   if (!statsBar || !main || !ctrlBar) return;
 
-  // ctrl-bar ning haqiqiy pastki chegarasini olamiz
   const ctrlBottom  = ctrlBar.getBoundingClientRect().bottom;
   const statsHeight = statsBar.offsetHeight;
 
-  // stats-bar ni ctrl-bar ning pastiga dinamik qo'yamiz
-  statsBar.style.top = ctrlBottom + 'px';
-
-  // bux-main ni stats-bar pastiga qo'yamiz
+  statsBar.style.top   = ctrlBottom + 'px';
   main.style.marginTop = (ctrlBottom + statsHeight + 8) + 'px';
+
+  // Mobilda jadval gorizontal scroll, desktop — hidden
+  if (wrap) {
+    if (window.innerWidth <= 600) {
+      wrap.style.overflowX = 'auto';
+    } else {
+      wrap.style.overflowX = '';
+    }
+  }
 }
 
 // ─── Fixed header (scroll da muzlab turishi uchun) ────
@@ -369,8 +374,8 @@ function applyFilters() {
       const kerak = t?.tolov_kerak || 0;
       const qildi = t?.tolov_qildi || 0;
       const isNofaol = s.nofaol === true || !!s.chiqgan;
-      if (STAT_FILTER === 'toliq'   && !(qildi >= kerak && kerak > 0 && !isNofaol)) return false;
-      if (STAT_FILTER === 'qarzdor' && !(kerak > 0 && qildi < kerak && !isNofaol))  return false;
+      if (STAT_FILTER === 'toliq'   && !(qildi >= kerak && kerak > 0))             return false;
+      if (STAT_FILTER === 'qarzdor' && !(kerak > 0 && qildi < kerak))              return false;
       if (STAT_FILTER === 'nofaol'  && !isNofaol)                                   return false;
       if (STAT_FILTER === 'empty'   && !(kerak <= 0 && !isNofaol))                  return false;
     }
@@ -448,7 +453,7 @@ function renderTable() {
 
     return `<tr id="row-${i}" data-idx="${i}" ${rowClass ? `class="${rowClass}"` : ""}>
       <td class="col-num">${i+1}</td>
-      <td class="col-name">${nofaolBadge}${s.familiya} ${s.ism}</td>
+      <td class="col-name">${nofaolBadge}<span class="name-familiya">${s.familiya}</span><span class="name-ism">${s.ism}</span></td>
       <td class="col-maktab">${s.maktab || '—'}</td>
       <td class="col-sinf">${s.sinf || '—'}</td>
       <td class="col-tel">${s.telefon || '—'}</td>
@@ -781,11 +786,12 @@ function updateStats() {
     kerakSum += kerak;
     qildiSum += qildi;
 
-    // Nofaol (chiqib ketgan) o'quvchi
-    if (s && (s.nofaol || s.chiqgan)) {
-      nofaolCount++;
-    } else if (kerak <= 0) {
-      emptyCount++;
+    // Nofaol (chiqib ketgan) o'quvchi — ham nofaol, ham to'lov holatiga sanash
+    const isNofaol = s && (s.nofaol || s.chiqgan);
+    if (isNofaol) nofaolCount++;
+
+    if (kerak <= 0) {
+      if (!isNofaol) emptyCount++;
     } else if (qildi >= kerak) {
       toliqCount++;
     } else {
@@ -931,11 +937,17 @@ function buildKvitPreview(files, idx) {
       ? `<img src="${url}" class="kvit-thumb"
             onclick="openKvit('${filename}',event)"
             oncontextmenu="kvitContextMenu(event,${idx},${fi})"
+            ontouchstart="kvitTouchStart(event,${idx},${fi})"
+            ontouchend="kvitTouchEnd(event)"
+            ontouchmove="kvitTouchEnd(event)"
             title="Ko'rish | O'ng klik — amallar">`
       : `<span class="kvit-file-icon"
             onclick="openKvit('${filename}',event)"
             oncontextmenu="kvitContextMenu(event,${idx},${fi})"
-            title="Ko'rish | O'ng klik — amallar">${isPdf ? '📄' : '📎'}</span>`;
+            ontouchstart="kvitTouchStart(event,${idx},${fi})"
+            ontouchend="kvitTouchEnd(event)"
+            ontouchmove="kvitTouchEnd(event)"
+            title="Ko'rish | O'ng klik — amallar">${isPdf ? '📄' : '📎'}</span>`; 
     return `<div class="kvit-item">${thumb}</div>`;
   }).join('');
 
@@ -1120,6 +1132,22 @@ async function doUploadFiles(newFiles, idx) {
 }
 
 // Bitta faylni o'chirish (index bo'yicha)
+// ─── Mobil uchun long-press → context menu ───────
+let _touchTimer = null;
+function kvitTouchStart(e, idx, fi) {
+  _touchTimer = setTimeout(() => {
+    _touchTimer = null;
+    // Soxta event yasaymiz — clientX/Y touch dan
+    const t = e.touches[0];
+    const fakeEvt = { clientX: t.clientX, clientY: t.clientY,
+                      preventDefault: () => {}, stopPropagation: () => {} };
+    kvitContextMenu(fakeEvt, idx, fi);
+  }, 500);
+}
+function kvitTouchEnd(e) {
+  if (_touchTimer) { clearTimeout(_touchTimer); _touchTimer = null; }
+}
+
 // ─── Context Menu (o'ng klik) ────────────────
 let _ctxIdx     = -1;
 let _ctxFileIdx = -1;
@@ -1133,14 +1161,32 @@ function kvitContextMenu(e, idx, fileIdx) {
   const menu = g('kvit-ctx-menu');
   if (!menu) return;
 
-  const mw = 210, mh = 115;
-  let x = e.clientX, y = e.clientY;
-  if (x + mw > window.innerWidth)  x = window.innerWidth  - mw - 8;
-  if (y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
+  const isMobile = window.innerWidth <= 600;
+  if (isMobile) {
+    // Mobilda bottom sheet — pozitsiya kerak emas, CSS boshqaradi
+    menu.style.left = '';
+    menu.style.top  = '';
+  } else {
+    const mw = 210, mh = 115;
+    let x = e.clientX, y = e.clientY;
+    if (x + mw > window.innerWidth)  x = window.innerWidth  - mw - 8;
+    if (y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+  }
 
-  menu.style.left    = x + 'px';
-  menu.style.top     = y + 'px';
   menu.style.display = 'block';
+
+  // Backdrop (mobilda ekraning qolgan qismiga bosilsa yopiladi)
+  let bd = g('kvit-ctx-backdrop');
+  if (!bd) {
+    bd = document.createElement('div');
+    bd.id = 'kvit-ctx-backdrop';
+    bd.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.35);';
+    bd.addEventListener('click', closeKvitCtxMenu);
+    document.body.appendChild(bd);
+  }
+  bd.style.display = isMobile ? 'block' : 'none';
 
   setTimeout(() => document.addEventListener('click', closeKvitCtxMenu, { once: true }), 0);
 }
@@ -1148,6 +1194,8 @@ function kvitContextMenu(e, idx, fileIdx) {
 function closeKvitCtxMenu() {
   const menu = g('kvit-ctx-menu');
   if (menu) menu.style.display = 'none';
+  const bd = g('kvit-ctx-backdrop');
+  if (bd) bd.style.display = 'none';
 }
 
 // Context menu: "O'chirish"
@@ -1425,6 +1473,8 @@ window.ctxDeleteKvit   = ctxDeleteKvit;
 window.ctxReplaceKvit  = ctxReplaceKvit;
 window.ctxAddKvit      = ctxAddKvit;
 window.closeKvitCtxMenu = closeKvitCtxMenu;
+window.kvitTouchStart   = kvitTouchStart;
+window.kvitTouchEnd     = kvitTouchEnd;
 window.lbPrev          = lbPrev;
 window.lbNext          = lbNext;
 window.parseKvitFiles  = parseKvitFiles;

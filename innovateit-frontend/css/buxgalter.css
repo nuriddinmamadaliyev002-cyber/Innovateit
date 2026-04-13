@@ -281,7 +281,30 @@
 /* Num col */
 .col-num  { text-align: center; color: #9ca3af; font-size: 12px; font-weight: 500; }
 /* Name col */
-.col-name { font-weight: 600; color: #111827; }
+.col-name {
+  font-weight: 600;
+  color: #111827;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+.name-familiya {
+  display: block;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.name-ism {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  color: #111827;
+  line-height: 1.3;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 .col-maktab { text-align: center; color: #6b7280; font-size: 12px; }
 .col-sinf   { text-align: center; color: #6b7280; font-size: 12px; font-weight: 600; }
 .col-tel    { font-family: inherit; font-size: 13px; color: #374151; }
@@ -529,9 +552,12 @@
   border: 1px solid #fecaca;
   border-radius: 10px;
   padding: 1px 6px;
-  margin-right: 4px;
+  margin-bottom: 3px;
   white-space: nowrap;
   vertical-align: middle;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .kvit-upload-btn {
   padding: 5px 10px; border-radius: 7px; cursor: pointer;
@@ -721,103 +747,291 @@
 ══════════════════════════════ */
 
 /* ── Tablet (≤900px) ── */
+/* ═══════════════════════════════════════════
+   RESPONSIVE — Tablet (≤900px)
+═══════════════════════════════════════════ */
 @media (max-width: 900px) {
-  /* Topbar */
   .topbar-brand { font-size: 12px; }
-  .btn-export-bux, .btn-logout {
-    padding: 6px 10px; font-size: 12px;
-  }
+  .btn-export-bux, .btn-logout { padding: 6px 10px; font-size: 12px; }
 
-  /* Controls bar — 2 qatorga o'tsin */
-  .ctrl-bar {
-    padding: 8px 12px;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
+  .ctrl-bar { padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
   .oy-label { min-width: 100px; font-size: 13px; }
   .filter-select { font-size: 12px; padding: 6px 8px; }
   .search-input  { font-size: 12px; padding: 6px 10px; min-width: 140px; }
   .btn-init-oy   { font-size: 12px; padding: 6px 10px; }
 
-  /* Stats bar */
   .stats-bar { padding: 8px 12px; min-height: 54px; }
-  .fin-card { min-width: 110px; padding: 6px 10px; }
-  .fin-val { font-size: 12px; }
+  .fin-card  { min-width: 110px; padding: 6px 10px; }
+  .fin-val   { font-size: 12px; }
   .filter-btn { padding: 6px 9px; gap: 5px; }
-  .btn-count { font-size: 13px; }
-  .stat-sep { margin: 0 10px; }
+  .btn-count  { font-size: 13px; }
+  .stat-sep   { margin: 0 10px; }
 
-  /* Table */
-  .bux-main { padding: 10px; padding-top: 10px; }
+  .bux-main { padding: 10px; }
   .bux-table { font-size: 12px; }
   .bux-table thead th { padding: 8px 7px; font-size: 10px; }
-  .bux-table td { padding: 7px 7px; }
+  .bux-table td       { padding: 7px 7px; }
 }
 
-/* ── Mobile (≤600px) ── */
+/* ═══════════════════════════════════════════
+   RESPONSIVE — Mobile (≤600px)
+   Strategiya: jadval gorizontal scroll,
+   controls 2-qatorga, stats yig'ilib qoladi
+═══════════════════════════════════════════ */
 @media (max-width: 600px) {
-  /* Topbar */
+
+  /* ── Topbar ── */
   :root { --topbar-h: 48px; }
   .topbar { padding: 0 10px; gap: 6px; }
-  .topbar-brand { font-size: 11px; }
-  .admin-badge  { display: none; }
-  .btn-export-bux { padding: 5px 8px; font-size: 11px; }
-  .btn-logout     { padding: 5px 8px; font-size: 11px; }
+  .topbar-brand {
+    font-size: 11px;
+    /* "InnovateIT School — Buxgalter To'lovlar" juda uzun — qisqartiramiz */
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: calc(100vw - 150px);
+  }
+  .admin-badge    { display: none; }
+  .btn-export-bux { padding: 5px 9px; font-size: 11px; }
+  .btn-logout     { padding: 5px 9px; font-size: 11px; }
 
-  /* Controls bar — kichik ekranda wrap */
+  /* ── Controls bar — 2 qatorga ── */
   .ctrl-bar {
-    padding: 6px 10px;
+    padding: 7px 10px;
     gap: 6px;
+    flex-wrap: wrap;
     top: var(--topbar-h);
   }
-  .oy-nav      { flex-shrink: 0; }
-  .oy-label    { min-width: 90px; font-size: 12px; }
-  .oy-nav-btn  { width: 28px; height: 28px; font-size: 14px; }
-  .filter-select { font-size: 11px; padding: 5px 6px; flex: 1; min-width: 0; }
-  .search-input  { font-size: 11px; padding: 5px 8px; min-width: 0; flex: 1; }
-  .btn-init-oy   { font-size: 11px; padding: 5px 8px; width: 100%; text-align: center; }
+
+  /* 1-qator: oy navigatsiyasi + qidiruv */
+  .oy-nav     { flex-shrink: 0; }
+  .oy-label   { min-width: 88px; font-size: 12px; text-align: center; }
+  .oy-nav-btn { width: 28px; height: 28px; font-size: 14px; }
+  .search-input {
+    flex: 1; min-width: 0;
+    font-size: 11px; padding: 6px 9px;
+  }
+
+  /* 2-qator: selectlar va oyni boshlash */
+  .filter-select {
+    flex: 1; min-width: 0;
+    font-size: 11px; padding: 5px 6px;
+  }
+  .btn-init-oy {
+    width: 100%; text-align: center;
+    font-size: 11px; padding: 6px 10px;
+    order: 10; /* eng oxirga */
+  }
   .ctrl-spacer   { display: none; }
+  .hidden-cols-bar { order: 9; width: 100%; }
 
-  /* Stats bar — top JS tomonidan dinamik o'rnatiladi */
+  /* ── Stats bar — collapse qilinadi ── */
   .stats-bar {
-    padding: 5px 10px;
-    gap: 5px;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 7px 10px;
+    gap: 6px;
+    min-height: unset;
   }
-  .stat-card { padding: 4px 8px; gap: 5px; min-width: unset; }
+
+  /* Moliyaviy kartalar — uch yonma-yon, kichik */
+  .finance-section {
+    display: flex; gap: 5px;
+    justify-content: stretch;
+  }
+  .fin-card {
+    flex: 1; min-width: 0;
+    padding: 6px 8px;
+    border-radius: 7px;
+  }
+  .fin-label { font-size: 8.5px; letter-spacing: .04em; margin-bottom: 2px; }
+  .fin-val   { font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
   .stat-sep { display: none; }
-  .stats-bar { flex-direction: column; align-items: flex-start; gap: 6px; min-height: unset; padding: 8px 10px; }
-  .finance-section { gap: 4px; }
-  .fin-card { min-width: 90px; padding: 5px 8px; }
-  .fin-val { font-size: 11px; }
-  .fin-label { font-size: 9px; }
-  .filter-section { justify-content: flex-start; flex-wrap: wrap; gap: 4px; }
+
+  /* Filter tugmalar — scroll bo'lmasin, kichik 5 dona */
+  .filter-section {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    justify-content: flex-start;
+  }
+  .filter-section::-webkit-scrollbar { display: none; }
   .filter-label { display: none; }
-  .filter-btn { padding: 5px 8px; gap: 4px; }
-  .btn-count { font-size: 12px; }
-  .btn-text { font-size: 9px; }
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 5px 8px; gap: 4px;
+    border-radius: 7px;
+  }
+  .btn-icon   { width: 16px; height: 16px; border-radius: 4px; }
+  .btn-icon svg { width: 9px; height: 9px; }
+  .btn-count  { font-size: 11px; }
+  .btn-text   { font-size: 8px; }
 
-  /* Main margin — JS tomonidan dinamik o'rnatiladi */
+  /* ── Table wrapper — gorizontal scroll yoqiladi ── */
   .bux-main {
-    padding: 8px;
+    padding: 8px 0;          /* yon padding olib tashlanadi — jadval to'liq kenglikda */
+    padding-top: 8px;
   }
 
-  /* Table — JS kenglikni boshqaradi, overflow hidden qoladi */
-  .bux-table-wrap { overflow: hidden; }
-  .bux-table { font-size: 11px; }
-  /* mobile: topbar(48) + ctrl-bar(80) + stats-bar(48) = 176px */
-  .bux-table thead th { padding: 7px 6px; font-size: 9px; top: 176px; }
-  .bux-table td { padding: 6px 6px; }
-
-  /* Badges kichik */
-  .badge-toliq, .badge-qisman, .badge-qarzdor, .badge-empty {
-    font-size: 10px; padding: 1px 6px;
+  .bux-table-wrap {
+    overflow-x: auto;          /* gorizontal scroll */
+    overflow-y: clip;          /* visible o'rniga clip — sticky to'g'ri ishlaydi */
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0;          /* ekran chetiga yopishadi */
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+    /* scroll indicator — o'ngda yana content bor ekanini bildiradi */
+    background:
+      linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+      linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
+      radial-gradient(farthest-side at 0, rgba(0,0,0,.08), transparent) 0 0,
+      radial-gradient(farthest-side at 100%, rgba(0,0,0,.08), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-color: white;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
   }
-  .badge-ortiqcha { font-size: 9px; padding: 1px 4px; }
 
-  /* Kvitansiya tugma */
-  .kvit-upload-btn { font-size: 11px; padding: 4px 8px; }
+  /* Jadval fonti va padding */
+  .bux-table { font-size: 11px; min-width: 720px; }
+  .bux-table thead th {
+    padding: 8px 7px;
+    font-size: 9.5px;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+  .bux-table td {
+    padding: 7px 7px;
+    white-space: nowrap; /* mobilda qatorga sinmasin */
+    word-break: normal;
+  }
+
+  /* ── Sticky ustunlar: № va Familiya Ismi ──────────────────
+     MUHIM: background: inherit ishlamaydi — aniq rang kerak!
+     inherit sticky TD da transparentlik beradi va orqa qator
+     ko'rinib qoladi. Har holat uchun alohida rang yozamiz.
+  ── */
+
+  /* № ustuni — sticky, chap birinchi */
+  .col-num {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    min-width: 28px; width: 28px; font-size: 10px;
+    background: #ffffff;          /* asosiy qator rangi */
+  }
+
+  /* Ism ustuni — sticky, № dan keyin */
+  .col-name {
+    position: sticky;
+    left: 28px;                   /* col-num kengligiga teng */
+    z-index: 3;
+    background: #ffffff;          /* asosiy qator rangi */
+    box-shadow: 3px 0 6px rgba(0,0,0,.09);
+    max-width: 130px;
+    min-width: 100px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  .name-familiya { font-size: 12px; }
+  .name-ism      { font-size: 11px; }
+
+  /* Thead sticky */
+  .bux-table thead th.col-num {
+    position: sticky; left: 0; z-index: 5;
+    background: #1a7a6a;
+  }
+  .bux-table thead th.col-name {
+    position: sticky; left: 28px; z-index: 5;
+    background: #1a7a6a;
+    box-shadow: 3px 0 6px rgba(0,0,0,.18);
+  }
+
+  /* Oddiy oq qatorlar (rang yo'q) */
+  .bux-table tbody tr:not(.row-toliq):not(.row-qarzdor):not(.row-nofaol) td.col-num,
+  .bux-table tbody tr:not(.row-toliq):not(.row-qarzdor):not(.row-nofaol) td.col-name {
+    background: #ffffff;
+  }
+  /* To'liq to'lagan — yashil */
+  .row-toliq td.col-num,
+  .row-toliq td.col-name  { background: #bbf7d0; }
+  /* Qarzdor — sariq */
+  .row-qarzdor td.col-num,
+  .row-qarzdor td.col-name { background: #fde68a; }
+  /* Nofaol — qizil */
+  .row-nofaol td.col-num,
+  .row-nofaol td.col-name  { background: #fecaca; }
+
+  /* Kvitansiya ustuni */
+  .col-kvit { min-width: 80px; }
   .kvit-thumb { width: 32px; height: 32px; }
+  .kvit-drop-zone { min-width: 70px; padding: 5px 7px; }
+  .kvit-dz-label  { font-size: 9px; }
+
+  /* Badges */
+  .badge-toliq, .badge-qisman, .badge-qarzdor, .badge-empty {
+    font-size: 10px; padding: 2px 7px;
+  }
+  .badge-nofaol-row { font-size: 9px; padding: 1px 5px; }
+
+  /* Toast — pastda markazda */
+  .bux-toast {
+    bottom: 16px; right: 10px; left: 10px;
+    text-align: center;
+    font-size: 12px; padding: 9px 14px;
+  }
+
+  /* Context menu — mobilda pastdan chiqadi (bottom sheet) */
+  .kvit-ctx-menu {
+    position: fixed !important;
+    left: 0 !important; right: 0 !important;
+    bottom: 0 !important; top: auto !important;
+    width: 100% !important; min-width: unset;
+    border-radius: 16px 16px 0 0;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 24px rgba(0,0,0,.15);
+    animation: ctxSlideUp .2s ease !important;
+  }
+  @keyframes ctxSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .kvit-ctx-item {
+    padding: 13px 20px;
+    font-size: 14px;
+  }
+  .kvit-ctx-icon { font-size: 17px; width: 22px; }
+  /* Bottom sheet backdrop */
+  .kvit-ctx-menu::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: #d1d5db;
+    border-radius: 2px;
+    margin: 0 auto 8px;
+  }
 }
+
+/* ── Juda kichik (≤380px — iPhone SE, kichik telefonlar) ── */
+@media (max-width: 380px) {
+  .topbar-brand { max-width: calc(100vw - 130px); }
+  .btn-export-bux { font-size: 10px; padding: 5px 7px; }
+  .fin-val   { font-size: 10.5px; }
+  .fin-label { font-size: 8px; }
+  .bux-table { font-size: 10.5px; min-width: 680px; }
+  .bux-table thead th { padding: 7px 5px; font-size: 9px; }
+  .bux-table td       { padding: 6px 5px; }
+  .col-name  { max-width: 110px; min-width: 85px; left: 26px; overflow: visible; }
+  .name-familiya { font-size: 11px; }
+  .name-ism      { font-size: 10px; }
+}
+
 /* ── Paste-ready holati ── */
 .kvit-drop-zone.paste-ready {
   border-color: #f59e0b;
