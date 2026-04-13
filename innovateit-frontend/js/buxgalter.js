@@ -357,6 +357,19 @@ async function loadData() {
   }
 }
 
+function clearSearch() {
+  const inp = g('filter-search');
+  if (inp) { inp.value = ''; inp.focus(); }
+  updateSearchClear();
+  applyFilters();
+}
+function updateSearchClear() {
+  const inp = g('filter-search');
+  const btn = g('search-clear');
+  if (!inp || !btn) return;
+  btn.classList.toggle('visible', inp.value.length > 0);
+}
+
 function applyFilters() {
   const maktab     = g('filter-maktab').value;
   const sinf       = g('filter-sinf').value;

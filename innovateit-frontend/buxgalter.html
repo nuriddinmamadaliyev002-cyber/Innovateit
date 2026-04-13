@@ -83,8 +83,11 @@
     <select class="filter-select" id="filter-sinf" onchange="applyFilters()">
       <option value="">📚 Barcha sinflar</option>
     </select>
-    <input class="search-input" type="text" id="filter-search"
-      placeholder="🔍 Ism / telefon…" oninput="applyFilters()">
+    <div class="search-wrap">
+      <input class="search-input" type="text" id="filter-search"
+        placeholder="🔍 Ism / telefon…" oninput="applyFilters(); updateSearchClear()">
+      <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Tozalash">✕</button>
+    </div>
 
     <!-- Berkitilgan ustunlar chiplari -->
     <div class="hidden-cols-bar" id="hidden-cols-bar"></div>

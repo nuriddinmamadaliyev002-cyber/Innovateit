@@ -72,14 +72,36 @@
 }
 .filter-select:focus { border-color: var(--accent); }
 
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 180px;
+}
 .search-input {
-  padding: 7px 12px; border-radius: 8px;
+  padding: 7px 32px 7px 12px; border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--bg); font-size: 13px;
   font-family: inherit; color: var(--text);
-  outline: none; min-width: 180px;
+  outline: none; width: 100%;
 }
 .search-input:focus { border-color: var(--accent); }
+.search-clear {
+  position: absolute;
+  right: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: none;
+  transition: color .15s;
+}
+.search-clear:hover { color: #374151; }
+.search-clear.visible { display: block; }
 
 .btn-init-oy {
   padding: 7px 14px; border-radius: 8px; cursor: pointer;
@@ -757,7 +779,8 @@
   .ctrl-bar { padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
   .oy-label { min-width: 100px; font-size: 13px; }
   .filter-select { font-size: 12px; padding: 6px 8px; }
-  .search-input  { font-size: 12px; padding: 6px 10px; min-width: 140px; }
+  .search-input  { font-size: 12px; padding: 6px 30px 6px 10px; min-width: 140px; }
+  .search-wrap   { min-width: 140px; }
   .btn-init-oy   { font-size: 12px; padding: 6px 10px; }
 
   .stats-bar { padding: 8px 12px; min-height: 54px; }
@@ -805,9 +828,12 @@
   .oy-nav     { flex-shrink: 0; }
   .oy-label   { min-width: 88px; font-size: 12px; text-align: center; }
   .oy-nav-btn { width: 28px; height: 28px; font-size: 14px; }
+  .search-wrap {
+    flex: 1; min-width: 0;
+  }
   .search-input {
     flex: 1; min-width: 0;
-    font-size: 11px; padding: 6px 9px;
+    font-size: 11px; padding: 6px 30px 6px 9px;
   }
 
   /* 2-qator: selectlar va oyni boshlash */
