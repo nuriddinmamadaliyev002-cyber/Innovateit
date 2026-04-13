@@ -438,11 +438,12 @@ function renderTable() {
     const nofaolBadge = isNofaol
       ? `<span class="badge-nofaol-row" title="Chiqgan sana: ${s.chiqgan || '—'}">🚫 ${s.chiqgan || 'Nofaol'}</span> `
       : '';
-    const kvFayl = t?.kvitansiya_fayl || '';
+    const kvFaylRaw = t?.kvitansiya_fayl || '';
+    const kvFiles   = parseKvitFiles(kvFaylRaw);
 
     // Kvitansiya cell
-    const kvitCell = kvFayl
-      ? buildKvitPreview(kvFayl, i)
+    const kvitCell = kvFiles.length > 0
+      ? buildKvitPreview(kvFiles, i)
       : buildDropZone(i);
 
     return `<tr id="row-${i}" data-idx="${i}" ${rowClass ? `class="${rowClass}"` : ""}>
@@ -742,7 +743,7 @@ async function saveRow(idx) {
       tolov_kerak:      t.tolov_kerak       || 0,
       tolov_qildi:      t.tolov_qildi       || 0,
       tolov_sanasi:     t.tolov_sanasi      || '',
-      kvitansiya_fayl:  t.kvitansiya_fayl   || ''
+      kvitansiya_fayl:  parseKvitFiles(t.kvitansiya_fayl)
     });
     if (r.ok) showToast('✅ Saqlandi', 'success');
     else      showToast('❌ ' + r.error, 'error');
@@ -886,21 +887,30 @@ function showToast(msg, type = '') {
   toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2500);
 }
 
-// ─── Kvitansiya fayl yuklash (Drag & Drop + Click) ─
-function uploadKvit(idx) {
-  // Drop zona HTML ni render qilish
-  const cell = g(`kvit-cell-${idx}`);
-  if (!cell) return;
-  cell.innerHTML = buildDropZone(idx);
+// ─── Kvitansiya: ko'p fayl (multi-file) ────────────────────────────────────
+
+// DB da saqlangan qiymatni array ga parse qilish.
+// Eski format: "kvit.jpg"  → ["kvit.jpg"]
+// Yangi format: '["a.jpg","b.png"]' → ["a.jpg","b.png"]
+function parseKvitFiles(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter(Boolean);
+  } catch {}
+  if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
+  return [];
 }
 
+// Drop zona (fayl yo'q bo'lganda ko'rinadigan zona)
 function buildDropZone(idx) {
   return `<div class="kvit-drop-zone" id="kvit-dz-${idx}"
     ondragover="kvitDragOver(event,${idx})"
     ondragleave="kvitDragLeave(event,${idx})"
     ondrop="kvitDrop(event,${idx})"
     onclick="kvitDzClick(event,${idx})">
-    <input type="file" accept="image/*,.pdf"
+    <input type="file" accept="image/*,.pdf" multiple
       id="kvit-file-inp-${idx}"
       onchange="kvitFileSelected(event,${idx})">
     <span class="kvit-dz-icon">📎</span>
@@ -908,42 +918,88 @@ function buildDropZone(idx) {
   </div>`;
 }
 
-// Drop zona bosilganda: agar clipboard da rasm bo'lsa — uni ol, bo'lmasa file dialog och
-async function kvitDzClick(e, idx) {
-  // Input o'zi ichida — uni bloklaymiz, quyida o'zimiz boshqaramiz
-  if (e.target.tagName === 'INPUT') return;
-  e.preventDefault();
-  e.stopPropagation();
+// Yuklangan fayllar preview (bir yoki ko'p)
+function buildKvitPreview(files, idx) {
+  const arr = Array.isArray(files) ? files : parseKvitFiles(files);
+  if (arr.length === 0) return buildDropZone(idx);
 
-  // Paste rejimi faol bo'lsa — pasteClickHandler o'zi hal qiladi, bu yerda to'xtatamiz
+  const items = arr.map((filename, fi) => {
+    const url   = `${BASE}/uploads/${filename}`;
+    const isImg = /\.(jpe?g|png|gif|webp|bmp)$/i.test(filename);
+    const isPdf = /\.pdf$/i.test(filename);
+    const thumb = isImg
+      ? `<img src="${url}" class="kvit-thumb"
+            onclick="openKvit('${filename}',event)"
+            oncontextmenu="kvitContextMenu(event,${idx},${fi})"
+            title="Ko'rish | O'ng klik — amallar">`
+      : `<span class="kvit-file-icon"
+            onclick="openKvit('${filename}',event)"
+            oncontextmenu="kvitContextMenu(event,${idx},${fi})"
+            title="Ko'rish | O'ng klik — amallar">${isPdf ? '📄' : '📎'}</span>`;
+    return `<div class="kvit-item">${thumb}</div>`;
+  }).join('');
+
+  return `<div class="kvit-multi" id="kvit-multi-${idx}">
+    ${items}
+    <input type="file" accept="image/*,.pdf" multiple
+      id="kvit-add-inp-${idx}" style="display:none"
+      onchange="kvitAddFileSelected(event,${idx})">
+  </div>`;
+}
+
+// "+" tugmasi bosilganda yoki clipboard tekshirish
+async function kvitAddClick(e, idx) {
+  if (e.target.tagName === 'INPUT') return;
+  e.preventDefault(); e.stopPropagation();
   if (_pasteActive) return;
 
-  // Clipboard API — rasm bor bo'lsa canvas orqali PNG ga o'tkazib upload
   if (navigator.clipboard && navigator.clipboard.read) {
     try {
       const clipItems = await navigator.clipboard.read();
-      for (const clipItem of clipItems) {
-        const imgType = clipItem.types.find(t => t === 'image/png')
-                     || clipItem.types.find(t => t.startsWith('image/'));
+      for (const ci of clipItems) {
+        const imgType = ci.types.find(t => t === 'image/png') || ci.types.find(t => t.startsWith('image/'));
         if (imgType) {
-          const rawBlob = await clipItem.getType(imgType);
-          const file    = await blobToCleanPng(rawBlob);
+          const rawBlob = await ci.getType(imgType);
+          const file = await blobToCleanPng(rawBlob);
           if (file) { await doUploadFile(file, idx); return; }
         }
       }
-    } catch(err) {
-      // Ruxsat yo'q yoki rasm yo'q — file dialog ochamiz
-    }
+    } catch {}
   }
+  const inp = document.getElementById(`kvit-add-inp-${idx}`);
+  if (inp) inp.click();
+}
 
-  // Clipboard rasm yo'q — oddiy file dialog
+function kvitAddFileSelected(e, idx) {
+  const files = Array.from(e.target?.files || []);
+  if (files.length) doUploadFiles(files, idx);
+}
+
+// Drop zona bosilganda: clipboard tekshir, bo'lmasa file dialog
+async function kvitDzClick(e, idx) {
+  if (e.target.tagName === 'INPUT') return;
+  e.preventDefault(); e.stopPropagation();
+  if (_pasteActive) return;
+
+  if (navigator.clipboard && navigator.clipboard.read) {
+    try {
+      const clipItems = await navigator.clipboard.read();
+      for (const ci of clipItems) {
+        const imgType = ci.types.find(t => t === 'image/png') || ci.types.find(t => t.startsWith('image/'));
+        if (imgType) {
+          const rawBlob = await ci.getType(imgType);
+          const file = await blobToCleanPng(rawBlob);
+          if (file) { await doUploadFile(file, idx); return; }
+        }
+      }
+    } catch {}
+  }
   const inp = document.getElementById(`kvit-file-inp-${idx}`);
   if (inp) inp.click();
 }
 
 function kvitDragOver(e, idx) {
-  e.preventDefault();
-  e.stopPropagation();
+  e.preventDefault(); e.stopPropagation();
   const dz = g(`kvit-dz-${idx}`);
   if (dz) dz.classList.add('drag-over');
 }
@@ -954,45 +1010,28 @@ function kvitDragLeave(e, idx) {
 }
 
 async function kvitDrop(e, idx) {
-  e.preventDefault();
-  e.stopPropagation();
+  e.preventDefault(); e.stopPropagation();
   const dz = g(`kvit-dz-${idx}`);
   if (dz) dz.classList.remove('drag-over');
 
   const dt = e.dataTransfer;
 
-  // ── Debug: console da nima borligini ko'ramiz ──
-  console.log('[kvitDrop] files:', dt?.files?.length, '| items:', dt?.items?.length, '| types:', dt?.types);
-  if (dt?.items) {
-    Array.from(dt.items).forEach((it, i) => console.log(`  item[${i}]: kind=${it.kind} type=${it.type}`));
-  }
-
-  // 1-usul: files array (file manager, Windows Explorer, ba'zi Telegram versiyalar)
+  // 1-usul: files array
   if (dt?.files?.length > 0) {
-    const file = dt.files[0];
-    console.log('[kvitDrop] file:', file.name, file.type, file.size);
-    doUploadFile(file, idx);
+    doUploadFiles(Array.from(dt.files), idx);
     return;
   }
 
-  // 2-usul: items dan getAsFile() — Telegram ba'zida items'da beradi, files'da emas
+  // 2-usul: items dan getAsFile()
   if (dt?.items) {
-    for (const item of Array.from(dt.items)) {
-      if (item.kind === 'file') {
-        const file = item.getAsFile();
-        if (file && file.size > 0) {
-          console.log('[kvitDrop] item file:', file.name, file.type, file.size);
-          doUploadFile(file, idx);
-          return;
-        }
-      }
-    }
+    const fileItems = Array.from(dt.items).filter(it => it.kind === 'file');
+    const files = fileItems.map(it => it.getAsFile()).filter(f => f && f.size > 0);
+    if (files.length) { doUploadFiles(files, idx); return; }
   }
 
-  // 3-usul: text/html ichidan <img src> (Telegram ayrim versiyalar)
+  // 3-usul: text/html ichidan <img src>
   const html = dt?.getData('text/html') || '';
   if (html) {
-    console.log('[kvitDrop] html:', html.slice(0, 200));
     const imgMatch = html.match(/src=["']([^"']+)["']/i);
     if (imgMatch) {
       const src = imgMatch[1];
@@ -1002,104 +1041,214 @@ async function kvitDrop(e, idx) {
           const mime  = meta.split(':')[1].split(';')[0];
           const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
           const blob  = new Blob([bytes], { type: mime });
-          doUploadFile(new File([blob], 'kvit.png', { type: mime }), idx);
+          doUploadFiles([new File([blob], 'kvit.png', { type: mime })], idx);
           return;
-        } catch(err) { console.warn('base64 parse error', err); }
+        } catch {}
       }
       if (src.startsWith('http')) {
         try {
           showToast('⏳ Rasm yuklanmoqda…');
-          const resp = await fetch(src);
-          const blob = await resp.blob();
-          doUploadFile(new File([blob], 'kvit.png', { type: blob.type || 'image/png' }), idx);
+          const blob = await (await fetch(src)).blob();
+          doUploadFiles([new File([blob], 'kvit.png', { type: blob.type || 'image/png' })], idx);
           return;
-        } catch(err) { console.warn('fetch error', err); }
+        } catch {}
       }
     }
   }
 
-  // 4-usul: text/uri-list (ba'zi ilovalar image URL beradi)
+  // 4-usul: uri-list
   const uri = dt?.getData('text/uri-list') || '';
   if (uri && uri.startsWith('http')) {
     try {
-      console.log('[kvitDrop] uri:', uri);
       showToast('⏳ Rasm yuklanmoqda…');
-      const resp = await fetch(uri);
-      const blob = await resp.blob();
+      const blob = await (await fetch(uri)).blob();
       if (blob.type.startsWith('image/')) {
-        doUploadFile(new File([blob], 'kvit.png', { type: blob.type }), idx);
+        doUploadFiles([new File([blob], 'kvit.png', { type: blob.type })], idx);
         return;
       }
-    } catch(err) { console.warn('uri fetch error', err); }
+    } catch {}
   }
 
-  console.warn('[kvitDrop] Hech narsa topilmadi. types:', dt?.types, 'html len:', html.length);
   showToast('❌ Faylni topa olmadi — iltimos Ctrl+V yoki "Yuklash" tugmasini ishlating', 'error');
 }
 
 function kvitFileSelected(e, idx) {
-  const file = e.target?.files?.[0];
-  if (file) doUploadFile(file, idx);
+  const files = Array.from(e.target?.files || []);
+  if (files.length) doUploadFiles(files, idx);
 }
 
+// Bitta fayl yuklash (paste, clipboard uchun)
 async function doUploadFile(file, idx) {
-  if (!file || file.size === 0) {
-    showToast('❌ Fayl bo\'sh yoki o\'qib bo\'lmadi', 'error');
+  return doUploadFiles([file], idx);
+}
+
+// Ko'p fayl yuklash — asosiy funksiya
+async function doUploadFiles(newFiles, idx) {
+  if (!newFiles || newFiles.length === 0) return;
+
+  const tooBig = newFiles.find(f => f.size > 5 * 1024 * 1024);
+  if (tooBig) { showToast(`❌ "${tooBig.name}" — 5MB dan katta`, 'error'); return; }
+
+  const cell = g(`kvit-cell-${idx}`);
+  if (cell) cell.innerHTML = `<span class="kvit-uploading">⏳ Yuklanmoqda…</span>`;
+  showToast('⏳ Yuklanmoqda…');
+
+  const uploaded = [];
+  for (const file of newFiles) {
+    if (!file || file.size === 0) continue;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const r = await fetch(`${BASE}/upload`, { method: 'POST', body: fd });
+      const d = await r.json();
+      if (d.ok) uploaded.push(d.filename);
+      else showToast('❌ ' + d.error, 'error');
+    } catch { showToast('❌ Yuklashda xatolik', 'error'); }
+  }
+
+  if (uploaded.length === 0) {
+    if (cell) cell.innerHTML = buildDropZone(idx);
     return;
   }
+
+  if (!FILTERED[idx].tolov) FILTERED[idx].tolov = {};
+  const existing = parseKvitFiles(FILTERED[idx].tolov.kvitansiya_fayl);
+  FILTERED[idx].tolov.kvitansiya_fayl = [...existing, ...uploaded];
+  await saveRow(idx);
+  if (cell) cell.innerHTML = buildKvitPreview(FILTERED[idx].tolov.kvitansiya_fayl, idx);
+  showToast(`✅ ${uploaded.length} ta fayl yuklandi`, 'success');
+}
+
+// Bitta faylni o'chirish (index bo'yicha)
+// ─── Context Menu (o'ng klik) ────────────────
+let _ctxIdx     = -1;
+let _ctxFileIdx = -1;
+
+function kvitContextMenu(e, idx, fileIdx) {
+  e.preventDefault();
+  e.stopPropagation();
+  _ctxIdx     = idx;
+  _ctxFileIdx = fileIdx;
+
+  const menu = g('kvit-ctx-menu');
+  if (!menu) return;
+
+  const mw = 210, mh = 115;
+  let x = e.clientX, y = e.clientY;
+  if (x + mw > window.innerWidth)  x = window.innerWidth  - mw - 8;
+  if (y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
+
+  menu.style.left    = x + 'px';
+  menu.style.top     = y + 'px';
+  menu.style.display = 'block';
+
+  setTimeout(() => document.addEventListener('click', closeKvitCtxMenu, { once: true }), 0);
+}
+
+function closeKvitCtxMenu() {
+  const menu = g('kvit-ctx-menu');
+  if (menu) menu.style.display = 'none';
+}
+
+// Context menu: "O'chirish"
+function ctxDeleteKvit() {
+  closeKvitCtxMenu();
+  if (_ctxIdx < 0) return;
+  deleteOneKvit(_ctxIdx, _ctxFileIdx, { stopPropagation: () => {} });
+}
+
+// Context menu: "Almashtirish"
+function ctxReplaceKvit() {
+  closeKvitCtxMenu();
+  if (_ctxIdx < 0) return;
+  let inp = g('kvit-replace-inp');
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type   = 'file';
+    inp.accept = 'image/*,.pdf';
+    inp.id     = 'kvit-replace-inp';
+    inp.style.display = 'none';
+    document.body.appendChild(inp);
+  }
+  inp.onchange = null;
+  inp.value    = '';
+  const capturedIdx     = _ctxIdx;
+  const capturedFileIdx = _ctxFileIdx;
+  inp.onchange = (e) => replaceOneKvit(capturedIdx, capturedFileIdx, e);
+  inp.click();
+}
+
+// Context menu: "Yangi qo'shish"
+function ctxAddKvit() {
+  closeKvitCtxMenu();
+  if (_ctxIdx < 0) return;
+  const inp = g(`kvit-add-inp-${_ctxIdx}`);
+  if (inp) inp.click();
+}
+
+// Mavjud faylni yangisiga almashtirish
+async function replaceOneKvit(idx, fileIdx, e) {
+  const file = e.target?.files?.[0];
+  if (!file) return;
   if (file.size > 5 * 1024 * 1024) {
     showToast('❌ Fayl 5MB dan katta bo\'lmasin', 'error');
     return;
   }
-  const cell = g(`kvit-cell-${idx}`);
-  if (cell) cell.innerHTML = `<span class="kvit-uploading">⏳</span>`;
+
+  const tolov   = FILTERED[idx]?.tolov;
+  const files   = parseKvitFiles(tolov?.kvitansiya_fayl);
+  const oldFayl = files[fileIdx];
+
   showToast('⏳ Yuklanmoqda…');
-
-  const formData = new FormData();
-  formData.append('file', file);
-
+  const fd = new FormData();
+  fd.append('file', file);
   try {
-    const r    = await fetch(`${BASE}/upload`, { method: 'POST', body: formData });
-    const data = await r.json();
-    if (data.ok) {
-      if (!FILTERED[idx].tolov) FILTERED[idx].tolov = {};
-      FILTERED[idx].tolov.kvitansiya_fayl = data.filename;
-      await saveRow(idx);
-      if (cell) cell.innerHTML = buildKvitPreview(data.filename, idx);
-    } else {
-      showToast('❌ ' + data.error, 'error');
-      if (cell) cell.innerHTML = buildDropZone(idx);
-    }
-  } catch(err) {
-    showToast('❌ Yuklashda xatolik', 'error');
-    if (cell) cell.innerHTML = buildDropZone(idx);
-  }
+    const r = await fetch(`${BASE}/upload`, { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!d.ok) { showToast('❌ ' + d.error, 'error'); return; }
+
+    if (oldFayl) try { await fetch(`${BASE}/upload/${oldFayl}`, { method: 'DELETE' }); } catch {}
+
+    files[fileIdx] = d.filename;
+    FILTERED[idx].tolov.kvitansiya_fayl = files;
+    await saveRow(idx);
+    const cell = g(`kvit-cell-${idx}`);
+    if (cell) cell.innerHTML = buildKvitPreview(files, idx);
+    showToast('✅ Almashtirildi', 'success');
+  } catch { showToast('❌ Xatolik', 'error'); }
 }
 
-function buildKvitPreview(filename, idx) {
-  const url    = `${BASE}/uploads/${filename}`;
-  const isImg  = /\.(jpe?g|png|gif|webp|bmp)$/i.test(filename);
-  const isPdf  = /\.pdf$/i.test(filename);
-  const thumb  = isImg
-    ? `<img src="${url}" class="kvit-thumb" onclick="openKvit('${filename}',event)" title="Ko'rish">`
-    : `<span class="kvit-file-icon" onclick="openKvit('${filename}',event)" title="Ko'rish">${isPdf ? '📄' : '📎'}</span>`;
-  return `<div class="kvit-uploaded">
-    ${thumb}
-    <button class="kvit-del" onclick="deleteKvit(${idx},event)" title="O'chirish">✕</button>
-  </div>`;
-}
-
-async function deleteKvit(idx, e) {
+async function deleteOneKvit(idx, fileIdx, e) {
   e.stopPropagation();
-  if (!confirm('Kvitansiya faylini o\'chirasizmi?')) return;
+  if (!confirm("Bu kvitansiya rasmini o'chirasizmi?")) return;
 
   const tolov = FILTERED[idx]?.tolov;
-  const fayl  = tolov?.kvitansiya_fayl;
+  const files = parseKvitFiles(tolov?.kvitansiya_fayl);
+  const fayl  = files[fileIdx];
   if (!fayl) return;
 
   try { await fetch(`${BASE}/upload/${fayl}`, { method: 'DELETE' }); } catch {}
 
-  FILTERED[idx].tolov.kvitansiya_fayl = '';
+  files.splice(fileIdx, 1);
+  FILTERED[idx].tolov.kvitansiya_fayl = files;
+  await saveRow(idx);
+
+  const cell = g(`kvit-cell-${idx}`);
+  if (cell) cell.innerHTML = files.length > 0 ? buildKvitPreview(files, idx) : buildDropZone(idx);
+  showToast('🗑️ O\'chirildi');
+}
+
+// Barcha fayllarni o'chirish (eski deleteKvit — backward compat)
+async function deleteKvit(idx, e) {
+  e.stopPropagation();
+  if (!confirm("Barcha kvitansiya fayllarini o'chirasizmi?")) return;
+
+  const tolov = FILTERED[idx]?.tolov;
+  const files = parseKvitFiles(tolov?.kvitansiya_fayl);
+  for (const fayl of files) {
+    try { await fetch(`${BASE}/upload/${fayl}`, { method: 'DELETE' }); } catch {}
+  }
+  FILTERED[idx].tolov.kvitansiya_fayl = [];
   await saveRow(idx);
 
   const cell = g(`kvit-cell-${idx}`);
@@ -1107,26 +1256,42 @@ async function deleteKvit(idx, e) {
   showToast('🗑️ O\'chirildi');
 }
 
-// ─── In-page Lightbox ────────────────────────────
+// Lightbox — ko'p fayllarda navigatsiya
+let _lbFiles = [];
+let _lbIdx   = 0;
+
 function openKvit(filename, e) {
   e.stopPropagation();
-  const url   = `${BASE}/uploads/${filename}`;
-  const isImg = /\.(jpe?g|png|gif|webp|bmp)$/i.test(filename);
-  const isPdf = /\.pdf$/i.test(filename);
+  // Qaysi qatordagi fayllar ichida?
+  const row = e.target.closest('tr');
+  const rowIdx = parseInt(row?.dataset?.idx ?? '-1');
+  const allFiles = rowIdx >= 0
+    ? parseKvitFiles(FILTERED[rowIdx]?.tolov?.kvitansiya_fayl)
+    : [filename];
 
+  _lbFiles = allFiles.length > 0 ? allFiles : [filename];
+  _lbIdx   = _lbFiles.indexOf(filename);
+  if (_lbIdx < 0) _lbIdx = 0;
+  renderLightbox();
+}
+
+function renderLightbox() {
   const lb    = g('kvit-lightbox');
   const inner = g('kvit-lb-inner');
   const name  = g('kvit-lb-name');
   if (!lb || !inner) return;
 
-  // Eski content tozalash
+  const filename = _lbFiles[_lbIdx];
+  const url   = `${BASE}/uploads/${filename}`;
+  const isImg = /\.(jpe?g|png|gif|webp|bmp)$/i.test(filename);
+  const isPdf = /\.pdf$/i.test(filename);
+
   inner.querySelectorAll('img,iframe').forEach(el => el.remove());
-  name.textContent = filename;
+  name.textContent = `${filename}  (${_lbIdx + 1} / ${_lbFiles.length})`;
 
   if (isImg) {
     const img = document.createElement('img');
-    img.src = url;
-    img.alt = filename;
+    img.src = url; img.alt = filename;
     inner.insertBefore(img, name);
   } else if (isPdf) {
     const fr = document.createElement('iframe');
@@ -1134,10 +1299,44 @@ function openKvit(filename, e) {
     inner.insertBefore(fr, name);
   }
 
+  // Navigatsiya tugmalari
+  let nav = g('kvit-lb-nav');
+  if (!nav) {
+    nav = document.createElement('div');
+    nav.id = 'kvit-lb-nav';
+    nav.className = 'kvit-lb-nav';
+    inner.appendChild(nav);
+  }
+  if (_lbFiles.length > 1) {
+    nav.innerHTML = `
+      <button class="kvit-lb-arrow" onclick="lbPrev()" title="Oldingi">&#8592;</button>
+      <button class="kvit-lb-arrow" onclick="lbNext()" title="Keyingi">&#8594;</button>`;
+    nav.style.display = 'flex';
+  } else {
+    nav.style.display = 'none';
+  }
+
   lb.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
+function lbPrev() {
+  if (_lbFiles.length < 2) return;
+  _lbIdx = (_lbIdx - 1 + _lbFiles.length) % _lbFiles.length;
+  renderLightbox();
+}
+
+function lbNext() {
+  if (_lbFiles.length < 2) return;
+  _lbIdx = (_lbIdx + 1) % _lbFiles.length;
+  renderLightbox();
+}
+
+function uploadKvit(idx) {
+  const cell = g(`kvit-cell-${idx}`);
+  if (!cell) return;
+  cell.innerHTML = buildDropZone(idx);
+}
 function kvitLbClose(e) {
   if (e && e.target && e.target.id !== 'kvit-lightbox' && !e.target.closest('#kvit-lb-close')) return;
   const lb = g('kvit-lightbox');
@@ -1147,6 +1346,8 @@ function kvitLbClose(e) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') kvitLbClose({ target: { id: 'kvit-lightbox' } });
+  if (e.key === 'ArrowLeft')  lbPrev();
+  if (e.key === 'ArrowRight') lbNext();
 
   // Delete / Backspace — tanlangan yacheykani tozalash
   if ((e.key === 'Delete' || e.key === 'Backspace') && selectedCell && !activeEdit) {
@@ -1212,8 +1413,21 @@ window.toggleCol      = toggleCol;
 window.kvitDragOver   = kvitDragOver;
 window.kvitDragLeave  = kvitDragLeave;
 window.kvitDrop       = kvitDrop;
-window.kvitFileSelected = kvitFileSelected;
-window.kvitLbClose    = kvitLbClose;
+window.kvitFileSelected  = kvitFileSelected;
+window.kvitAddFileSelected = kvitAddFileSelected;
+window.kvitDzClick     = kvitDzClick;
+window.kvitAddClick    = kvitAddClick;
+window.kvitLbClose     = kvitLbClose;
+window.deleteOneKvit   = deleteOneKvit;
+window.replaceOneKvit  = replaceOneKvit;
+window.kvitContextMenu = kvitContextMenu;
+window.ctxDeleteKvit   = ctxDeleteKvit;
+window.ctxReplaceKvit  = ctxReplaceKvit;
+window.ctxAddKvit      = ctxAddKvit;
+window.closeKvitCtxMenu = closeKvitCtxMenu;
+window.lbPrev          = lbPrev;
+window.lbNext          = lbNext;
+window.parseKvitFiles  = parseKvitFiles;
 // ─── Ctrl+V paste → kvitansiya yuklash ──────────
 // Telegram Windows'da CF_DIB (raw BMP data) clipboard'ga qo'yadi.
 // e.clipboardData.getAsFile() raw bytes qaytaradi — server saqlaydi lekin brauzer ocholmaydi.
@@ -1289,17 +1503,18 @@ async function blobToCleanPng(blob) {
 
 async function handlePasteFile(file) {
   if (!file) return;
-  const dropZones = document.querySelectorAll('.kvit-drop-zone');
-  if (dropZones.length === 0) {
-    showToast('❌ Yuklash uchun kvitansiya katakchasi kerak', 'error');
+  const dropZones  = document.querySelectorAll('.kvit-drop-zone');
+  const allTargets = [...dropZones];
+  if (allTargets.length === 0) {
+    showToast('\u274c Yuklash uchun kvitansiya katakchasi kerak', 'error');
     return;
   }
-  if (dropZones.length === 1) {
-    const row = dropZones[0].closest('tr');
+  if (allTargets.length === 1) {
+    const row = allTargets[0].closest('tr');
     const idx = parseInt(row?.dataset?.idx ?? '-1');
     if (idx < 0) return;
-    showToast('📋 Rasm yuklanmoqda...');
-    await doUploadFile(file, idx);
+    showToast('\ud83d\udccb Rasm yuklanmoqda...');
+    await doUploadFiles([file], idx);
   } else {
     showPasteHint(file);
   }
@@ -1315,6 +1530,7 @@ function showPasteHint(file) {
 
   showToast('Rasm tayyor — qaysi qatorga yuklashni bosing');
 
+  // Drop zonalar va '+' tugmalarini paste-ready qilish
   document.querySelectorAll('.kvit-drop-zone').forEach(dz => {
     dz.classList.add('paste-ready');
     dz.addEventListener('click', pasteClickHandler, { once: true });
@@ -1329,7 +1545,7 @@ async function pasteClickHandler(e) {
   const idx = parseInt(row?.dataset?.idx ?? '-1');
   const fileToUpload = _pasteFile;   // cancelPasteHint dan OLDIN saqlab olamiz
   cancelPasteHint();
-  if (idx >= 0 && fileToUpload) await doUploadFile(fileToUpload, idx);
+  if (idx >= 0 && fileToUpload) await doUploadFiles([fileToUpload], idx);
 }
 
 function cancelPasteHint(e) {
@@ -1344,4 +1560,3 @@ function cancelPasteHint(e) {
 
 window.showPasteHint  = showPasteHint;
 window.cancelPasteHint = cancelPasteHint;
-window.kvitDzClick     = kvitDzClick;

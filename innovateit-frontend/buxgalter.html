@@ -207,6 +207,20 @@
 <!-- Toast -->
 <div class="bux-toast" id="bux-toast"></div>
 
+<!-- ── Kvitansiya Context Menu ── -->
+<div id="kvit-ctx-menu" class="kvit-ctx-menu" style="display:none">
+  <button class="kvit-ctx-item kvit-ctx-replace" onclick="ctxReplaceKvit()">
+    <span class="kvit-ctx-icon">🔄</span> Kvitansiya faylini almashtirish
+  </button>
+  <button class="kvit-ctx-item kvit-ctx-add" onclick="ctxAddKvit()">
+    <span class="kvit-ctx-icon">➕</span> Yangi kvitansiya fayli qo'shish
+  </button>
+  <div class="kvit-ctx-divider"></div>
+  <button class="kvit-ctx-item kvit-ctx-delete" onclick="ctxDeleteKvit()">
+    <span class="kvit-ctx-icon">🗑️</span>Ushbu kvitansiya faylini o'chirish
+  </button>
+</div>
+
 <!-- ── In-page Kvitansiya Lightbox ── -->
 <div id="kvit-lightbox" onclick="kvitLbClose(event)">
   <div id="kvit-lb-inner">

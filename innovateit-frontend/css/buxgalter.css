@@ -346,7 +346,7 @@
 .col-qildi  { text-align: right; }
 .col-holat  { }
 .col-sana   { }
-.col-kvit   { text-align: center; }
+.col-kvit   { text-align: center; min-width: 110px; }
 
 /* ── Kvitansiya ustuni — o'ng tomondan ajralib ko'rinadigan chegara ── */
 .bux-table thead th.col-kvit {
@@ -572,16 +572,66 @@
   font-size: 20px; cursor: pointer; flex-shrink: 0;
 }
 
+/* \u2500\u2500 Ko'p fayl (multi-file) preview \u2500\u2500 */
+.kvit-multi {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  align-items: center; justify-content: center;
+  padding: 3px;
+}
+.kvit-item {
+  position: relative; display: flex;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+  cursor: context-menu;
+}
+/* ── O'ng klik context menu ── */
+.kvit-ctx-menu {
+  position: fixed; z-index: 10000;
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18), 0 1.5px 6px rgba(0,0,0,.10);
+  border: 1px solid #e5e7eb;
+  padding: 5px 0; min-width: 210px;
+  font-family: inherit; font-size: 13px;
+  animation: ctxFadeIn .12s ease;
+}
+@keyframes ctxFadeIn {
+  from { opacity: 0; transform: scale(.96) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)  translateY(0); }
+}
+.kvit-ctx-item {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 9px 16px;
+  background: none; border: none;
+  cursor: pointer; text-align: left;
+  color: #1f2937; font-size: 13px; font-family: inherit;
+  transition: background .1s;
+}
+.kvit-ctx-item:hover { background: #f3f4f6; }
+.kvit-ctx-icon { font-size: 15px; width: 18px; text-align: center; }
+.kvit-ctx-replace:hover { background: #eff6ff; color: #1d4ed8; }
+.kvit-ctx-add:hover     { background: #f0fdf4; color: #15803d; }
+.kvit-ctx-delete        { color: #dc2626; }
+.kvit-ctx-delete:hover  { background: #fef2f2; }
+.kvit-ctx-divider {
+  height: 1px; background: #e5e7eb; margin: 4px 0;
+}
+
+/* kvit-add-btn olib tashlandi — o'ng klik menyu orqali yangi rasm qo'shiladi */
+/* Eski .kvit-uploaded (mos kelish uchun) */
 .kvit-uploaded {
   display: flex; align-items: center; gap: 6px;
   justify-content: center;
 }
 .kvit-thumb {
-  width: 40px; height: 40px; object-fit: cover;
+  width: 38px; height: 38px; object-fit: cover;
   border-radius: 6px; border: 1.5px solid #d1fae5;
-  cursor: zoom-in; transition: opacity .15s, transform .15s;
+  cursor: zoom-in; transition: opacity .15s, transform .15s, box-shadow .15s;
+  display: block;
 }
-.kvit-thumb:hover { opacity: .8; transform: scale(1.06); }
+.kvit-thumb:hover {
+  opacity: .9; transform: scale(1.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
 
 .kvit-del {
   width: 22px; height: 22px; border-radius: 50%;
@@ -591,6 +641,22 @@
   transition: background .15s; flex-shrink: 0;
 }
 .kvit-del:hover { background: #fecaca; }
+
+/* Lightbox navigatsiya */
+.kvit-lb-nav {
+  display: flex; gap: 16px; justify-content: center;
+  margin-top: 6px;
+}
+.kvit-lb-arrow {
+  background: rgba(255,255,255,.18);
+  border: 1.5px solid rgba(255,255,255,.3);
+  color: #fff; font-size: 20px;
+  width: 42px; height: 42px; border-radius: 50%;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.kvit-lb-arrow:hover { background: rgba(255,255,255,.32); }
 
 /* ── In-page Lightbox ── */
 #kvit-lightbox {

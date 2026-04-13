@@ -65,6 +65,28 @@ router.get('/tolovlar', requireAuth(['admin','buxgalter']), async (req, res) => 
   res.json({ ok: true, tolovlar: result.rows });
 });
 
+// kvitansiya_fayl ni normalize qilish:
+// Eski format: "fayl.jpg" (string) → yangi format: ["fayl.jpg","fayl2.png"] (JSON array)
+// DB da TEXT saqlanadi, ichida JSON array yoziladi.
+function normalizeKvitFiles(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    if (typeof parsed === 'string' && parsed) return [parsed];
+  } catch {}
+  // Eski string format (bitta fayl nomi)
+  if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
+  return [];
+}
+
+function serializeKvitFiles(files) {
+  const arr = (Array.isArray(files) ? files : []).filter(Boolean);
+  if (arr.length === 0) return '';
+  return JSON.stringify(arr);
+}
+
 // POST /api/buxgalter/tolovlar
 router.post('/tolovlar', requireAuth(['admin','buxgalter']), async (req, res) => {
   const p = req.body;
@@ -72,6 +94,9 @@ router.post('/tolovlar', requireAuth(['admin','buxgalter']), async (req, res) =>
 
   const oy = p.oy, ism = (p.oquvchi_ism||'').trim(), familiya = (p.oquvchi_familiya||'').trim(), adminU = (p.admin_username||'').trim();
   if (!oy || !ism || !familiya) return res.status(400).json({ ok: false, error: 'Majburiy maydonlar yetishmaydi' });
+
+  // kvitansiya_fayl: array yoki string qabul qilib, JSON array sifatida saqlash
+  const kvFiles = serializeKvitFiles(normalizeKvitFiles(p.kvitansiya_fayl));
 
   try {
     await pool.query(
@@ -84,7 +109,7 @@ router.post('/tolovlar', requireAuth(['admin','buxgalter']), async (req, res) =>
       [oy, ism, familiya, p.maktab||'', p.sinf||'', p.telefon||'', adminU,
        parseInt(p.tarif)||0, p.qaydnoma||'', p.gaplashilgan_vaqt||'',
        parseInt(p.tolov_kerak)||0, parseInt(p.tolov_qildi)||0,
-       p.tolov_sanasi||'', p.kvitansiya_fayl||'', todayUZ()]
+       p.tolov_sanasi||'', kvFiles, todayUZ()]
     );
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ ok: false, error: 'DB xatoligi: ' + err.message }); }
